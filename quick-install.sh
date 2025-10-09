@@ -108,13 +108,16 @@ cd "$TEMP_DIR"
 # Download release
 print_info "Downloading Triad Generator v$VERSION..."
 
+# Use version-specific filename to match checksum file
+TARBALL_NAME="triad-generator-v${VERSION}.tar.gz"
+
 if [ -n "$DOWNLOAD_OUTPUT_FLAG" ]; then
-    $DOWNLOAD_CMD $DOWNLOAD_OUTPUT_FLAG "triad-generator.tar.gz" "$DOWNLOAD_URL" || {
+    $DOWNLOAD_CMD $DOWNLOAD_OUTPUT_FLAG "$TARBALL_NAME" "$DOWNLOAD_URL" || {
         print_error "Download failed"
         exit 1
     }
 else
-    $DOWNLOAD_CMD "triad-generator.tar.gz" "$DOWNLOAD_URL" || {
+    $DOWNLOAD_CMD "$TARBALL_NAME" "$DOWNLOAD_URL" || {
         print_error "Download failed"
         exit 1
     }
@@ -124,11 +127,11 @@ print_success "Downloaded successfully"
 
 # Download checksum if available
 CHECKSUM_URL="${DOWNLOAD_URL}.sha256"
-if $DOWNLOAD_CMD $DOWNLOAD_OUTPUT_FLAG "triad-generator.tar.gz.sha256" "$CHECKSUM_URL" 2>/dev/null; then
+if $DOWNLOAD_CMD $DOWNLOAD_OUTPUT_FLAG "${TARBALL_NAME}.sha256" "$CHECKSUM_URL" 2>/dev/null; then
     print_info "Verifying checksum..."
 
     if command -v sha256sum &> /dev/null; then
-        if sha256sum -c "triad-generator.tar.gz.sha256" 2>/dev/null; then
+        if sha256sum -c "${TARBALL_NAME}.sha256" 2>/dev/null; then
             print_success "Checksum verified"
         else
             print_warning "Checksum verification failed"
@@ -147,7 +150,7 @@ echo ""
 
 # Extract archive
 print_info "Extracting..."
-tar -xzf "triad-generator.tar.gz" || {
+tar -xzf "$TARBALL_NAME" || {
     print_error "Extraction failed"
     exit 1
 }
