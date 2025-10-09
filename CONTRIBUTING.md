@@ -14,6 +14,7 @@ Thank you for your interest in contributing to Triad Generator! This document pr
 - [Submitting Changes](#submitting-changes)
 - [Testing Guidelines](#testing-guidelines)
 - [Documentation](#documentation)
+- [Release Process](#release-process)
 
 ---
 
@@ -433,6 +434,47 @@ compress_graph(source_graph, top_n=20)
 [Knowledge Synthesizer bridges Discovery context forward]
 ```
 ```
+
+---
+
+## Release Process
+
+### For Maintainers
+
+Creating a new release is automated via GitHub Actions. See [RELEASE_GUIDE.md](RELEASE_GUIDE.md) for complete instructions.
+
+**Quick Release Steps:**
+
+1. **Update VERSION file**
+   ```bash
+   echo "0.0.2" > VERSION
+   git add VERSION
+   git commit -m "Bump version to 0.0.2"
+   git push
+   ```
+
+2. **Create and push tag**
+   ```bash
+   git tag v0.0.2
+   git push origin v0.0.2
+   ```
+
+3. **GitHub Actions automatically:**
+   - Builds release tarball
+   - Generates checksums
+   - Creates GitHub Release
+   - Attaches downloadable assets
+
+**Monitor release:** https://github.com/reliable-agents-ai/triads/actions
+
+**Pre-release checklist:**
+- [ ] All tests passing
+- [ ] Documentation updated
+- [ ] CHANGELOG prepared (if applicable)
+- [ ] Tested on clean system
+- [ ] Breaking changes documented
+
+For detailed release instructions, see [RELEASE_GUIDE.md](RELEASE_GUIDE.md).
 
 ---
 
