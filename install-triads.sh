@@ -138,13 +138,13 @@ if [ -d "$CLAUDE_DIR" ]; then
     print_warning "Existing .claude/ directory detected"
 
     # Check for custom agents (not generator)
-    if [ -d "$CLAUDE_DIR/agents" ] && [ "$(ls -A $CLAUDE_DIR/agents 2>/dev/null)" ]; then
+    if [ -d "$CLAUDE_DIR/agents" ] && [ -n "$(find "$CLAUDE_DIR/agents" -mindepth 1 -maxdepth 1 2>/dev/null)" ]; then
         CUSTOM_AGENTS=true
         print_warning "Custom agents detected in .claude/agents/"
     fi
 
     # Check for existing graphs
-    if [ -d "$CLAUDE_DIR/graphs" ] && [ "$(ls -A $CLAUDE_DIR/graphs/*.json 2>/dev/null)" ]; then
+    if [ -d "$CLAUDE_DIR/graphs" ] && [ -n "$(find "$CLAUDE_DIR/graphs" -name '*.json' 2>/dev/null)" ]; then
         EXISTING_GRAPHS=true
         print_warning "Existing knowledge graphs detected"
     fi
@@ -168,7 +168,7 @@ if [ "$EXISTING_SETUP" = true ] && [ "$FORCE" = false ]; then
     echo ""
 
     if [ "$DRY_RUN" = false ]; then
-        read -p "Choose option (1-4): " CHOICE
+        read -r -p "Choose option (1-4): " CHOICE
 
         case $CHOICE in
             1)
@@ -227,30 +227,38 @@ INSTALL_HOOKS=false
 INSTALL_GRAPHS=false
 INSTALL_CONSTITUTIONAL=false
 
-case $COMPONENTS in
-    all)
-        INSTALL_GENERATOR=true
-        INSTALL_COMMAND=true
-        INSTALL_HOOKS=true
-        INSTALL_GRAPHS=true
-        INSTALL_CONSTITUTIONAL=true
-        ;;
-    *generator*)
-        INSTALL_GENERATOR=true
-        ;&  # Fall through to check other components
-    *command*)
-        INSTALL_COMMAND=true
-        ;&
-    *hooks*)
-        INSTALL_HOOKS=true
-        ;&
-    *graphs*)
-        INSTALL_GRAPHS=true
-        ;&
-    *constitutional*)
-        INSTALL_CONSTITUTIONAL=true
-        ;;
-esac
+if [ "$COMPONENTS" = "all" ]; then
+    INSTALL_GENERATOR=true
+    INSTALL_COMMAND=true
+    INSTALL_HOOKS=true
+    INSTALL_GRAPHS=true
+    INSTALL_CONSTITUTIONAL=true
+else
+    # Parse comma-separated component list
+    IFS=',' read -ra COMPONENT_ARRAY <<< "$COMPONENTS"
+    for component in "${COMPONENT_ARRAY[@]}"; do
+        case $component in
+            generator)
+                INSTALL_GENERATOR=true
+                ;;
+            command)
+                INSTALL_COMMAND=true
+                ;;
+            hooks)
+                INSTALL_HOOKS=true
+                ;;
+            graphs)
+                INSTALL_GRAPHS=true
+                ;;
+            constitutional)
+                INSTALL_CONSTITUTIONAL=true
+                ;;
+            *)
+                print_warning "Unknown component: $component"
+                ;;
+        esac
+    done
+fi
 
 # Show installation plan
 echo "Installation plan:"
@@ -279,7 +287,7 @@ echo ""
 
 # Confirm unless dry-run or force
 if [ "$DRY_RUN" = false ] && [ "$FORCE" = false ]; then
-    read -p "Proceed with installation? (yes/no): " CONFIRM
+    read -r -p "Proceed with installation? (yes/no): " CONFIRM
     if [ "$CONFIRM" != "yes" ]; then
         print_info "Installation cancelled"
         exit 0

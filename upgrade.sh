@@ -147,11 +147,11 @@ HAS_GRAPHS=false
 HAS_CUSTOM_SETTINGS=false
 HAS_CUSTOM_HOOKS=false
 
-if [ -d "$CLAUDE_DIR/agents" ] && [ "$(ls -A $CLAUDE_DIR/agents 2>/dev/null)" ]; then
+if [ -d "$CLAUDE_DIR/agents" ] && [ -n "$(find "$CLAUDE_DIR/agents" -mindepth 1 -maxdepth 1 2>/dev/null)" ]; then
     HAS_CUSTOM_AGENTS=true
 fi
 
-if [ -d "$CLAUDE_DIR/graphs" ] && [ "$(ls -A $CLAUDE_DIR/graphs/*.json 2>/dev/null | wc -l)" -gt 1 ]; then
+if [ -d "$CLAUDE_DIR/graphs" ] && [ "$(find "$CLAUDE_DIR/graphs" -name '*.json' 2>/dev/null | wc -l)" -gt 1 ]; then
     HAS_GRAPHS=true
 fi
 
@@ -159,7 +159,7 @@ if [ -f "$CLAUDE_DIR/settings.json" ]; then
     HAS_CUSTOM_SETTINGS=true
 fi
 
-if [ -d "$CLAUDE_DIR/hooks" ] && [ "$(ls -A $CLAUDE_DIR/hooks/*.py 2>/dev/null)" ]; then
+if [ -d "$CLAUDE_DIR/hooks" ] && [ -n "$(find "$CLAUDE_DIR/hooks" -name '*.py' 2>/dev/null)" ]; then
     HAS_CUSTOM_HOOKS=true
 fi
 
@@ -176,8 +176,8 @@ echo "  ✓ Slash command"
 echo "  ✓ System README"
 echo ""
 echo "Will preserve:"
-[ "$HAS_CUSTOM_AGENTS" = true ] && echo "  ✓ Your custom agents ($(ls -1 $CLAUDE_DIR/agents 2>/dev/null | wc -l) triads)"
-[ "$HAS_GRAPHS" = true ] && echo "  ✓ Knowledge graphs ($(ls -1 $CLAUDE_DIR/graphs/*.json 2>/dev/null | wc -l) files)"
+[ "$HAS_CUSTOM_AGENTS" = true ] && echo "  ✓ Your custom agents ($(find "$CLAUDE_DIR/agents" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l) triads)"
+[ "$HAS_GRAPHS" = true ] && echo "  ✓ Knowledge graphs ($(find "$CLAUDE_DIR/graphs" -name '*.json' 2>/dev/null | wc -l) files)"
 [ "$HAS_CUSTOM_SETTINGS" = true ] && echo "  ✓ Settings (will merge)"
 [ "$HAS_CUSTOM_HOOKS" = true ] && echo "  ✓ Custom hooks (yours preserved)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -185,7 +185,7 @@ echo ""
 
 # Confirm unless dry-run
 if [ "$DRY_RUN" = false ]; then
-    read -p "Proceed with upgrade? (yes/no): " CONFIRM
+    read -r -p "Proceed with upgrade? (yes/no): " CONFIRM
     if [ "$CONFIRM" != "yes" ]; then
         print_info "Upgrade cancelled"
         exit 0
@@ -300,7 +300,7 @@ else
         echo "  1. Keep your hooks (recommended if customized)"
         echo "  2. Use new hooks (get latest features)"
         echo "  3. Keep both (manual merge needed)"
-        read -p "Choose (1-3): " HOOK_CHOICE
+        read -r -p "Choose (1-3): " HOOK_CHOICE
 
         case $HOOK_CHOICE in
             1)
