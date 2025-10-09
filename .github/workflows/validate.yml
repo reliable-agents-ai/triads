@@ -1,0 +1,196 @@
+name: Validate
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate-scripts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Validate shell scripts
+        run: |
+          echo "🔍 Checking shell scripts with shellcheck..."
+
+          # Find all .sh files
+          SCRIPTS=$(find . -name "*.sh" -not -path "./.git/*")
+
+          EXIT_CODE=0
+          for script in $SCRIPTS; do
+            echo "Checking: $script"
+            if ! shellcheck -x "$script"; then
+              EXIT_CODE=1
+            fi
+          done
+
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "✅ All shell scripts passed shellcheck"
+          else
+            echo "❌ Some shell scripts have issues"
+            exit 1
+          fi
+
+      - name: Test installation (dry-run)
+        run: |
+          echo "🧪 Testing installation in dry-run mode..."
+          chmod +x install-triads.sh
+          ./install-triads.sh --dry-run || {
+            echo "❌ Installation dry-run failed"
+            exit 1
+          }
+          echo "✅ Installation dry-run passed"
+
+      - name: Validate Python syntax
+        run: |
+          echo "🐍 Validating Python hooks syntax..."
+          python3 --version
+
+          # Check if .claude directory exists (might not in early development)
+          if [ -d ".claude" ]; then
+            PYTHON_FILES=$(find .claude -name "*.py" 2>/dev/null || true)
+
+            if [ -n "$PYTHON_FILES" ]; then
+              for file in $PYTHON_FILES; do
+                echo "Checking: $file"
+                python3 -m py_compile "$file" || {
+                  echo "❌ Python syntax error in $file"
+                  exit 1
+                }
+              done
+              echo "✅ All Python files have valid syntax"
+            else
+              echo "ℹ️  No Python files found (might be generated at runtime)"
+            fi
+          else
+            echo "ℹ️  .claude directory not found (will be generated during installation)"
+          fi
+
+      - name: Validate markdown links
+        run: |
+          echo "🔗 Checking markdown links..."
+
+          # Simple check for broken internal links
+          MARKDOWN_FILES=$(find . -name "*.md" -not -path "./.git/*")
+
+          for file in $MARKDOWN_FILES; do
+            echo "Checking: $file"
+
+            # Check for broken relative links to .md files
+            grep -oP '\[.*?\]\(\K[^)]+(?=\))' "$file" | while read -r link; do
+              # Skip external links
+              if [[ $link == http* ]]; then
+                continue
+              fi
+
+              # Check if relative file exists
+              if [[ $link == *.md && ! -f "$(dirname "$file")/$link" && ! -f "$link" ]]; then
+                echo "⚠️  Broken link in $file: $link"
+              fi
+            done
+          done
+
+          echo "✅ Markdown validation complete"
+
+      - name: Check VERSION file
+        run: |
+          if [ -f "VERSION" ]; then
+            VERSION=$(cat VERSION)
+            echo "📌 VERSION file found: $VERSION"
+
+            # Validate version format (semver)
+            if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$' > /dev/null; then
+              echo "❌ Invalid version format: $VERSION"
+              echo "Expected format: MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-PRERELEASE"
+              exit 1
+            fi
+
+            echo "✅ VERSION format valid"
+          else
+            echo "ℹ️  VERSION file not found (will be created)"
+          fi
+
+      - name: Validate documentation structure
+        run: |
+          echo "📚 Validating documentation structure..."
+
+          REQUIRED_FILES=(
+            "README.md"
+            "CLAUDE.md"
+            "LICENSE"
+            "CONTRIBUTING.md"
+          )
+
+          REQUIRED_DOCS=(
+            "docs/INSTALLATION.md"
+            "docs/USAGE.md"
+            "docs/ARCHITECTURE.md"
+            "docs/EXAMPLES.md"
+            "docs/TROUBLESHOOTING.md"
+            "docs/FAQ.md"
+          )
+
+          EXIT_CODE=0
+
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing required file: $file"
+              EXIT_CODE=1
+            else
+              echo "✅ Found: $file"
+            fi
+          done
+
+          for file in "${REQUIRED_DOCS[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing required documentation: $file"
+              EXIT_CODE=1
+            else
+              echo "✅ Found: $file"
+            fi
+          done
+
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "✅ All required documentation files present"
+          else
+            exit 1
+          fi
+
+  validate-installation:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Test installation requirements
+        run: |
+          echo "🧪 Testing on ${{ matrix.os }} with Python ${{ matrix.python-version }}"
+
+          # Check Python version
+          python3 --version
+
+          # Install NetworkX
+          pip3 install networkx
+
+          # Verify import
+          python3 -c "import networkx; print('NetworkX OK')"
+
+          echo "✅ Requirements test passed"

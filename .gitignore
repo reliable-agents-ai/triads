@@ -1,0 +1,78 @@
+# Research folder (internal notes, not for distribution)
+research/
+
+# Runtime files (generated during use)
+.claude/graphs/*.json
+!.claude/graphs/.gitkeep
+.claude/constitutional/violations.json
+.claude/graphs/.context_*
+.claude/graphs/.output_*
+
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Backups
+*.backup
+*.bak
+.claude.backup.*
+*.tar.gz.backup
+
+# Logs
+*.log
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Release artifacts
+releases/
+release-assets/
+*.tar.gz
+*.tar.gz.sha256
+release-notes.md
+
+# Uninstall backups
+.claude.uninstall-backup.*/
+.claude.upgrade-backup.*/

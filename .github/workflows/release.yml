@@ -1,0 +1,138 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0, v1.1.0, etc.
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get all history for changelog
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create release directory
+        run: mkdir -p release-assets
+
+      - name: Build release tarball
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          RELEASE_NAME="triad-generator-v${VERSION}"
+          TEMP_DIR=$(mktemp -d)
+          BUNDLE_DIR="${TEMP_DIR}/${RELEASE_NAME}"
+
+          # Create bundle structure
+          mkdir -p "${BUNDLE_DIR}"
+
+          # Copy essential files
+          cp -r .claude "${BUNDLE_DIR}/"
+          cp install-triads.sh "${BUNDLE_DIR}/"
+          cp setup-complete.sh "${BUNDLE_DIR}/"
+          cp uninstall.sh "${BUNDLE_DIR}/"
+          cp upgrade.sh "${BUNDLE_DIR}/"
+          cp README.md "${BUNDLE_DIR}/"
+          cp CLAUDE.md "${BUNDLE_DIR}/"
+          cp LICENSE "${BUNDLE_DIR}/"
+          cp CONTRIBUTING.md "${BUNDLE_DIR}/"
+          cp -r docs "${BUNDLE_DIR}/"
+
+          # Make scripts executable
+          chmod +x "${BUNDLE_DIR}"/*.sh
+
+          # Clean runtime files
+          rm -f "${BUNDLE_DIR}/.claude/graphs"/*.json 2>/dev/null || true
+          mkdir -p "${BUNDLE_DIR}/.claude/graphs"
+          touch "${BUNDLE_DIR}/.claude/graphs/.gitkeep"
+
+          # Create tarball
+          cd "${TEMP_DIR}"
+          tar -czf "${RELEASE_NAME}.tar.gz" "${RELEASE_NAME}"
+          mv "${RELEASE_NAME}.tar.gz" "${GITHUB_WORKSPACE}/release-assets/"
+
+          # Create checksum
+          cd "${GITHUB_WORKSPACE}/release-assets"
+          sha256sum "${RELEASE_NAME}.tar.gz" > "${RELEASE_NAME}.tar.gz.sha256"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 ${{ steps.get_version.outputs.tag }}^ 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            # First release
+            CHANGELOG="Initial release of Triad Generator"
+          else
+            # Generate changelog from commits
+            CHANGELOG=$(git log ${PREV_TAG}..${{ steps.get_version.outputs.tag }} --pretty=format:"- %s" --no-merges)
+          fi
+
+          # Save to file for release notes
+          cat > release-notes.md << EOF
+          ## What's Changed
+
+          $CHANGELOG
+
+          ## Installation
+
+          ### Quick Install (Recommended)
+          \`\`\`bash
+          curl -sSL https://raw.githubusercontent.com/reliable-agents-ai/triads/main/quick-install.sh | bash
+          \`\`\`
+
+          ### Download and Install
+          \`\`\`bash
+          curl -LO https://github.com/reliable-agents-ai/triads/releases/download/${{ steps.get_version.outputs.tag }}/triad-generator-v${{ steps.get_version.outputs.version }}.tar.gz
+          tar -xzf triad-generator-v${{ steps.get_version.outputs.version }}.tar.gz
+          cd triad-generator-v${{ steps.get_version.outputs.version }}
+          ./install-triads.sh
+          \`\`\`
+
+          ### Verify Download
+          \`\`\`bash
+          sha256sum -c triad-generator-v${{ steps.get_version.outputs.version }}.tar.gz.sha256
+          \`\`\`
+
+          ## Documentation
+
+          - [README](https://github.com/reliable-agents-ai/triads/blob/main/README.md)
+          - [Installation Guide](https://github.com/reliable-agents-ai/triads/blob/main/docs/INSTALLATION.md)
+          - [Usage Guide](https://github.com/reliable-agents-ai/triads/blob/main/docs/USAGE.md)
+          - [Examples](https://github.com/reliable-agents-ai/triads/blob/main/docs/EXAMPLES.md)
+
+          **Full Changelog**: https://github.com/reliable-agents-ai/triads/compare/${PREV_TAG}...${{ steps.get_version.outputs.tag }}
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release-assets/triad-generator-v${{ steps.get_version.outputs.version }}.tar.gz
+            release-assets/triad-generator-v${{ steps.get_version.outputs.version }}.tar.gz.sha256
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(steps.get_version.outputs.tag, 'beta') || contains(steps.get_version.outputs.tag, 'alpha') || contains(steps.get_version.outputs.tag, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update latest tag
+        if: ${{ !contains(steps.get_version.outputs.tag, 'beta') && !contains(steps.get_version.outputs.tag, 'alpha') && !contains(steps.get_version.outputs.tag, 'rc') }}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag -f latest
+          git push -f origin latest
