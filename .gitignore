@@ -7,6 +7,8 @@ research/
 .claude/constitutional/violations.json
 .claude/graphs/.context_*
 .claude/graphs/.output_*
+.claude/km_queue.json
+.claude/km_status.txt
 
 # Python
 *.pyc
