@@ -205,24 +205,6 @@ fi
 print_info "Upgrading generator components..."
 echo ""
 
-# Function to upgrade file
-upgrade_file() {
-    local source=$1
-    local target=$2
-    local description=$3
-
-    if [ "$DRY_RUN" = true ]; then
-        print_info "[DRY RUN] Would upgrade: $description"
-    else
-        if [ -f "$source" ]; then
-            cp "$source" "$target"
-            print_success "Upgraded: $description"
-        else
-            print_warning "Source not found: $description"
-        fi
-    fi
-}
-
 # Check if setup-complete.sh exists (source of new files)
 if [ ! -f "setup-complete.sh" ]; then
     print_error "setup-complete.sh not found"

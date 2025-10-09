@@ -138,7 +138,7 @@ echo ""
 
 # Confirm unless dry-run
 if [ "$DRY_RUN" = false ]; then
-    read -p "Continue with uninstallation? (yes/no): " CONFIRM
+    read -r -p "Continue with uninstallation? (yes/no): " CONFIRM
     if [ "$CONFIRM" != "yes" ]; then
         print_info "Uninstallation cancelled"
         exit 0
@@ -229,8 +229,8 @@ else
         echo "  ✓ Custom agents: $CLAUDE_DIR/agents/"
     fi
 
-    if [ -f "$CLAUDE_DIR/graphs" ]; then
-        GRAPH_COUNT=$(ls -1 $CLAUDE_DIR/graphs/*.json 2>/dev/null | wc -l)
+    if [ -d "$CLAUDE_DIR/graphs" ]; then
+        GRAPH_COUNT=$(find "$CLAUDE_DIR/graphs" -name '*.json' 2>/dev/null | wc -l)
         echo "  ✓ Knowledge graphs: $GRAPH_COUNT files"
     fi
 

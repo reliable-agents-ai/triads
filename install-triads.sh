@@ -118,7 +118,6 @@ if ! command -v python3 &> /dev/null; then
 fi
 
 PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-REQUIRED_VERSION="3.10"
 
 if ! python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" 2>/dev/null; then
     print_error "Python $PYTHON_VERSION found, but 3.10+ required"
@@ -309,23 +308,6 @@ create_dir() {
     else
         mkdir -p "$dir"
         print_success "Created: $description"
-    fi
-}
-
-# Function to create file
-create_file() {
-    local file=$1
-    local description=$2
-
-    if [ "$DRY_RUN" = true ]; then
-        if [ ! -f "$file" ]; then
-            print_info "[DRY RUN] Would create: $description"
-        else
-            print_info "[DRY RUN] Would update: $description"
-        fi
-    else
-        # Actual file creation happens in setup-complete.sh
-        print_info "Will create: $description"
     fi
 }
 

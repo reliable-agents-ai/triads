@@ -30,7 +30,6 @@ print_error() {
 # Configuration
 REPO="reliable-agents-ai/triads"
 VERSION="${TRIAD_VERSION:-latest}"
-INSTALL_DIR="${TRIAD_INSTALL_DIR:-.}"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -102,7 +101,7 @@ echo ""
 
 # Create temporary directory
 TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+trap 'rm -rf "$TEMP_DIR"' EXIT
 
 cd "$TEMP_DIR"
 
@@ -133,7 +132,7 @@ if $DOWNLOAD_CMD $DOWNLOAD_OUTPUT_FLAG "triad-generator.tar.gz.sha256" "$CHECKSU
             print_success "Checksum verified"
         else
             print_warning "Checksum verification failed"
-            read -p "Continue anyway? (yes/no): " CONTINUE
+            read -r -p "Continue anyway? (yes/no): " CONTINUE
             if [ "$CONTINUE" != "yes" ]; then
                 print_error "Installation cancelled"
                 exit 1
