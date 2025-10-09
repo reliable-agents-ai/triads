@@ -1,5 +1,7 @@
 """Knowledge issue formatting for agents and users."""
 
+from __future__ import annotations
+
 import json
 from collections import Counter, defaultdict
 from pathlib import Path

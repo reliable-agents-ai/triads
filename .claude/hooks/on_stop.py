@@ -31,7 +31,8 @@ from pathlib import Path
 from datetime import datetime
 
 # Add src to path for triads.km imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+repo_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(repo_root / "src"))
 
 from triads.km.detection import detect_km_issues, update_km_queue
 from triads.km.formatting import format_km_notification, write_km_status_file
