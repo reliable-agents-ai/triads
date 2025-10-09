@@ -20,6 +20,7 @@ Data Flow:
 5. Group updates by triad
 6. Update each triad's graph
 7. Save graphs to disk
+8. Detect KM issues and update queue
 """
 
 import json
@@ -28,6 +29,11 @@ import re
 import glob
 from pathlib import Path
 from datetime import datetime
+
+# Add src to path for triads.km imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from triads.km.detection import detect_km_issues, update_km_queue
 
 # ============================================================================
 # Graph Update Extraction
@@ -439,7 +445,15 @@ def main():
         # Save updated graph
         try:
             save_graph(graph_data, triad)
-            print(f"✅ {triad}_graph.json updated: {graph_data['_meta']['node_count']} nodes, {graph_data['_meta']['edge_count']} edges\n", file=sys.stderr)
+            print(f"✅ {triad}_graph.json updated: {graph_data['_meta']['node_count']} nodes, {graph_data['_meta']['edge_count']} edges", file=sys.stderr)
+
+            # Detect KM issues
+            issues = detect_km_issues(graph_data, triad)
+            if issues:
+                update_km_queue(issues)
+                print(f"📋 Detected {len(issues)} KM issues (see km_queue.json)\n", file=sys.stderr)
+            else:
+                print(f"", file=sys.stderr)
         except Exception as e:
             print(f"❌ Error saving {triad} graph: {e}\n", file=sys.stderr)
 
