@@ -34,6 +34,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from triads.km.detection import detect_km_issues, update_km_queue
+from triads.km.formatting import format_km_notification, write_km_status_file
 
 # ============================================================================
 # Graph Update Extraction
@@ -451,11 +452,19 @@ def main():
             issues = detect_km_issues(graph_data, triad)
             if issues:
                 update_km_queue(issues)
-                print(f"📋 Detected {len(issues)} KM issues (see km_queue.json)\n", file=sys.stderr)
+                notification = format_km_notification(issues)
+                if notification:
+                    print(f"{notification}\n", file=sys.stderr)
             else:
                 print(f"", file=sys.stderr)
         except Exception as e:
             print(f"❌ Error saving {triad} graph: {e}\n", file=sys.stderr)
+
+    # Write status file for agents
+    try:
+        write_km_status_file()
+    except Exception as e:
+        print(f"❌ Error writing KM status file: {e}", file=sys.stderr)
 
     print(f"{'='*80}\n", file=sys.stderr)
 
