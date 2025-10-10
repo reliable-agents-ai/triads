@@ -57,17 +57,49 @@ for file in "${REQUIRED_FILES[@]}"; do
 done
 
 if [ ${#MISSING_FILES[@]} -gt 0 ]; then
-    echo "⚠️  Missing required files:"
+    echo "⚠️  Missing required Generator files:"
     for file in "${MISSING_FILES[@]}"; do
         echo "   - $file"
     done
     echo ""
     echo "Please ensure all Generator Triad files are present."
-    echo "Run the file generation commands first."
     exit 1
 fi
 
 echo "✅ All Generator Triad files present"
+
+# Verify KM system components
+echo "🔍 Verifying KM system components..."
+
+KM_REQUIRED_FILES=(
+    "src/triads/km/detection.py"
+    "src/triads/km/formatting.py"
+    "src/triads/km/system_agents.py"
+    "src/triads/km/auto_invocation.py"
+    ".claude/hooks/on_stop.py"
+    ".claude/agents/system/research-agent.md"
+    ".claude/agents/system/verification-agent.md"
+)
+
+KM_MISSING_FILES=()
+
+for file in "${KM_REQUIRED_FILES[@]}"; do
+    if [ ! -f "$file" ]; then
+        KM_MISSING_FILES+=("$file")
+    fi
+done
+
+if [ ${#KM_MISSING_FILES[@]} -gt 0 ]; then
+    echo "⚠️  Missing KM system files:"
+    for file in "${KM_MISSING_FILES[@]}"; do
+        echo "   - $file"
+    done
+    echo ""
+    echo "Please ensure all KM system files are present."
+    exit 1
+fi
+
+echo "✅ All KM system files present"
 echo ""
 
 # Create empty graph file for generator

@@ -31,6 +31,20 @@ cp LICENSE "${BUNDLE_DIR}/"
 cp CONTRIBUTING.md "${BUNDLE_DIR}/"
 cp -r docs "${BUNDLE_DIR}/"
 
+# Copy KM system components (CRITICAL for runtime)
+echo "Copying KM system..."
+mkdir -p "${BUNDLE_DIR}/src/triads/km"
+cp -r src/triads/km/*.py "${BUNDLE_DIR}/src/triads/km/"
+cp src/triads/__init__.py "${BUNDLE_DIR}/src/triads/" 2>/dev/null || touch "${BUNDLE_DIR}/src/triads/__init__.py"
+
+# Copy tests (for verification)
+echo "Copying tests..."
+cp -r tests "${BUNDLE_DIR}/"
+
+# Copy project configuration
+echo "Copying configuration..."
+cp pyproject.toml "${BUNDLE_DIR}/"
+
 # Make scripts executable
 chmod +x "${BUNDLE_DIR}"/*.sh
 
