@@ -114,13 +114,14 @@ Every agent follows the **TRUST framework** - 5 immutable principles:
 
 Python hooks enforce TRUST architecturally (not just prompts).
 
-### 📊 Knowledge Graphs (NetworkX)
+### 📊 Knowledge Graphs (NetworkX) with Automatic Quality Assurance
 
 Each triad builds a local graph as it works:
 - Captures entities, decisions, uncertainties
 - File-based (JSON), human-readable
 - No external services required
 - Persists learning across sessions
+- **Automatic quality management** ensures high-quality graphs transparently
 
 ### 🎯 Claude Code Native
 
