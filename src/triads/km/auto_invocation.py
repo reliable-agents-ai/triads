@@ -18,8 +18,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
-from triads.km.formatting import get_agent_for_issue
-from triads.km.system_agents import format_agent_task
+from .formatting import get_agent_for_issue
+from .system_agents import format_agent_task
 
 
 def queue_auto_invocations(
