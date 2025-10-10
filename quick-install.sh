@@ -174,14 +174,9 @@ echo ""
 # Copy only essential runtime files to installation directory
 print_info "Copying files to installation directory..."
 
-# Copy .claude directory structure (but will be managed by installer)
+# Copy .claude directory (self-contained with KM system bundled in .claude/km/)
 mkdir -p "$INSTALL_DIR/.claude"
 cp -r .claude/* "$INSTALL_DIR/.claude/" 2>/dev/null || true
-
-# Copy KM system (required for hooks to work)
-mkdir -p "$INSTALL_DIR/src/triads/km"
-cp -r src/triads/km/* "$INSTALL_DIR/src/triads/km/"
-cp src/triads/__init__.py "$INSTALL_DIR/src/triads/" 2>/dev/null || touch "$INSTALL_DIR/src/triads/__init__.py"
 
 # Copy installer scripts (needed for setup)
 cp install-triads.sh setup-complete.sh "$INSTALL_DIR/"

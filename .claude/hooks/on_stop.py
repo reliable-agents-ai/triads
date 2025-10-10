@@ -30,13 +30,24 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# Add src to path for triads.km imports
-repo_root = Path(__file__).parent.parent.parent
+# Add paths for KM imports - works in both dev and distribution modes
+claude_dir = Path(__file__).parent.parent
+repo_root = claude_dir.parent
+
+# Try .claude/km first (distribution), fall back to src/triads (development)
+sys.path.insert(0, str(claude_dir))
 sys.path.insert(0, str(repo_root / "src"))
 
-from triads.km.auto_invocation import process_and_queue_invocations  # noqa: E402
-from triads.km.detection import detect_km_issues, update_km_queue  # noqa: E402
-from triads.km.formatting import format_km_notification, write_km_status_file  # noqa: E402
+try:
+    # Distribution mode: KM modules bundled in .claude/km/
+    from km.auto_invocation import process_and_queue_invocations  # noqa: E402
+    from km.detection import detect_km_issues, update_km_queue  # noqa: E402
+    from km.formatting import format_km_notification, write_km_status_file  # noqa: E402
+except ImportError:
+    # Development mode: KM modules in src/triads/km/
+    from triads.km.auto_invocation import process_and_queue_invocations  # noqa: E402
+    from triads.km.detection import detect_km_issues, update_km_queue  # noqa: E402
+    from triads.km.formatting import format_km_notification, write_km_status_file  # noqa: E402
 
 # ============================================================================
 # Graph Update Extraction
