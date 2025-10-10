@@ -52,7 +52,12 @@ cp pyproject.toml "${BUNDLE_DIR}/"
 # Make scripts executable
 chmod +x "${BUNDLE_DIR}"/*.sh
 
-# Remove any runtime files
+# Remove any runtime files (generated during use, not needed in release)
+echo "Cleaning runtime files..."
+rm -f "${BUNDLE_DIR}/.claude/km_status.md" 2>/dev/null || true
+rm -f "${BUNDLE_DIR}/.claude/km_queue.json" 2>/dev/null || true
+rm -f "${BUNDLE_DIR}/.claude/km_pending_invocations.json" 2>/dev/null || true
+rm -f "${BUNDLE_DIR}/.claude/settings.local.json" 2>/dev/null || true
 rm -rf "${BUNDLE_DIR}/.claude/graphs"/*.json 2>/dev/null || true
 mkdir -p "${BUNDLE_DIR}/.claude/graphs"
 touch "${BUNDLE_DIR}/.claude/graphs/.gitkeep"

@@ -175,8 +175,14 @@ echo ""
 print_info "Copying files to installation directory..."
 
 # Copy .claude directory (self-contained with KM system bundled in .claude/km/)
-mkdir -p "$INSTALL_DIR/.claude"
-cp -r .claude/* "$INSTALL_DIR/.claude/" 2>/dev/null || true
+# Use rsync if available for better copying, otherwise use cp
+if command -v rsync &> /dev/null; then
+    rsync -a .claude/ "$INSTALL_DIR/.claude/"
+else
+    mkdir -p "$INSTALL_DIR/.claude"
+    # Copy all .claude contents, including hidden files and subdirectories
+    (cd .claude && tar cf - .) | (cd "$INSTALL_DIR/.claude" && tar xf -)
+fi
 
 # Copy installer scripts (needed for setup)
 cp install-triads.sh setup-complete.sh "$INSTALL_DIR/"
