@@ -34,7 +34,12 @@ cp -r docs "${BUNDLE_DIR}/"
 # Copy KM system components to .claude/km/ for self-contained distribution
 echo "Bundling KM system into .claude/km/..."
 mkdir -p "${BUNDLE_DIR}/.claude/km"
-cp src/triads/km/*.py "${BUNDLE_DIR}/.claude/km/"
+cp src/triads/km/detection.py "${BUNDLE_DIR}/.claude/km/"
+cp src/triads/km/formatting.py "${BUNDLE_DIR}/.claude/km/"
+cp src/triads/km/system_agents.py "${BUNDLE_DIR}/.claude/km/"
+cp src/triads/km/auto_invocation.py "${BUNDLE_DIR}/.claude/km/"
+# Create empty __init__.py for distribution (no complex imports needed)
+touch "${BUNDLE_DIR}/.claude/km/__init__.py"
 
 # Copy tests (for verification)
 echo "Copying tests..."
