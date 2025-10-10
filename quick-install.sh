@@ -174,8 +174,14 @@ echo ""
 
 chmod +x install-triads.sh
 
-# Pass through any arguments
-./install-triads.sh "$@"
+# Pass through any arguments, and use --force for quick install (non-interactive)
+if [ -t 0 ]; then
+    # Interactive mode (terminal input available)
+    ./install-triads.sh "$@"
+else
+    # Piped mode (from curl | bash) - use force mode
+    ./install-triads.sh --force "$@"
+fi
 
 INSTALL_EXIT_CODE=$?
 
