@@ -99,6 +99,9 @@ print_info "Version: $VERSION"
 print_info "Download URL: $DOWNLOAD_URL"
 echo ""
 
+# Save original directory (where user wants to install)
+INSTALL_DIR="$(pwd)"
+
 # Create temporary directory
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
@@ -168,11 +171,32 @@ cd "$EXTRACTED_DIR"
 print_success "Extracted successfully"
 echo ""
 
+# Copy only essential runtime files to installation directory
+print_info "Copying files to installation directory..."
+
+# Copy .claude directory structure (but will be managed by installer)
+mkdir -p "$INSTALL_DIR/.claude"
+cp -r .claude/* "$INSTALL_DIR/.claude/" 2>/dev/null || true
+
+# Copy KM system (required for hooks to work)
+mkdir -p "$INSTALL_DIR/src/triads/km"
+cp -r src/triads/km/* "$INSTALL_DIR/src/triads/km/"
+cp src/triads/__init__.py "$INSTALL_DIR/src/triads/" 2>/dev/null || touch "$INSTALL_DIR/src/triads/__init__.py"
+
+# Copy installer scripts (needed for setup)
+cp install-triads.sh setup-complete.sh "$INSTALL_DIR/"
+
+print_success "Files copied"
+echo ""
+
+# Go back to install directory and run setup
+cd "$INSTALL_DIR"
+
 # Run installer
 print_info "Running installer..."
 echo ""
 
-chmod +x install-triads.sh
+chmod +x install-triads.sh setup-complete.sh
 
 # Pass through any arguments, and use --force for quick install (non-interactive)
 if [ -t 0 ]; then
