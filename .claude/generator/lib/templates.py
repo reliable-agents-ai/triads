@@ -76,8 +76,27 @@ As you work, narrate what you're doing:
 ⚠️ Uncertainty detected: [description]
 ```
 
-### 2. Knowledge Graph Updates
-For every significant finding, decision, or entity:
+### 2. Pre-Flight Quality Check (MANDATORY)
+**Before ANY [GRAPH_UPDATE]**, you MUST output a [PRE_FLIGHT_CHECK] block verifying quality:
+
+```
+[PRE_FLIGHT_CHECK]
+node_id: {same_as_graph_update}
+checklist_items:
+  - property_count: N (Entity/Concept need 3+) [✅ PASS / ❌ FAIL]
+  - confidence_check: X.XX >= 0.85 [✅ PASS / ❌ FAIL] (or converted to Uncertainty)
+  - evidence_quality: specific citations present [✅ PASS / ❌ FAIL]
+  - assumptions_handled: documented and validated [✅ PASS / ❌ FAIL]
+  - node_type_correct: type matches content [✅ PASS / ❌ FAIL]
+verification_status: PASSED | FAILED
+constitutional_principles: [list which principles applied]
+[/PRE_FLIGHT_CHECK]
+```
+
+**If verification_status: FAILED**, do NOT output [GRAPH_UPDATE]. Convert to Uncertainty node instead.
+
+### 3. Knowledge Graph Updates
+After pre-flight check passes, output the update:
 
 ```
 [GRAPH_UPDATE]
@@ -104,14 +123,16 @@ confidence: 0.0 to 1.0
 [/GRAPH_UPDATE]
 ```
 
-### 3. Constitutional Compliance
+### 4. Constitutional Compliance
 For EVERY claim or decision, show:
 - **Evidence**: What supports this?
 - **Confidence**: How certain are you (0.0-1.0)?
 - **Assumptions**: What are you assuming?
 - **Alternatives**: What else did you consider?
 
-### 4. Final Summary
+**These are verified in your [PRE_FLIGHT_CHECK] blocks.**
+
+### 5. Final Summary
 At completion:
 ```
 ✅ [Agent Name] Complete
@@ -140,15 +161,19 @@ At completion:
 
 **CRITICAL**: High-quality graph updates are essential for system reliability. The knowledge management system automatically maintains graph quality, so **produce quality from the start**.
 
-### Pre-Output Checklist  # noqa: E501 (quality examples section has long lines)
+### Pre-Flight Check Requirements (ENFORCED)
 
-Before outputting any `[GRAPH_UPDATE]`, verify:
+**Before outputting any `[GRAPH_UPDATE]`, you MUST output a `[PRE_FLIGHT_CHECK]` block.**
+
+The pre-flight check verifies these quality standards:
 
 - ✅ **3+ properties** for Entity/Concept nodes (name + 2+ meaningful properties)
 - ✅ **Confidence ≥ 0.85** (or convert to Uncertainty node if below)
 - ✅ **Evidence includes specific citations** (file:line, URL, commit hash, observation)
 - ✅ **All assumptions documented** in rationale or description
 - ✅ **Node type matches content** (Entity, Concept, Decision, Finding, Task, Uncertainty)
+
+**Enforcement**: Hooks will detect missing or failed pre-flight checks and log constitutional violations.
 
 ### ❌ BAD Examples (Avoid These)
 
@@ -270,6 +295,42 @@ properties: {{
 [/GRAPH_UPDATE]
 ```
 **Why good**: Specific measurements, multiple evidence sources (commit, tests, logs), quantified improvement  # noqa: E501
+
+---
+
+**GOOD Example 4: Complete Flow with Pre-Flight Check**
+```
+[PRE_FLIGHT_CHECK]
+node_id: jwt_lib_pyjwt
+checklist_items:
+  - property_count: 6 (need 3+) [✅ PASS]
+  - confidence_check: 0.95 >= 0.85 [✅ PASS]
+  - evidence_quality: 4 specific citations (pyproject.toml, 3 imports, config) [✅ PASS]
+  - assumptions_handled: 0 assumptions made [✅ PASS]
+  - node_type_correct: Entity for library [✅ PASS]
+verification_status: PASSED
+constitutional_principles: [thoroughness, evidence-based-claims]
+[/PRE_FLIGHT_CHECK]
+
+[GRAPH_UPDATE]
+type: add_node
+node_id: jwt_lib_pyjwt
+node_type: Entity
+label: PyJWT Library
+description: JSON Web Token implementation for Python, handles encode/decode with RS256
+confidence: 0.95
+evidence: Found in pyproject.toml:23 (PyJWT==2.8.0), imported in src/auth/jwt.py:5, src/auth/tokens.py:12, src/middleware/auth.py:8. Algorithm RS256 specified in config/jwt.yml:12.
+properties: {{
+  "version": "2.8.0",
+  "purpose": "JWT token encoding/decoding for stateless authentication",
+  "algorithm": "RS256",
+  "usage_files": ["src/auth/jwt.py", "src/auth/tokens.py", "src/middleware/auth.py"],
+  "config_file": "config/jwt.yml",
+  "documentation": "https://pyjwt.readthedocs.io/en/stable/"
+}}
+[/GRAPH_UPDATE]
+```
+**Why good**: Pre-flight check shows all 5 standards verified before emitting update. Transparent quality control.
 
 ### Confidence Scoring Guide
 

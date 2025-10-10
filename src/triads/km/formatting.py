@@ -19,6 +19,11 @@ ISSUE_TO_AGENT = {
     "missing_alternatives": "research-agent",  # Principle #4: Complete Transparency
     "missing_rationale": "research-agent",  # Principle #4: Complete Transparency
     "unvalidated_assumption": "verification-agent",  # Principle #5: Assumption Auditing
+    # Pre-flight check violations (Proactive Quality Assurance)
+    "missing_pre_flight_check": "verification-agent",  # No pre-flight check before graph update
+    "failed_pre_flight_verification": "research-agent",  # Pre-flight failed, needs enrichment
+    "incomplete_pre_flight_checklist": "verification-agent",  # Missing checklist items
+    "inconsistent_pre_flight_status": "verification-agent",  # Claims PASS but has failures
 }
 
 

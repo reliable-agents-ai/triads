@@ -53,6 +53,60 @@ except ImportError:
 # Graph Update Extraction
 # ============================================================================
 
+def extract_pre_flight_checks_from_text(text):
+    """
+    Extract [PRE_FLIGHT_CHECK] blocks from text.
+
+    Args:
+        text: String containing [PRE_FLIGHT_CHECK]...[/PRE_FLIGHT_CHECK] blocks
+
+    Returns:
+        List of pre-flight check dictionaries
+    """
+    pattern = r'\[PRE_FLIGHT_CHECK\](.*?)\[/PRE_FLIGHT_CHECK\]'
+    matches = re.findall(pattern, text, re.DOTALL)
+
+    checks = []
+    for match in matches:
+        check = {'checklist_items': {}}
+        for line in match.strip().split('\n'):
+            line = line.strip()
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip()
+                value = value.strip()
+
+                # Handle checklist items specially
+                if key == 'checklist_items':
+                    continue  # Skip the header
+                elif line.startswith('  - '):
+                    # Parse checklist item
+                    item_line = line[4:]  # Remove "  - "
+                    if '[' in item_line:
+                        # Extract item name and status
+                        item_parts = item_line.split('[')
+                        item_name = item_parts[0].split(':')[0].strip()
+                        status = 'PASS' if '✅' in item_line else 'FAIL'
+                        check['checklist_items'][item_name] = {
+                            'status': status,
+                            'detail': item_parts[0].split(':', 1)[1].strip() if ':' in item_parts[0] else ''
+                        }
+                else:
+                    # Regular key-value
+                    # Parse JSON arrays
+                    if value.startswith('['):
+                        try:
+                            value = json.loads(value)
+                        except json.JSONDecodeError:
+                            pass
+
+                    check[key] = value
+
+        checks.append(check)
+
+    return checks
+
+
 def extract_graph_updates_from_text(text):
     """
     Extract [GRAPH_UPDATE] blocks from any text.
@@ -96,6 +150,113 @@ def extract_graph_updates_from_text(text):
             updates.append(update)
 
     return updates
+
+# ============================================================================
+# Pre-Flight Check Validation
+# ============================================================================
+
+def validate_pre_flight_checks(text, updates):
+    """
+    Validate that all graph updates have corresponding pre-flight checks.
+
+    Args:
+        text: Full text to search for pre-flight checks
+        updates: List of graph update dictionaries
+
+    Returns:
+        List of violation dictionaries
+    """
+    if not updates:
+        return []
+
+    pre_flight_checks = extract_pre_flight_checks_from_text(text)
+
+    # Build map of node_id -> pre-flight check
+    checks_by_node = {}
+    for check in pre_flight_checks:
+        node_id = check.get('node_id')
+        if node_id:
+            checks_by_node[node_id] = check
+
+    violations = []
+
+    for update in updates:
+        node_id = update.get('node_id')
+        if not node_id:
+            continue
+
+        # Check 1: Pre-flight check exists
+        if node_id not in checks_by_node:
+            violations.append({
+                'type': 'missing_pre_flight_check',
+                'node_id': node_id,
+                'node_type': update.get('node_type', 'Unknown'),
+                'severity': 'high',
+                'principle': 'proactive_quality_assurance',
+                'message': f'[GRAPH_UPDATE] for {node_id} has no [PRE_FLIGHT_CHECK]',
+                'remediation': 'Add [PRE_FLIGHT_CHECK] block before [GRAPH_UPDATE]'
+            })
+            continue
+
+        check = checks_by_node[node_id]
+
+        # Check 2: Verification status is PASSED
+        verification_status = check.get('verification_status', '').upper()
+        if verification_status != 'PASSED':
+            violations.append({
+                'type': 'failed_pre_flight_verification',
+                'node_id': node_id,
+                'node_type': update.get('node_type', 'Unknown'),
+                'severity': 'critical',
+                'principle': 'proactive_quality_assurance',
+                'verification_status': verification_status,
+                'message': f'Pre-flight check for {node_id} status: {verification_status} (expected: PASSED)',
+                'remediation': 'Fix quality issues or convert to Uncertainty node'
+            })
+
+        # Check 3: All required checklist items are present
+        required_items = [
+            'property_count',
+            'confidence_check',
+            'evidence_quality',
+            'assumptions_handled',
+            'node_type_correct'
+        ]
+
+        checklist = check.get('checklist_items', {})
+        for item in required_items:
+            if item not in checklist:
+                violations.append({
+                    'type': 'incomplete_pre_flight_checklist',
+                    'node_id': node_id,
+                    'node_type': update.get('node_type', 'Unknown'),
+                    'severity': 'medium',
+                    'principle': 'proactive_quality_assurance',
+                    'missing_item': item,
+                    'message': f'Pre-flight check for {node_id} missing checklist item: {item}',
+                    'remediation': f'Add {item} check to pre-flight checklist'
+                })
+
+        # Check 4: All checklist items passed (if verification_status is PASSED)
+        if verification_status == 'PASSED':
+            failed_items = [
+                name for name, details in checklist.items()
+                if isinstance(details, dict) and details.get('status') == 'FAIL'
+            ]
+            if failed_items:
+                violations.append({
+                    'type': 'inconsistent_pre_flight_status',
+                    'node_id': node_id,
+                    'node_type': update.get('node_type', 'Unknown'),
+                    'severity': 'high',
+                    'principle': 'proactive_quality_assurance',
+                    'failed_items': failed_items,
+                    'message': f'Pre-flight check claims PASSED but items failed: {failed_items}',
+                    'remediation': 'Fix failed items or set verification_status to FAILED'
+                })
+
+    return violations
+
 
 # ============================================================================
 # Triad Identification
@@ -431,6 +592,44 @@ def main():
     print("📊 Knowledge Graph Update (Stop Hook)", file=sys.stderr)
     print(f"{'='*80}", file=sys.stderr)
     print(f"Found {len(updates)} [GRAPH_UPDATE] blocks", file=sys.stderr)
+
+    # Validate pre-flight checks
+    pre_flight_violations = validate_pre_flight_checks(conversation_text, updates)
+
+    if pre_flight_violations:
+        print(f"⚠️  Found {len(pre_flight_violations)} pre-flight check violations", file=sys.stderr)
+
+        # Log violations to constitutional violations file
+        violations_file = Path('.claude/constitutional/violations.json')
+        violations_file.parent.mkdir(parents=True, exist_ok=True)
+
+        existing_violations = []
+        if violations_file.exists():
+            try:
+                with open(violations_file, 'r') as f:
+                    existing_violations = json.load(f)
+            except (json.JSONDecodeError, FileNotFoundError):
+                existing_violations = []
+
+        # Add new violations with timestamps
+        for violation in pre_flight_violations:
+            violation['detected_at'] = datetime.now().isoformat()
+            violation['hook'] = 'on_stop'
+            existing_violations.append(violation)
+
+        with open(violations_file, 'w') as f:
+            json.dump(existing_violations, f, indent=2)
+
+        # Show summary
+        critical = sum(1 for v in pre_flight_violations if v.get('severity') == 'critical')
+        high = sum(1 for v in pre_flight_violations if v.get('severity') == 'high')
+        medium = sum(1 for v in pre_flight_violations if v.get('severity') == 'medium')
+
+        print(f"   Critical: {critical}, High: {high}, Medium: {medium}", file=sys.stderr)
+        print(f"   Logged to: {violations_file}", file=sys.stderr)
+    else:
+        print("✓ All graph updates have valid pre-flight checks", file=sys.stderr)
+
     print(f"{'='*80}\n", file=sys.stderr)
 
     # Group updates by triad
