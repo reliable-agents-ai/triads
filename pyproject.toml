@@ -38,6 +38,7 @@ ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Allow unused imports in __init__
+".claude/generator/lib/templates.py" = ["E501"]  # Long lines in example code strings
 
 [tool.mypy]
 python_version = "3.11"

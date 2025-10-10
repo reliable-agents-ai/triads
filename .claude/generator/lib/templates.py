@@ -136,6 +136,197 @@ At completion:
 
 ---
 
+## Output Quality Standards
+
+**CRITICAL**: High-quality graph updates are essential for system reliability. The knowledge management system automatically maintains graph quality, so **produce quality from the start**.
+
+### Pre-Output Checklist  # noqa: E501 (quality examples section has long lines)
+
+Before outputting any `[GRAPH_UPDATE]`, verify:
+
+- ✅ **3+ properties** for Entity/Concept nodes (name + 2+ meaningful properties)
+- ✅ **Confidence ≥ 0.85** (or convert to Uncertainty node if below)
+- ✅ **Evidence includes specific citations** (file:line, URL, commit hash, observation)
+- ✅ **All assumptions documented** in rationale or description
+- ✅ **Node type matches content** (Entity, Concept, Decision, Finding, Task, Uncertainty)
+
+### ❌ BAD Examples (Avoid These)
+
+**BAD Example 1: Sparse Entity (too few properties)**
+```
+[GRAPH_UPDATE]
+type: add_node
+node_id: jwt_lib
+node_type: Entity
+label: JWT Library
+description: Library for JWT tokens
+confidence: 0.80
+evidence: Found in codebase
+[/GRAPH_UPDATE]
+```
+**Problems**: Only 1 meaningful property (description), low confidence, vague evidence
+
+---
+
+**BAD Example 2: Low Confidence Without Evidence**
+```
+[GRAPH_UPDATE]
+type: add_node
+node_id: auth_decision
+node_type: Decision
+label: Use OAuth2
+description: Team decided to use OAuth2
+confidence: 0.65
+evidence: Discussed in meeting
+[/GRAPH_UPDATE]
+```
+**Problems**: Low confidence (<0.85), no verifiable evidence, missing alternatives/rationale
+
+---
+
+**BAD Example 3: Missing Evidence**
+```
+[GRAPH_UPDATE]
+type: add_node
+node_id: performance_claim
+node_type: Finding
+label: API is faster
+description: New implementation improves performance
+confidence: 0.90
+[/GRAPH_UPDATE]
+```
+**Problems**: No evidence field, unverifiable claim, no measurements
+
+### ✅ GOOD Examples (Follow These)
+
+**GOOD Example 1: Rich Entity (5+ properties, strong evidence)**
+```
+[GRAPH_UPDATE]
+type: add_node
+node_id: jwt_lib_pyjwt
+node_type: Entity
+label: PyJWT Library
+description: JSON Web Token implementation for Python, handles encode/decode with RS256
+confidence: 0.95
+evidence: Found in pyproject.toml:23 (PyJWT==2.8.0), imported in src/auth/jwt.py:5, src/auth/tokens.py:12, src/middleware/auth.py:8. Algorithm RS256 specified in config/jwt.yml:12. Official docs: https://pyjwt.readthedocs.io/en/stable/  # noqa: E501
+properties: {{
+  "version": "2.8.0",
+  "purpose": "JWT token encoding/decoding for stateless authentication",
+  "algorithm": "RS256",
+  "usage_files": ["src/auth/jwt.py", "src/auth/tokens.py", "src/middleware/auth.py"],
+  "config_file": "config/jwt.yml",
+  "documentation": "https://pyjwt.readthedocs.io/en/stable/"
+}}
+[/GRAPH_UPDATE]
+```
+**Why good**: 6+ properties, 0.95 confidence, specific file:line citations, comprehensive evidence
+
+---
+
+**GOOD Example 2: High Confidence Decision (with alternatives)**
+```
+[GRAPH_UPDATE]
+type: add_node
+node_id: auth_decision_oauth2
+node_type: Decision
+label: Use OAuth2 with GitHub provider
+description: Selected OAuth2 over session-based auth for stateless architecture
+confidence: 0.95
+evidence: Decision in commit a1b2c3d (2024-09-15), PR #245 discussion with team approval. Implementation in src/auth/oauth.py:1-150 using authlib 1.2.0. Configuration in config/oauth.yml:5-12. Tests passing in tests/test_oauth.py::test_github_flow  # noqa: E501
+alternatives: ["Session-based authentication", "JWT-only (no OAuth)", "SAML integration"]
+rationale: Maintains stateless architecture, leverages GitHub for user management, avoids credential storage. Team consensus after security review.  # noqa: E501
+properties: {{
+  "decision_date": "2024-09-15",
+  "commit": "a1b2c3d",
+  "pr_number": "#245",
+  "implementation_file": "src/auth/oauth.py",
+  "status": "implemented"
+}}
+[/GRAPH_UPDATE]
+```
+**Why good**: 0.95 confidence, specific commit/PR/file evidence, alternatives listed, clear rationale  # noqa: E501
+
+---
+
+**GOOD Example 3: Finding with Measurements**
+```
+[GRAPH_UPDATE]
+type: add_node
+node_id: perf_improvement_db
+node_type: Finding
+label: Database query performance improved by 40%
+description: Added index on users.email field, reducing average query time from 150ms to 90ms
+confidence: 0.95
+evidence: Optimization in commit b2c3d4e added index on users.email. Before: 150ms avg (measured 2024-10-01), After: 90ms avg (measured 2024-10-09). Benchmarks in tests/test_performance.py with 1000 sample queries. Verified in production logs 2024-10-09 12:00-18:00 UTC.  # noqa: E501
+properties: {{
+  "optimization_type": "database_indexing",
+  "commit": "b2c3d4e",
+  "before_avg_ms": 150,
+  "after_avg_ms": 90,
+  "improvement_percent": 40,
+  "test_file": "tests/test_performance.py",
+  "measurement_date": "2024-10-09"
+}}
+[/GRAPH_UPDATE]
+```
+**Why good**: Specific measurements, multiple evidence sources (commit, tests, logs), quantified improvement  # noqa: E501
+
+### Confidence Scoring Guide
+
+**0.95-1.0 (Very High)**: Multiple verification sources, tests passing, directly observed
+- Example: Code found in file:line with tests confirming behavior
+
+**0.85-0.94 (High)**: Strong evidence from 2+ sources, verified through code/docs
+- Example: Decision documented in PR + commit with implementation
+
+**0.70-0.84 (Medium - CONVERT TO UNCERTAINTY)**: Single source or weak evidence
+- **Action**: Mark as Uncertainty node instead, document what needs verification
+
+**< 0.70 (Low - NEVER USE)**: Speculation or assumptions
+- **Action**: Always convert to Uncertainty node, explain what is unknown
+
+### Strong Evidence Examples
+
+**For code-related findings:**
+- ✅ `src/auth/jwt.py:45-120` (file path with line numbers)
+- ✅ `Found in pyproject.toml:23 (PyJWT==2.8.0)`
+- ✅ `Imported in src/auth/jwt.py:5, src/auth/tokens.py:12`
+
+**For decisions:**
+- ✅ `Commit a1b2c3d (2024-09-15) with PR #245 discussion`
+- ✅ `Team decision documented in docs/architecture.md:89-110`
+- ✅ `Configuration in config/oauth.yml:5-12`
+
+**For external resources:**
+- ✅ `Official docs: https://pyjwt.readthedocs.io/en/stable/`
+- ✅ `RFC 7519 (JWT standard): https://tools.ietf.org/html/rfc7519`
+- ✅ `Security advisory CVE-2024-XXXX`
+
+**For observations:**
+- ✅ `Tested with 1000 samples in tests/test_performance.py (avg: 90ms)`
+- ✅ `Production logs 2024-10-09 12:00-18:00 UTC show 99.9% success rate`
+- ✅ `User feedback in issue #456: "Login is now instant"`
+
+### When to Use Uncertainty Nodes
+
+If you cannot meet the quality standards above:
+
+```
+[GRAPH_UPDATE]
+type: add_node
+node_id: scaling_strategy_unclear
+node_type: Uncertainty
+label: Kubernetes scaling strategy status unclear
+description: Kubernetes was mentioned in PR #198 (closed without merge), but no configuration exists, no decision was made, and current deployment uses docker-compose. Status: needs clarification from team.  # noqa: E501
+confidence: 1.0
+evidence: PR #198 discussion found but closed. No k8s config in repo. Current: docker-compose.yml with single-server deployment. Unclear if planned, abandoned, or under consideration.  # noqa: E501
+[/GRAPH_UPDATE]
+```
+
+**Uncertainty nodes always have confidence: 1.0** (certain that it's uncertain)
+
+---
+
 ## Example Interaction
 
 {example_interaction}
@@ -146,9 +337,10 @@ At completion:
 
 - **Thoroughness over speed**: Take time to verify
 - **Evidence for everything**: Never make unsupported claims
-- **Escalate uncertainty**: When confidence < {confidence_threshold}, ask for clarification
+- **Escalate uncertainty**: When confidence < {confidence_threshold}, convert to Uncertainty node
 - **Show your work**: Transparent reasoning always
 - **Update the graph**: Every finding goes into knowledge graph
+- **Quality from the start**: Follow the pre-output checklist above
 {additional_reminders}
 """
 
@@ -780,7 +972,7 @@ def apply_update(graph_data, update, agent_name):
 
         edge = next(
             (e for e in graph_data['links']
-             if e.get('source') == source and e.get('target') == target and e.get('key') == edge_type),
+             if e.get('source') == source and e.get('target') == target and e.get('key') == edge_type),  # noqa: E501
             None
         )
 
@@ -873,7 +1065,7 @@ def main():
     try:
         save_graph(graph_data, triad_name)
         print(f"\\n✅ Knowledge graph updated: {triad_name}_graph.json", file=sys.stderr)
-        print(f"   Nodes: {graph_data['_meta']['node_count']}, Edges: {graph_data['_meta']['edge_count']}", file=sys.stderr)
+        print(f"   Nodes: {graph_data['_meta']['node_count']}, Edges: {graph_data['_meta']['edge_count']}", file=sys.stderr)  # noqa: E501
     except Exception as e:
         print(f"\\n❌ Error saving graph: {e}", file=sys.stderr)
 
@@ -945,7 +1137,7 @@ SETTINGS_JSON_TEMPLATE = """{{
     "generated_at": "{timestamp}",
     "triads": {triads_list},
     "bridge_agents": {bridge_agents_list},
-    "note": "Uses Stop hook instead of PostToolUse due to known Claude Code bug with tool-level hooks"
+    "note": "Uses Stop hook instead of PostToolUse due to known Claude Code bug with tool-level hooks"  # noqa: E501
   }}
 }}
 """
