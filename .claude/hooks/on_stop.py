@@ -23,19 +23,20 @@ Data Flow:
 8. Detect KM issues and update queue
 """
 
-import json
-import sys
-import re
 import glob
-from pathlib import Path
+import json
+import re
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # Add src to path for triads.km imports
 repo_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(repo_root / "src"))
 
-from triads.km.detection import detect_km_issues, update_km_queue
-from triads.km.formatting import format_km_notification, write_km_status_file
+from triads.km.auto_invocation import process_and_queue_invocations  # noqa: E402
+from triads.km.detection import detect_km_issues, update_km_queue  # noqa: E402
+from triads.km.formatting import format_km_notification, write_km_status_file  # noqa: E402
 
 # ============================================================================
 # Graph Update Extraction
@@ -191,7 +192,7 @@ def load_graph(triad_name):
             with open(graph_file, 'r') as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            print(f"⚠️  Warning: Corrupt graph file, creating new one", file=sys.stderr)
+            print("⚠️  Warning: Corrupt graph file, creating new one", file=sys.stderr)
 
     # Create new graph structure
     return {
@@ -291,7 +292,7 @@ def apply_update(graph_data, update, agent_name):
         edge_type = update.get('edge_type', 'relates_to')
 
         if not source or not target:
-            print(f"⚠️  Missing source or target for edge", file=sys.stderr)
+            print("⚠️  Missing source or target for edge", file=sys.stderr)
             return graph_data
 
         # Check if edge already exists
@@ -324,7 +325,7 @@ def apply_update(graph_data, update, agent_name):
 
         edge = next(
             (e for e in graph_data['links']
-             if e.get('source') == source and e.get('target') == target and e.get('key') == edge_type),
+             if e.get('source') == source and e.get('target') == target and e.get('key') == edge_type),  # noqa: E501
             None
         )
 
@@ -416,7 +417,7 @@ def main():
         return
 
     print(f"\n{'='*80}", file=sys.stderr)
-    print(f"📊 Knowledge Graph Update (Stop Hook)", file=sys.stderr)
+    print("📊 Knowledge Graph Update (Stop Hook)", file=sys.stderr)
     print(f"{'='*80}", file=sys.stderr)
     print(f"Found {len(updates)} [GRAPH_UPDATE] blocks", file=sys.stderr)
     print(f"{'='*80}\n", file=sys.stderr)
@@ -447,7 +448,7 @@ def main():
         # Save updated graph
         try:
             save_graph(graph_data, triad)
-            print(f"✅ {triad}_graph.json updated: {graph_data['_meta']['node_count']} nodes, {graph_data['_meta']['edge_count']} edges", file=sys.stderr)
+            print(f"✅ {triad}_graph.json updated: {graph_data['_meta']['node_count']} nodes, {graph_data['_meta']['edge_count']} edges", file=sys.stderr)  # noqa: E501
 
             # Detect KM issues
             issues = detect_km_issues(graph_data, triad)
@@ -456,8 +457,20 @@ def main():
                 notification = format_km_notification(issues)
                 if notification:
                     print(f"{notification}\n", file=sys.stderr)
+
+                # Auto-invoke system agents for high-priority issues (Phase 2)
+                try:
+                    new_invocations, total = process_and_queue_invocations(issues)
+                    if new_invocations:
+                        print(
+                            f"🤖 Auto-queued {len(new_invocations)} system agent(s) "
+                            f"for high-priority issues\n",
+                            file=sys.stderr
+                        )
+                except Exception as e:
+                    print(f"⚠️  Auto-invocation warning: {e}\n", file=sys.stderr)
             else:
-                print(f"", file=sys.stderr)
+                print("", file=sys.stderr)
         except Exception as e:
             print(f"❌ Error saving {triad} graph: {e}\n", file=sys.stderr)
 
