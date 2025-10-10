@@ -16,6 +16,9 @@ ISSUE_TO_AGENT = {
     "sparse_entity": "research-agent",
     "low_confidence": "verification-agent",
     "missing_evidence": "verification-agent",
+    "missing_alternatives": "research-agent",  # Principle #4: Complete Transparency
+    "missing_rationale": "research-agent",  # Principle #4: Complete Transparency
+    "unvalidated_assumption": "verification-agent",  # Principle #5: Assumption Auditing
 }
 
 

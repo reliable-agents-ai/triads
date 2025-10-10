@@ -104,6 +104,57 @@ def detect_km_issues(graph_data: dict[str, Any], triad_name: str) -> list[dict[s
                 }
             )
 
+        # Issue 4: Missing transparency (Decision nodes)
+        # Principle #4: Complete Transparency - Decisions must show alternatives and rationale
+        if node_type == "Decision":
+            if not node.get("alternatives"):
+                issues.append(
+                    {
+                        "type": "missing_alternatives",
+                        "triad": triad_name,
+                        "node_id": node_id,
+                        "label": node.get("label", node_id),
+                        "priority": "medium",
+                        "principle": "transparency",
+                    }
+                )
+            if not node.get("rationale"):
+                issues.append(
+                    {
+                        "type": "missing_rationale",
+                        "triad": triad_name,
+                        "node_id": node_id,
+                        "label": node.get("label", node_id),
+                        "priority": "medium",
+                        "principle": "transparency",
+                    }
+                )
+
+        # Issue 5: Unvalidated assumptions
+        # Principle #5: Assumption Auditing - Assumptions must be validated
+        assumptions = node.get("assumptions", [])
+        if assumptions:
+            # Check if assumptions is a list of dicts with validation info
+            if isinstance(assumptions, list) and len(assumptions) > 0:
+                for idx, assumption in enumerate(assumptions):
+                    if isinstance(assumption, dict):
+                        # Check if assumption has been validated
+                        if not assumption.get("validated", False):
+                            issues.append(
+                                {
+                                    "type": "unvalidated_assumption",
+                                    "triad": triad_name,
+                                    "node_id": node_id,
+                                    "label": node.get("label", node_id),
+                                    "assumption_index": idx,
+                                    "assumption_description": assumption.get(
+                                        "description", "No description"
+                                    ),
+                                    "priority": "medium",
+                                    "principle": "assumption_auditing",
+                                }
+                            )
+
     return issues
 
 
