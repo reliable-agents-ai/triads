@@ -1,0 +1,119 @@
+{
+  "routes": [
+    {
+      "name": "idea-validation",
+      "description": "Research and validate new feature ideas, assess community demand, determine priority",
+      "example_prompts": [
+        "Let's validate this startup idea",
+        "Can we research if users want this feature?",
+        "I have an idea for a pause/resume capability",
+        "Should we investigate adding visualization?",
+        "Let's assess demand for this enhancement"
+      ],
+      "keywords": [
+        "idea",
+        "validate",
+        "research",
+        "feasibility",
+        "demand",
+        "priority",
+        "explore",
+        "investigate",
+        "assess",
+        "feature request"
+      ]
+    },
+    {
+      "name": "design",
+      "description": "Create architectural decisions, design solutions, write ADRs and technical specifications",
+      "example_prompts": [
+        "Let's design the authentication system",
+        "Create ADRs for the routing architecture",
+        "How should we architect this feature?",
+        "Design a solution for multi-tenant support",
+        "Plan the implementation approach"
+      ],
+      "keywords": [
+        "design",
+        "architecture",
+        "ADR",
+        "plan",
+        "approach",
+        "solution",
+        "specification",
+        "technical",
+        "structure",
+        "blueprint"
+      ]
+    },
+    {
+      "name": "implementation",
+      "description": "Write production code, implement features, build functionality following specifications",
+      "example_prompts": [
+        "Let's code this feature",
+        "Implement the OAuth2 flow",
+        "Build the graph visualization component",
+        "Write the routing logic",
+        "Develop the state management system"
+      ],
+      "keywords": [
+        "implement",
+        "code",
+        "build",
+        "develop",
+        "write",
+        "create",
+        "programming",
+        "coding",
+        "feature",
+        "functionality"
+      ]
+    },
+    {
+      "name": "garden-tending",
+      "description": "Refactor code, improve quality, reduce technical debt, unify patterns, simplify complexity",
+      "example_prompts": [
+        "Let's refactor this module",
+        "Clean up the authentication code",
+        "Improve code quality across the project",
+        "Unify the error handling pattern",
+        "Simplify the state management logic"
+      ],
+      "keywords": [
+        "refactor",
+        "cleanup",
+        "quality",
+        "debt",
+        "improve",
+        "simplify",
+        "unify",
+        "prune",
+        "optimize",
+        "maintain"
+      ]
+    },
+    {
+      "name": "deployment",
+      "description": "Create releases, update documentation, publish versions, manage deployment",
+      "example_prompts": [
+        "Let's release version 0.0.7",
+        "Deploy to production",
+        "Create a new release with changelog",
+        "Publish the updated package",
+        "Tag version 1.0.0"
+      ],
+      "keywords": [
+        "release",
+        "deploy",
+        "publish",
+        "version",
+        "tag",
+        "changelog",
+        "production",
+        "distribution",
+        "package",
+        "ship"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "confidence_threshold": 0.70,
+  "grace_period_turns": 5,
+  "grace_period_minutes": 8,
+  "llm_timeout_ms": 2000,
+  "semantic_similarity_threshold": 0.10,
+  "training_mode": false,
+  "telemetry_enabled": true,
+  "model_path": ".claude/router/models/all-MiniLM-L6-v2"
+}
