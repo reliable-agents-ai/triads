@@ -21,6 +21,104 @@
       }
     ]
   },
+  "triad_system": {
+    "version": "1.0.0",
+    "workflow": "Open Source Meta-AI Development",
+    "created": "2025-10-14",
+    "triads": {
+      "idea-validation": {
+        "purpose": "Research ideas, validate with community, prioritize features",
+        "invoke_command": "Start Idea Validation: [idea description]",
+        "agents": [
+          "research-analyst",
+          "community-researcher",
+          "validation-synthesizer"
+        ],
+        "bridge_agent": "validation-synthesizer",
+        "bridges_to": "design",
+        "graph_file": ".claude/graphs/idea-validation_graph.json"
+      },
+      "design": {
+        "purpose": "Design solutions, make architectural decisions, create ADRs",
+        "invoke_command": "Start Design: [feature from validated idea]",
+        "agents": [
+          "validation-synthesizer",
+          "solution-architect",
+          "design-bridge"
+        ],
+        "bridge_agent": "design-bridge",
+        "bridges_to": "implementation",
+        "graph_file": ".claude/graphs/design_graph.json"
+      },
+      "implementation": {
+        "purpose": "Code features, write tests, ensure quality",
+        "invoke_command": "Start Implementation: [feature from design]",
+        "agents": [
+          "design-bridge",
+          "senior-developer",
+          "test-engineer"
+        ],
+        "flows_to": "garden-tending",
+        "graph_file": ".claude/graphs/implementation_graph.json"
+      },
+      "garden-tending": {
+        "purpose": "Continuous improvement, refactoring, technical debt management",
+        "invoke_command": "Start Garden Tending: [scope]",
+        "philosophy": {
+          "cultivate": "Growth opportunities, new patterns, unified approaches",
+          "prune": "Redundancy, complexity, duplicate code",
+          "preserve": "Working systems, core logic, compatibility",
+          "weed": "Confusing naming, circular dependencies, hidden paths"
+        },
+        "safe_refactoring_rules": [
+          "Never refactor without tests",
+          "Make it work before making it better",
+          "One change at a time",
+          "Verify after each change",
+          "Commit before and after"
+        ],
+        "agents": [
+          "cultivator",
+          "pruner",
+          "gardener-bridge"
+        ],
+        "bridge_agent": "gardener-bridge",
+        "bridges_to": "deployment",
+        "feedback_to": "design",
+        "when_to_invoke": [
+          "After major features",
+          "Before releases",
+          "When debt accumulates",
+          "Spontaneously when finding issues"
+        ],
+        "graph_file": ".claude/graphs/garden-tending_graph.json"
+      },
+      "deployment": {
+        "purpose": "Create releases, update docs, support users",
+        "invoke_command": "Start Deployment: v[version]",
+        "agents": [
+          "gardener-bridge",
+          "release-manager",
+          "documentation-updater"
+        ],
+        "graph_file": ".claude/graphs/deployment_graph.json"
+      }
+    },
+    "bridge_files": [
+      ".claude/graphs/bridge_idea_to_design.json",
+      ".claude/graphs/bridge_design_to_implementation.json",
+      ".claude/graphs/bridge_garden_to_deployment.json",
+      ".claude/graphs/feedback_garden_to_design.json"
+    ],
+    "constitutional_principles": {
+      "framework": "TRUST",
+      "thoroughness": "Research multiple sources, validate assumptions",
+      "require_evidence": "All claims cited with file:line or URLs",
+      "uncertainty_escalation": "< 85% confidence → create Uncertainty node",
+      "show_all_work": "Document reasoning, alternatives, trade-offs",
+      "test_assumptions": "Validate before proceeding, measure outcomes"
+    }
+  },
   "generator_triad": {
     "version": "1.0.0",
     "agents": [
@@ -29,6 +127,6 @@
       "triad-architect"
     ],
     "status": "ready",
-    "note": "Production hooks active: SessionStart (context injection) + Stop (graph updates). PostToolUse replaced with Stop due to known Claude Code bug."
+    "note": "Meta-level agents that generate custom triad systems. Invoke with /generate-triads"
   }
 }
