@@ -60,10 +60,16 @@ def format_graph_summary(graph_data, triad_name):
     for node_type, type_nodes in sorted(nodes_by_type.items()):
         summary.append(f"**{node_type} Nodes** ({len(type_nodes)}):")
         # Show top 5 nodes of each type (by confidence)
-        top_nodes = sorted(type_nodes, key=lambda n: n.get('confidence', 0), reverse=True)[:5]
+        def get_confidence(node):
+            conf = node.get('confidence', 0)
+            try:
+                return float(conf)
+            except (ValueError, TypeError):
+                return 0.0
+        top_nodes = sorted(type_nodes, key=get_confidence, reverse=True)[:5]
         for node in top_nodes:
             label = node.get('label', node.get('id', 'Unknown'))
-            confidence = node.get('confidence', 0)
+            confidence = get_confidence(node)
             description = node.get('description', '')[:80]  # Truncate long descriptions
             summary.append(f"  • {label} (confidence: {confidence:.2f})")
             if description:
