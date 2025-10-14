@@ -20,6 +20,8 @@ mkdir -p .claude/generator/lib
 mkdir -p .claude/hooks
 mkdir -p .claude/graphs
 mkdir -p .claude/constitutional
+mkdir -p .claude/km
+mkdir -p .claude/agents/system
 
 # Check for Python and NetworkX
 echo "🔍 Checking dependencies..."

@@ -339,6 +339,10 @@ if [ "$INSTALL_CONSTITUTIONAL" = true ]; then
     create_dir "$CLAUDE_DIR/constitutional" "Constitutional folder"
 fi
 
+# KM system and system agents are always required (core components)
+create_dir "$CLAUDE_DIR/km" "Knowledge Management system"
+create_dir "$CLAUDE_DIR/agents/system" "System agents folder"
+
 echo ""
 
 # Check if setup-complete.sh exists
