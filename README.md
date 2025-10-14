@@ -298,6 +298,8 @@ Self-organizing knowledge networks that:
 
 ### For Claude Code Users
 - **[CLAUDE.md](CLAUDE.md)** - Slash command documentation and best practices
+- **[Sub-Agents Guide](docs/CLAUDE_CODE_SUBAGENTS_GUIDE.md)** - Complete guide to configuring and using specialized AI agents
+- **[Hooks Guide](docs/CLAUDE_CODE_HOOKS_GUIDE.md)** - Automating workflows with lifecycle hooks
 
 ### For Developers
 - **[Architecture](docs/ARCHITECTURE.md)** - System design and theory

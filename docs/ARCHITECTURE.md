@@ -200,11 +200,42 @@ description: Design and generate a custom triad system
 
 **Sub-agents** (Generated agents)
 
-Each agent is a sub-agent with:
-- Separate context window
-- Specialized tools and capabilities
-- TRUST framework constraints
+Each agent is a sub-agent defined in markdown with YAML frontmatter:
+
+**Location**: `.claude/agents/{triad}/{agent-name}.md`
+
+**Required frontmatter**:
+```yaml
+---
+name: agent-name               # Required: Unique identifier
+description: What agent does   # Required: Natural language purpose
+tools: Read, Write, Edit       # Optional: CSV list of tools
+model: sonnet                  # Optional: sonnet, opus, haiku, inherit
+---
+```
+
+**Example**:
+```markdown
+---
+name: solution-architect
+description: Design technical solutions, evaluate alternatives, create ADRs
+triad: design
+is_bridge: false
+tools: Read, Grep, Glob, Write
+---
+
+# Solution Architect
+
+[Detailed agent prompt with examples, process, constitutional principles]
+```
+
+**Key properties**:
+- Separate context window per agent
+- Specialized tool access
+- TRUST framework constraints embedded in prompts
 - Access to knowledge graphs via hooks
+
+For complete guide, see: [CLAUDE_CODE_SUBAGENTS_GUIDE.md](./CLAUDE_CODE_SUBAGENTS_GUIDE.md)
 
 ### 4. Hooks (Lifecycle Automation)
 
