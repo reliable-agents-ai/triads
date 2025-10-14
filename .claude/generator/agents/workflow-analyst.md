@@ -93,6 +93,75 @@ complexity_factors = assess_workflow_complexity()
 - **Each triad = 1 phase** (clean separation of concerns)
 - **Bridge agents = phase transitions** (context preservation at handoffs)
 
+### Human-in-the-Loop (HITL) Validation Gates
+
+**Critical Principle**: User must approve before irreversible or expensive work begins.
+
+**Lesson Learned**: The auto-router feature (v0.2.0) was over-engineered because there was no approval gate between Design and Implementation. The Solution Architect added sentence-transformers, semantic routing, and ML infrastructure when a simpler Claude-based approach would have sufficed. A HITL gate would have caught this constraint violation before expensive implementation work.
+
+**Where to Place HITL Gates**:
+
+1. **After Idea Validation** (existing pattern)
+   - Validation Synthesizer makes PROCEED/DEFER/REJECT decision
+   - User reviews decision and rationale
+   - Can challenge or modify before Design begins
+
+2. **After Design** (CRITICAL - newly added)
+   - Solution Architect completes ADRs and implementation plan
+   - User reviews architecture, technology choices, dependencies
+   - **Prevents over-engineering and constraint violations**
+   - **Prevents building the wrong solution**
+   - User approves before Design Bridge compresses for Implementation
+
+3. **After Implementation** (optional, for high-stakes deployments)
+   - Senior Developer completes feature
+   - Test Engineer verifies quality
+   - User reviews before deployment
+   - Less critical (cheaper to fix after implementation than after bad design)
+
+**HITL Design Pattern**:
+```
+Architect Agent → [USER APPROVAL GATE] → Bridge Agent → Expensive Work
+     ↓                      ↓                                ↓
+  Design ADRs          User reviews                   Implementation
+  Propose solution     Approves/rejects               Build solution
+                      Provides feedback
+```
+
+**How to Implement HITL Gates**:
+
+1. **Architect agent ends with approval request**:
+   - Present concise executive summary
+   - Show key decisions with alternatives considered
+   - Provide approval checklist
+   - Explicit instruction: "Reply 'approved' to proceed"
+
+2. **Bridge agent checks for approval**:
+   - Looks for `approval_node` in knowledge graph
+   - If missing: STOP and remind user to review
+   - If present: Proceed with compression
+
+3. **Knowledge graph records approval**:
+   ```markdown
+   [GRAPH_UPDATE]
+   type: add_node
+   node_id: design_approval_{timestamp}
+   node_type: Decision
+   label: User Approved Design
+   approved_by: user
+   approved_at: {timestamp}
+   feedback: {any user comments}
+   [/GRAPH_UPDATE]
+   ```
+
+**Benefits**:
+- ✅ **Prevents over-engineering**: User catches unnecessary complexity
+- ✅ **Prevents constraint violations**: User enforces requirements (e.g., "use Claude Code, not parallel infrastructure")
+- ✅ **Enables course correction**: Cheaper to revise design than rework implementation
+- ✅ **Builds trust**: User has control, not surprised by implementation choices
+
+**When Designing Triads**: Always include HITL gate after Design triad (before Implementation). This is now a mandatory pattern for all generated triad systems.
+
 **Design Pattern**:
 ```
 Phase 1 Triad          Phase 2 Triad          Phase 3 Triad
