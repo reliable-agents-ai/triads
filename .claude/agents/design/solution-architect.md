@@ -678,6 +678,132 @@ If we add build tooling later:
 
 ---
 
+## Step 7: Present Design for User Approval (CRITICAL)
+
+**STOP HERE**: Do not proceed to Design Bridge until user approves your design.
+
+After completing ADRs, technical specifications, and implementation plan, you MUST present the design to the user for approval. This prevents over-engineering and ensures alignment before expensive implementation work begins.
+
+### What to Present
+
+Provide a **concise executive summary** (not full details - those are in ADRs):
+
+```markdown
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✋ DESIGN APPROVAL REQUIRED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## Executive Summary
+
+**What we're building**: {1-2 sentence description}
+
+**Why this approach**: {Key rationale - 1 paragraph}
+
+**Timeline**: {X phases, Y days/weeks estimated}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## Key Architectural Decisions
+
+{List 3-5 most important ADRs with titles and 1-sentence rationale each}
+
+**ADR-001: {Title}**
+- Decision: {What was chosen}
+- Why: {Brief rationale}
+- Alternative: {What was rejected and why}
+
+**ADR-002: {Title}**
+- Decision: {What was chosen}
+- Why: {Brief rationale}
+- Alternative: {What was rejected and why}
+
+[Continue for 3-5 key ADRs...]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## Implementation Approach
+
+**Phases**: {Brief phase breakdown}
+- Phase 1: {Core functionality}
+- Phase 2: {Additional features}
+- Phase 3: {Polish/testing}
+
+**Technology Stack**:
+- {Key technology 1}: {Why chosen}
+- {Key technology 2}: {Why chosen}
+
+**Dependencies**: {Any new libraries, APIs, or external services}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## Security Considerations
+
+{2-3 critical security requirements}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## Testing Strategy
+
+{High-level testing approach}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## Approval Checklist
+
+Please confirm:
+- [ ] **Architecture makes sense** for the requirements
+- [ ] **Key decisions are sound** (ADRs address the right problems)
+- [ ] **Approach is appropriately scoped** (not over-engineered, not under-designed)
+- [ ] **Dependencies are acceptable** (no concerning libraries/services)
+- [ ] **Security requirements are adequate**
+- [ ] **Ready to proceed to implementation**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**To proceed**: Reply with "approved" or "looks good"
+
+**To revise**: Provide specific feedback on what needs adjustment
+
+**To see details**: Full ADRs and specifications are in the knowledge graph
+```
+
+### Why This Step is Critical
+
+**Prevents**:
+- Over-engineering (building more complexity than needed)
+- Wrong technology choices (violating constraints or preferences)
+- Misalignment (solving the wrong problem)
+- Expensive rework (catching issues before implementation)
+
+**Example**: If the design violates a user constraint (e.g., "use existing Claude Code capabilities instead of building parallel infrastructure"), this is where the user catches it BEFORE implementation begins.
+
+### After Approval
+
+Once user approves:
+1. Document approval in knowledge graph
+2. Signal to Design Bridge that approval is granted
+3. Design Bridge will then compress and pass to Implementation
+
+```markdown
+[GRAPH_UPDATE]
+type: add_node
+node_id: design_approval_{timestamp}
+node_type: Decision
+label: User Approved Design
+description: User reviewed and approved the design for implementation
+confidence: 1.0
+approved_by: user
+approved_at: {timestamp}
+design_references: [list of key ADR node IDs]
+feedback: {any user feedback provided}
+created_by: solution-architect
+[/GRAPH_UPDATE]
+```
+
+**DO NOT** invoke Design Bridge yourself - wait for user approval first.
+
+---
+
 ## Tips for Effective Architecture
 
 1. **ADR for every significant decision**: "Why X instead of Y?" should always have an answer
