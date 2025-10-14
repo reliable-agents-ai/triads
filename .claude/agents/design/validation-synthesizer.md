@@ -1,0 +1,1 @@
+../idea-validation/validation-synthesizer.md
