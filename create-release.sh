@@ -4,7 +4,7 @@
 set -e
 
 VERSION="${1:-latest}"
-RELEASE_NAME="triad-generator-${VERSION}"
+RELEASE_NAME="triad-generator-v${VERSION}"
 RELEASE_DIR="releases"
 
 echo "Creating release bundle: ${RELEASE_NAME}"
