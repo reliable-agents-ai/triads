@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from .router_paths import DEFAULT_PATHS
 from .timestamp_utils import utc_now_iso
 
 
@@ -37,13 +38,7 @@ class TelemetryLogger:
             max_size_mb: Maximum log file size before rotation (default: 10MB)
         """
         if log_path is None:
-            log_path = (
-                Path.home()
-                / ".claude"
-                / "router"
-                / "logs"
-                / "routing_telemetry.jsonl"
-            )
+            log_path = DEFAULT_PATHS.telemetry_file
 
         self.log_path = Path(log_path)
         self.enabled = enabled
