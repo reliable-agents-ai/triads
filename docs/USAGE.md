@@ -41,10 +41,24 @@ Learn how to use the Triad Generator system to create and work with custom multi
 [System generates custom triads]
 
 # 2. Use your triads (ongoing work)
+
+# Option A: Auto-Router (v0.2.0+, recommended)
+> I need to analyze the authentication system
+→ Auto-routes to Discovery triad
+
+> Let's design OAuth2 integration now
+→ Auto-routes to Design triad
+
+> Can you implement the OAuth2 flow?
+→ Auto-routes to Implementation triad
+
+# Option B: Manual triad commands (still supported)
 > Start Discovery: analyze authentication system
 > Start Design: plan OAuth2 integration
 > Start Implementation: build OAuth2 flow
 ```
+
+**New in v0.2.0**: The auto-router eliminates manual triad commands. Just describe what you want in natural language and the system automatically routes to the appropriate triad. See the [Auto-Router section in README](../README.md#auto-router) for details.
 
 ---
 

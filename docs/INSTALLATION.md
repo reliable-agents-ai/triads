@@ -41,9 +41,25 @@ Complete installation instructions for the Triad Generator system.
 
 ### Optional (Installed Automatically)
 
+The installer automatically installs these Python dependencies:
+
 - **NetworkX** - Python library for knowledge graphs
-  - Automatically installed by setup script
-  - Manual installation: `pip3 install networkx`
+- **sentence-transformers** - Semantic routing for auto-router (v0.2.0+)
+- **torch** - Deep learning backend for embeddings (v0.2.0+)
+- **numpy** - Numerical operations (v0.2.0+)
+- **anthropic** - Claude API client for LLM disambiguation (v0.2.0+)
+
+**Note**: The semantic model (~100MB) downloads automatically on first use.
+
+### Recommended (For Auto-Router)
+
+- **Anthropic API Key** - Enables LLM disambiguation in auto-router
+  ```bash
+  export ANTHROPIC_API_KEY=sk-ant-api01-...
+  ```
+  - Required for intelligent routing fallback
+  - Router still works without it via manual selection
+  - Get your key at: https://console.anthropic.com/
 
 ---
 

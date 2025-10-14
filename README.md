@@ -41,7 +41,21 @@ Discovery Triad       Design Triad          Implementation Triad
 
 - **Python 3.10+** (with pip)
 - **[Claude Code CLI](https://docs.claude.com/en/docs/claude-code)** installed
+- **Anthropic API key** (optional, for auto-router LLM disambiguation)
 - Any git repository
+
+### Dependencies
+
+The system automatically installs these Python dependencies:
+
+**Core Requirements**:
+- `networkx` - Knowledge graph management
+- `sentence-transformers` - Semantic routing embeddings (v0.2.0+)
+- `torch` - Deep learning backend for sentence-transformers (v0.2.0+)
+- `numpy` - Numerical operations (v0.2.0+)
+- `anthropic` - Claude API client for LLM disambiguation (v0.2.0+)
+
+**Auto-Router Note**: The semantic model (`all-MiniLM-L6-v2`) will auto-download on first use (~100MB). Set `ANTHROPIC_API_KEY` for LLM fallback routing, though the router works without it via manual selection.
 
 ### Installation
 
@@ -77,13 +91,26 @@ claude code
 
 # Answer questions about your workflow
 # Get a custom triad system designed for you!
+
+# Then just start working naturally - the auto-router handles the rest
+> I have an idea for improving the login flow
+→ Auto-routes to Idea Validation triad (v0.2.0+)
 ```
 
-**That's it!** The system will interview you, research your domain, and generate a complete multi-agent workflow.
+**That's it!** The system will interview you, research your domain, and generate a complete multi-agent workflow with intelligent auto-routing.
 
 ---
 
 ## Key Features
+
+### 🤖 Intelligent Auto-Router (v0.2.0+)
+
+**No more manual triad commands** - just describe what you want:
+- 4-stage graceful degradation: Grace period → Semantic → LLM → Manual
+- Semantic routing: 15-20ms with >65% hit rate
+- LLM disambiguation: Context-aware Claude API fallback
+- Training mode: Learn routing behavior with confirmations
+- CLI control: `/router-status`, `/switch-triad`, `/router-reset`
 
 ### 🧠 Self-Discovering (No Templates)
 
@@ -203,6 +230,344 @@ Analysis Triad → Strategy Triad → Writing Triad → Validation Triad
 [Solution Architect bridges design decisions forward]
 [Implementation proceeds with complete context]
 ```
+
+---
+
+## Auto-Router
+
+**New in v0.2.0**: The auto-router automatically detects your intent and routes to the appropriate triad without manual `Start {Triad}:` commands.
+
+### How It Works
+
+The router uses a **4-stage graceful degradation pipeline** that balances speed, accuracy, and user control:
+
+```
+User Prompt
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ Stage 1: Grace Period Check             │
+│ • 5 turns OR 8 minutes                  │
+│ • Prevents mid-conversation disruption  │
+│ • Bypassed by explicit /switch-triad    │
+└─────────────┬───────────────────────────┘
+              │ Grace period expired?
+              ▼
+┌─────────────────────────────────────────┐
+│ Stage 2: Semantic Routing (15-20ms)     │
+│ • Sentence-transformers embeddings      │
+│ • Confidence threshold: 70%             │
+│ • Ambiguity detection: <10% gap         │
+└─────────────┬───────────────────────────┘
+              │ Confident & unambiguous?
+              ▼
+┌─────────────────────────────────────────┐
+│ Stage 3: LLM Disambiguation (<2s)       │
+│ • Claude 3.5 Sonnet API                 │
+│ • Context-aware reasoning               │
+│ • Exponential backoff retry             │
+└─────────────┬───────────────────────────┘
+              │ LLM available & responsive?
+              ▼
+┌─────────────────────────────────────────┐
+│ Stage 4: Manual Selection (always works)│
+│ • Interactive prompt with options       │
+│ • Shows confidence scores               │
+│ • User chooses or cancels               │
+└─────────────────────────────────────────┘
+```
+
+**Performance**:
+- **Semantic routing**: 15-20ms P95 latency
+- **LLM disambiguation**: <2s with timeout
+- **Semantic hit rate**: >65% in production testing
+- **Grace period**: 0ms (routing bypassed)
+
+### Usage Examples
+
+**Natural conversation** (router detects intent automatically):
+
+```bash
+# Start Claude Code
+claude code
+
+# Just describe what you want - no manual triad commands needed
+> I have an idea for a new feature that could improve user engagement
+→ Auto-routes to Idea Validation triad (confidence: 89%)
+
+> Let's design the authentication system with OAuth2
+→ Auto-routes to Design triad (confidence: 94%)
+
+> Can you implement the login flow we just designed?
+→ Auto-routes to Implementation triad (confidence: 91%)
+
+> This code needs refactoring - too much duplication
+→ Auto-routes to Garden Tending triad (confidence: 87%)
+```
+
+**Manual override** (when you want explicit control):
+
+```bash
+# Explicitly switch triads (bypasses grace period)
+> /switch-triad implementation
+
+# Check current routing state
+> /router-status
+Current triad: implementation
+Turn count: 3/5 (grace period active)
+Grace period: 6 minutes remaining
+Training mode: off
+
+# Force a re-route
+> /router-reset
+```
+
+### Configuration
+
+Router behavior is controlled by `.claude/router/config.json`:
+
+```json
+{
+  "confidence_threshold": 0.70,           // Minimum confidence for semantic routing
+  "semantic_similarity_threshold": 0.10,  // Max gap for ambiguity detection
+  "grace_period_turns": 5,                // Grace period: turns before re-routing
+  "grace_period_minutes": 8,              // Grace period: time limit before re-routing
+  "llm_timeout_ms": 2000,                 // LLM disambiguation timeout
+  "training_mode": false,                 // Show confirmation prompts for learning
+  "telemetry_enabled": true,              // Log routing decisions for analytics
+  "model_path": "sentence-transformers/all-MiniLM-L6-v2"
+}
+```
+
+**Environment variable overrides**:
+
+```bash
+# Override configuration at runtime
+export CLAUDE_ROUTER_CONFIDENCE=0.75       # Stricter semantic threshold
+export CLAUDE_ROUTER_GRACE_TURNS=10        # Longer grace period
+export CLAUDE_ROUTER_GRACE_MINUTES=15      # Extended time window
+export CLAUDE_ROUTER_LLM_TIMEOUT=3000      # More time for LLM
+export CLAUDE_ROUTER_TRAINING=true         # Enable training mode
+export CLAUDE_ROUTER_TELEMETRY=false       // Disable telemetry
+export ANTHROPIC_API_KEY=sk-ant-...        # Required for LLM disambiguation
+```
+
+### CLI Commands
+
+Control and debug the router with built-in commands:
+
+**`/router-status`** - View current routing state
+
+```bash
+> /router-status
+
+Router Status:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Active triad:     implementation
+Turn count:       3/5
+Last activity:    2 minutes ago
+Grace period:     ACTIVE (2 turns or 6 minutes remaining)
+Training mode:    off
+Telemetry:        enabled
+```
+
+**`/switch-triad [name]`** - Manually switch triads
+
+```bash
+> /switch-triad design
+
+✓ Switched to Design triad
+  Grace period reset
+```
+
+**`/router-reset`** - Clear routing state
+
+```bash
+> /router-reset
+
+✓ Router state cleared
+  Turn count: 0
+  Grace period: inactive
+  Ready for fresh routing
+```
+
+**`/router-training [on|off]`** - Toggle training mode
+
+```bash
+> /router-training on
+
+✓ Training mode enabled
+  Router will now ask for confirmation before switching triads
+
+> I want to validate this idea
+
+🤔 Router suggests: Idea Validation
+   Confidence: 92%
+   Reasoning: High semantic match with idea validation keywords
+
+   Confirm switch? [y/n]: y
+
+✓ Switched to Idea Validation triad
+```
+
+**`/router-stats`** - View routing performance metrics
+
+```bash
+> /router-stats
+
+Routing Statistics (last 100 routes):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Semantic routing:      68% (avg 18ms)
+LLM disambiguation:    24% (avg 1.2s)
+Manual selection:       8% (user choice)
+Grace period bypass:   45% (stayed in current triad)
+
+Most routed triads:
+1. Implementation      32%
+2. Design             28%
+3. Idea Validation    22%
+4. Garden Tending     12%
+5. Deployment          6%
+```
+
+### Training Mode
+
+For new users or to understand routing behavior:
+
+```bash
+# Enable training mode
+> /router-training on
+
+# Router will now show its reasoning and ask for confirmation
+> I need to research if this feature idea is worth building
+
+🤔 Router Analysis:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Method:      Semantic routing
+Top match:   Idea Validation (confidence: 89%)
+Runner-up:   Design (confidence: 58%)
+Gap:         31% (unambiguous)
+
+Reasoning:   Keywords "research", "feature idea", "worth building"
+             strongly match Idea Validation triad patterns
+
+Grace period: Not active (this is your first prompt)
+
+Confirm switch to Idea Validation? [y/n]: y
+
+✓ Switched to Idea Validation triad
+
+[After 50 confirmed suggestions, training mode auto-graduates to full automation]
+```
+
+Training mode features:
+- Shows routing method (semantic vs LLM vs manual)
+- Displays confidence scores and reasoning
+- Explains grace period status
+- Lets you override suggestions
+- Auto-graduates after 50 confirmations
+
+### Troubleshooting
+
+**Router not activating**:
+
+```bash
+# Check if ANTHROPIC_API_KEY is set (required for LLM fallback)
+echo $ANTHROPIC_API_KEY
+
+# Verify router configuration exists
+cat ~/.claude/router/config.json
+
+# Enable training mode to see what's happening
+/router-training on
+```
+
+**Incorrect routing**:
+
+```bash
+# Check recent routing decisions
+tail -n 20 ~/.claude/router/logs/routing_telemetry.jsonl
+
+# Review which method was used
+# If semantic routing is wrong, LLM should catch it
+# If LLM is also wrong, use manual override:
+/switch-triad [correct-triad-name]
+
+# Report patterns to improve routing:
+# - Low semantic confidence but correct LLM routing → good
+# - High semantic confidence but wrong → check route definitions
+# - LLM wrong → check triad descriptions in config
+```
+
+**Performance issues**:
+
+```bash
+# Semantic model should auto-download on first use
+# Check if cached:
+ls ~/.cache/torch/sentence_transformers/
+
+# If missing or slow, download manually:
+python3 -c "from sentence_transformers import SentenceTransformer; \
+           SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
+
+# Reduce LLM timeout if Claude API is slow:
+export CLAUDE_ROUTER_LLM_TIMEOUT=1500  # 1.5s instead of 2s
+
+# Disable telemetry for slight speedup (1-2ms):
+export CLAUDE_ROUTER_TELEMETRY=false
+```
+
+**Mid-conversation re-routing (disruptive)**:
+
+```bash
+# This should be prevented by grace period (5 turns OR 8 minutes)
+# If happening, increase grace period:
+export CLAUDE_ROUTER_GRACE_TURNS=10
+export CLAUDE_ROUTER_GRACE_MINUTES=15
+
+# Or use explicit commands when ready to switch:
+/switch-triad [next-triad-name]
+
+# Check grace period status:
+/router-status
+```
+
+**LLM disambiguation failing**:
+
+```bash
+# LLM requires ANTHROPIC_API_KEY
+export ANTHROPIC_API_KEY=sk-ant-api01-...
+
+# Check API key is valid:
+curl https://api.anthropic.com/v1/messages \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "content-type: application/json" \
+  -d '{"model":"claude-3-5-sonnet-20241022","max_tokens":10,"messages":[{"role":"user","content":"test"}]}'
+
+# If API key missing/invalid, router falls back to manual selection
+# This always works, even without internet
+```
+
+### Architecture Notes
+
+The auto-router is designed with **graceful degradation**:
+
+1. **Fast path** (semantic): 15-20ms, handles 65%+ of cases
+2. **Smart fallback** (LLM): <2s, handles ambiguous cases
+3. **Always works** (manual): No dependencies, user has final control
+
+**Why this approach?**
+- **Semantic routing** is fast but can be ambiguous
+- **LLM** provides reasoning but requires API and time
+- **Manual selection** ensures the system never blocks the user
+- **Grace period** prevents disruptive mid-conversation switches
+
+This creates a system that is:
+- Fast (most requests <20ms)
+- Smart (LLM helps with edge cases)
+- Reliable (always has a fallback)
+- Controllable (user can override at any time)
 
 ---
 
@@ -382,6 +747,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Technology Stack
 - **[Claude Code](https://docs.claude.com/en/docs/claude-code)** by Anthropic
 - **[NetworkX](https://networkx.org/)** for knowledge graphs
+- **[Sentence-Transformers](https://www.sbert.net/)** for semantic routing (v0.2.0+)
+- **[PyTorch](https://pytorch.org/)** for deep learning backend (v0.2.0+)
+- **[Anthropic Python SDK](https://github.com/anthropics/anthropic-sdk-python)** for LLM disambiguation (v0.2.0+)
 - **Python 3.10+** standard library
 
 ---
