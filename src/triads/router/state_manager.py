@@ -16,6 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
+from .router_paths import DEFAULT_PATHS
 from .timestamp_utils import utc_now_aware, utc_now_iso
 
 
@@ -115,7 +116,7 @@ class RouterStateManager:
             state_path: Path to state JSON file. Defaults to ~/.claude/router_state.json
         """
         if state_path is None:
-            state_path = Path.home() / ".claude" / "router_state.json"
+            state_path = DEFAULT_PATHS.state_file
 
         self.state_path = Path(state_path)
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
