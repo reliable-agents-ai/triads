@@ -1,0 +1,18 @@
+{
+  "name": "triads",
+  "version": "0.3.0",
+  "description": "Triad workflow system for Claude Code - organize complex work into phases with specialized agents and automatic knowledge management",
+  "author": {
+    "name": "Reliable Agents AI",
+    "url": "https://github.com/reliable-agents-ai/triads"
+  },
+  "repository": "https://github.com/reliable-agents-ai/triads",
+  "keywords": [
+    "workflow",
+    "agents",
+    "knowledge-management",
+    "productivity",
+    "context-preservation"
+  ],
+  "license": "MIT"
+}
