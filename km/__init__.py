@@ -1,16 +1,16 @@
 """Knowledge Management module for Triads."""
 
-from triads.km.detection import (
+from .detection import (
     count_meaningful_properties,
     detect_km_issues,
     update_km_queue,
 )
-from triads.km.formatting import (
+from .formatting import (
     format_km_notification,
     get_agent_for_issue,
     write_km_status_file,
 )
-from triads.km.system_agents import (
+from .system_agents import (
     format_agent_task,
     get_agent_for_issue_type,
     get_system_agent,
