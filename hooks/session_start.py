@@ -140,6 +140,82 @@ def load_bridge_contexts():
 
     return bridges
 
+def load_project_settings():
+    """
+    Load project settings.json if exists.
+
+    Returns:
+        Dict or None: Settings data
+    """
+    settings_file = Path('.claude/settings.json')
+    if settings_file.exists():
+        try:
+            with open(settings_file, 'r') as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            return None
+    return None
+
+def generate_routing_from_settings(settings):
+    """
+    Generate routing context from settings.json.
+
+    Args:
+        settings: Parsed settings.json
+
+    Returns:
+        str: Routing context for Claude
+    """
+    system_name = settings.get('system_name', 'Custom Triad System')
+    triads = settings.get('triads', [])
+    usage = settings.get('usage', {})
+
+    if not triads:
+        return None
+
+    # Entry point (first triad)
+    entry_triad = triads[0]
+
+    routing = []
+    routing.append(f"# ⚡ {system_name.upper()} ROUTING\n")
+    routing.append("**CRITICAL DIRECTIVE**: Route user requests to appropriate triad.\n")
+
+    # List triads
+    routing.append("## Available Triads\n")
+    for i, triad in enumerate(triads, 1):
+        routing.append(f"### {i}. {triad['name'].replace('_', ' ').title()}")
+        routing.append(f"**Description**: {triad['description']}")
+
+        if i == 1:
+            routing.append(f"**Entry Point**: User invokes this triad")
+            routing.append(f"**Command**: `Start {triad['name']}: [description]`")
+        else:
+            routing.append(f"**Auto-invoked**: Runs automatically after previous triad")
+        routing.append("")
+
+    # Usage pattern
+    routing.append("## How to Use\n")
+    if 'start_command' in usage:
+        routing.append(f"**Start command**: `{usage['start_command']}`\n")
+    if 'example' in usage:
+        routing.append(f"**Example**: `{usage['example']}`\n")
+
+    # Routing logic
+    routing.append("## Routing Logic\n")
+    routing.append(f"When user describes work matching this system, suggest:\n")
+    routing.append(f"```")
+    routing.append(f"Start {entry_triad['name']}: [user's request]")
+    routing.append(f"```\n")
+
+    # Workflow
+    if 'workflow' in usage:
+        routing.append("## Workflow\n")
+        for step in usage['workflow']:
+            routing.append(f"- {step}")
+        routing.append("")
+
+    return '\n'.join(routing)
+
 def load_routing_directives():
     """
     Load routing directives from plugin or project.
@@ -173,7 +249,18 @@ def main():
     output = []
 
     # === ROUTING DIRECTIVES ===
-    routing_content = load_routing_directives()
+
+    # Priority 1: Generate routing from settings.json (if exists)
+    routing_content = None
+    settings = load_project_settings()
+    if settings:
+        routing_content = generate_routing_from_settings(settings)
+
+    # Priority 2: Fall back to .claude/ROUTING.md or plugin ROUTING.md
+    if not routing_content:
+        routing_content = load_routing_directives()
+
+    # Output routing if we have it
     if routing_content:
         output.append("=" * 80)
         output.append(routing_content)
