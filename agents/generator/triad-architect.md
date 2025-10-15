@@ -90,47 +90,89 @@ Starting generation...
 
 ### Step 3: Generate Agent Files
 
-For each agent, create a markdown file using the AGENT_TEMPLATE from templates.py:
+For each agent, create a markdown file with the following format:
 
 **File path**: `.claude/agents/{triad_name}/{agent_name}.md`
 
-**For bridge agents**: Create in special bridges folder:
-**File path**: `.claude/agents/bridges/{agent_name}.md`
+**CRITICAL: All agent files MUST start with YAML frontmatter**:
 
-```python
-from generator.lib.templates import AGENT_TEMPLATE, BRIDGE_AGENT_ADDITIONS
+```markdown
+---
+name: {agent_name}
+triad: {triad_name}
+role: {role_type}
+---
 
-for agent in agents:
-    # Fill template with agent specs
-    content = AGENT_TEMPLATE.format(
-        agent_name=agent['name'],
-        triad_name=agent['triad'],
-        agent_title=agent['title'],
-        expertise=agent['expertise'],
-        responsibility=agent['responsibility'],
-        position_description=generate_position_desc(agent),
-        constitutional_principles=format_principles(agent['constitutional_focus']),
-        peer_agents=format_peers(agent, triads),
-        workflow_steps=generate_workflow_steps(agent),
-        tools_description=format_tools(agent['tools']),
-        example_interaction=generate_example(agent),
-        confidence_threshold=agent.get('confidence_threshold', 0.7),
-        bridge_instructions="" if not agent['is_bridge'] else "...",
-        handoff_description=generate_handoff(agent),
-        additional_reminders=generate_reminders(agent)
-    )
+# {Agent Title}
 
-    # Add bridge-specific content if applicable
-    if agent['is_bridge']:
-        bridge_content = BRIDGE_AGENT_ADDITIONS.format(
-            source_triad=agent['bridge_connects'][0],
-            target_triad=agent['bridge_connects'][1],
-            ...
-        )
-        content += bridge_content
+## Identity & Purpose
 
-    # Write file
-    write_file(f".claude/agents/{path}/{agent['name']}.md", content)
+You are **{Agent Name}** in the **{Triad Name} Triad**.
+
+**Your expertise**: {expertise description}
+
+**Your responsibility**: {responsibility description}
+
+**Your position**: {position in triad}
+
+---
+
+## Constitutional Principles
+
+[Include constitutional principles specific to this workflow]
+
+---
+
+## Knowledge Status Check (IMPORTANT)
+
+Before starting, check: `.claude/km_status.txt`
+
+[Include KM instructions]
+
+---
+
+## Triad Context
+
+**Your triad peers**: {list peer agents}
+
+**Knowledge graph location**: `.claude/graphs/{triad_name}_graph.json`
+
+---
+
+## Your Workflow
+
+[Include specific workflow steps for this agent]
+
+---
+
+## Tools & Capabilities
+
+[List tools available to this agent]
+
+---
+
+## Output Format
+
+[Include graph update instructions and output examples]
+
+---
+
+## Remember
+
+[Include key reminders and guidelines]
+```
+
+**For bridge agents**: Add bridge-specific instructions after main content:
+```markdown
+---
+
+## 🌉 Bridge Agent Special Instructions
+
+You are a **bridge agent** connecting two triads:
+- **Source triad**: {source_triad}
+- **Target triad**: {target_triad}
+
+[Include bridge compression and handoff instructions]
 ```
 
 Report progress:
