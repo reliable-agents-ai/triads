@@ -1,0 +1,17 @@
+{
+  "name": "triads-marketplace",
+  "version": "1.0.0",
+  "description": "Official marketplace for the triads Claude Code plugin - workflow system for organizing complex work",
+  "owner": {
+    "name": "Reliable Agents AI",
+    "url": "https://github.com/reliable-agents-ai"
+  },
+  "plugins": [
+    {
+      "name": "triads",
+      "source": "./",
+      "description": "Triad workflow system - organize complex work into phases with specialized agents and automatic knowledge management",
+      "version": "0.3.0"
+    }
+  ]
+}
