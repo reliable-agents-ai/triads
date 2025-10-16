@@ -397,6 +397,18 @@ def main():
         output.append("# 📊 Knowledge Graph System Active\n")
         output.append("No knowledge graphs exist yet. As agents work, they will create and update graphs.")
         output.append("\nAgents should use [GRAPH_UPDATE] blocks to document findings.\n")
+
+        # Debug: Write to log
+        try:
+            with open('/tmp/claude_hook_debug.log', 'a') as debug_log:
+                debug_log.write("\n" + "=" * 80 + "\n")
+                debug_log.write("MINIMAL OUTPUT PATH (no graphs)\n")
+                debug_log.write("=" * 80 + "\n")
+                debug_log.write("\n".join(output))
+                debug_log.write("\n")
+        except:
+            pass
+
         print("\n".join(output))
         return
 
@@ -438,6 +450,18 @@ def main():
     output.append("")
     output.append("=" * 80)
     output.append("")
+
+    # Debug: Write full output to log
+    try:
+        with open('/tmp/claude_hook_debug.log', 'a') as debug_log:
+            debug_log.write("\n" + "=" * 80 + "\n")
+            debug_log.write("FULL OUTPUT (what gets printed to stdout)\n")
+            debug_log.write(f"Output has {len(output)} lines\n")
+            debug_log.write("=" * 80 + "\n")
+            debug_log.write("\n".join(output))
+            debug_log.write("\n" + "=" * 80 + "\n")
+    except:
+        pass
 
     # Output to stdout (Claude Code will inject this)
     print("\n".join(output))
