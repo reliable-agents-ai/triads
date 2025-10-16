@@ -100,7 +100,14 @@ def format_graph_summary(graph_data, triad_name):
 
 def load_all_graphs():
     """Load all knowledge graphs from .claude/graphs/."""
+    # Try relative path first (works when CWD is project directory)
     graphs_dir = Path('.claude/graphs')
+
+    # If not found, try PWD environment variable (fallback for hooks)
+    if not graphs_dir.exists():
+        pwd = os.environ.get('PWD')
+        if pwd:
+            graphs_dir = Path(pwd) / '.claude/graphs'
 
     if not graphs_dir.exists():
         return []
@@ -121,7 +128,14 @@ def load_all_graphs():
 
 def load_bridge_contexts():
     """Load bridge context files (compressed context from previous triads)."""
+    # Try relative path first (works when CWD is project directory)
     graphs_dir = Path('.claude/graphs')
+
+    # If not found, try PWD environment variable (fallback for hooks)
+    if not graphs_dir.exists():
+        pwd = os.environ.get('PWD')
+        if pwd:
+            graphs_dir = Path(pwd) / '.claude/graphs'
 
     if not graphs_dir.exists():
         return []
@@ -147,7 +161,15 @@ def load_project_settings():
     Returns:
         Dict or None: Settings data
     """
+    # Try relative path first (works when CWD is project directory)
     settings_file = Path('.claude/settings.json')
+
+    # If not found, try PWD environment variable (fallback for hooks)
+    if not settings_file.exists():
+        pwd = os.environ.get('PWD')
+        if pwd:
+            settings_file = Path(pwd) / '.claude/settings.json'
+
     if settings_file.exists():
         try:
             with open(settings_file, 'r') as f:
@@ -257,8 +279,15 @@ def load_routing_directives():
     Returns:
         str: Routing content, or None if not found
     """
-    # Check for project-level override
+    # Check for project-level override (try relative path first)
     project_routing = Path('.claude/ROUTING.md')
+
+    # If not found, try PWD environment variable (fallback for hooks)
+    if not project_routing.exists():
+        pwd = os.environ.get('PWD')
+        if pwd:
+            project_routing = Path(pwd) / '.claude/ROUTING.md'
+
     if project_routing.exists():
         return project_routing.read_text()
 
