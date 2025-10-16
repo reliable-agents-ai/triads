@@ -4,13 +4,22 @@ description: Fix common issues in generated agent files (missing frontmatter, in
 
 # Fix Agents - Automated Remediation Tool
 
-**IMPORTANT**: This command invokes the fix_agents.py script. Before running it, let me execute the script for you:
+You are about to run the **fix_agents.py** script to scan and repair generated agent files.
 
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/fix_agents.py
-```
+## Your Task
 
-I'll run this script and show you the results.
+1. **Locate the script**: Find the fix_agents.py script in the triads plugin installation
+   - Try: `~/.claude/plugins/marketplaces/triads-marketplace/scripts/fix_agents.py`
+   - Or search: `find ~/.claude/plugins -name "fix_agents.py"`
+
+2. **Run the script** in the current project directory:
+   ```bash
+   python3 <path-to-script>/fix_agents.py --auto-confirm
+   ```
+
+3. **Report results** to the user
+
+## What This Script Does
 
 This command scans your `.claude/agents/` directory and fixes common issues in generated agent files.
 
