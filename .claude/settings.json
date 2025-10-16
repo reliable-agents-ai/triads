@@ -1,26 +1,4 @@
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .claude/hooks/session_start.py"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .claude/hooks/on_stop.py"
-          }
-        ]
-      }
-    ]
-  },
   "triad_system": {
     "version": "1.0.0",
     "workflow": "Open Source Meta-AI Development",
