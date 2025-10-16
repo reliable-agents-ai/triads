@@ -2,15 +2,25 @@
 research/
 
 # Runtime files (generated during use)
+# Knowledge graphs
 .claude/graphs/*.json
 !.claude/graphs/.gitkeep
-.claude/constitutional/violations.json
 .claude/graphs/.context_*
 .claude/graphs/.output_*
+
+# Knowledge management
 .claude/km_queue.json
 .claude/km_status.txt
 .claude/km_status.md
 .claude/km_pending_invocations.json
+
+# Constitutional AI
+.claude/constitutional/violations.json
+
+# Router state
+.claude/router/
+
+# Local settings
 .claude/settings.local.json
 
 # Python
