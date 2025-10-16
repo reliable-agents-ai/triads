@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-10-16
+
+### Added
+
+- **Knowledge Graph CLI Access Commands** - Browse and query knowledge graphs directly from Claude Code
+  - `/knowledge-status [triad]` - View graph statistics and health metrics with node counts, type distribution, and confidence scores
+  - `/knowledge-search <query>` - Search nodes with powerful filters (triad, type, confidence threshold) and relevance ranking
+  - `/knowledge-show <node_id>` - Display detailed node information including all attributes and relationships
+  - `/knowledge-help` - Complete command reference with usage examples and troubleshooting
+- New Python module `src/triads/km/graph_access.py` (1,126 lines) with three core classes:
+  - `GraphLoader` - Lazy-loading graph manager with per-session caching and secure path validation
+  - `GraphSearcher` - Case-insensitive substring search with relevance-based ranking
+  - `GraphFormatter` - Markdown output formatting for consistent, readable displays
+- Comprehensive documentation in `docs/km-access-commands.md` (518 lines) covering architecture, usage, and design decisions
+- 9 test modules with 148+ tests achieving 97% code coverage for graph access functionality
+- Performance optimizations: Sub-30ms search and load operations, ~50KB memory per graph
+
+### Security
+
+- Path traversal protection prevents directory escapes in graph file loading
+- Input sanitization protects against injection attacks in search queries
+- Safe JSON parsing with graceful error handling for malformed graph files
+
+### Technical Details
+
+- **Zero new dependencies** - Uses Python standard library only (json, pathlib, typing)
+- **Backward compatible** - No breaking changes to existing APIs or workflows
+- **Test coverage**: 97% for knowledge management module
+- **Implementation follows ADRs**: ADR-001 through ADR-005 from Design phase
+
+### Files Added
+
+**Commands** (4 files, 510 lines):
+- `.claude/commands/knowledge-status.md` - Graph statistics command
+- `.claude/commands/knowledge-search.md` - Search command with filters
+- `.claude/commands/knowledge-show.md` - Node detail viewer
+- `.claude/commands/knowledge-help.md` - Complete command reference
+
+**Documentation**:
+- `docs/km-access-commands.md` - User guide and architecture documentation
+
+**Tests** (9 files):
+- `tests/test_km/test_graph_loader.py` - Graph loading tests
+- `tests/test_km/test_graph_searcher.py` - Search functionality tests
+- `tests/test_km/test_graph_formatter.py` - Output formatting tests
+- `tests/test_km/test_security.py` - Security validation tests
+- `tests/test_km/test_error_handling.py` - Error handling tests
+- `tests/test_km/test_detection.py` - Graph detection tests
+- `tests/test_km/test_formatting.py` - Format validation tests
+- `tests/test_km/test_convenience_functions.py` - API tests
+- `tests/test_km/test_system_agents.py` - Agent integration tests
+
 ## [0.2.0] - 2025-10-14
 
 ### Added
@@ -119,6 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 **Release Comparison Links**:
+- [0.6.0 vs 0.2.0](https://github.com/reliable-agents-ai/triads/compare/v0.2.0...v0.6.0)
 - [0.2.0 vs 0.0.4](https://github.com/reliable-agents-ai/triads/compare/v0.0.4...v0.2.0)
 - [0.0.4 vs 0.0.3](https://github.com/reliable-agents-ai/triads/compare/v0.0.3...v0.0.4)
 - [0.0.3 vs 0.0.2](https://github.com/reliable-agents-ai/triads/compare/v0.0.2...v0.0.3)
