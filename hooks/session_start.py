@@ -463,8 +463,13 @@ def main():
     except:
         pass
 
+    # MINIMAL TEST - Output just a simple message
+    print("🔍 HOOK TEST: If you see this message, SessionStart hook output IS being injected into Claude's context")
+    print("")
+    print("=" * 80)
+
     # Output to stdout (Claude Code will inject this)
-    print("\n".join(output))
+    # print("\n".join(output))
 
 if __name__ == "__main__":
     main()
