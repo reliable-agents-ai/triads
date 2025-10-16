@@ -304,6 +304,32 @@ def load_routing_directives():
 def main():
     """Generate routing + knowledge graph context for session."""
 
+    # === WRITE DEBUG LOG (temporary for debugging) ===
+    debug_log_path = Path('/tmp/claude_hook_debug.log')
+    with open(debug_log_path, 'w') as debug_log:
+        debug_log.write("=" * 80 + "\n")
+        debug_log.write(f"SessionStart Hook Debug Log - {datetime.now().isoformat()}\n")
+        debug_log.write("=" * 80 + "\n")
+        debug_log.write(f"CWD: {os.getcwd()}\n")
+        debug_log.write(f"PWD: {os.environ.get('PWD', 'NOT SET')}\n")
+        debug_log.write(f"CLAUDE_PLUGIN_ROOT: {os.environ.get('CLAUDE_PLUGIN_ROOT', 'NOT SET')}\n")
+        debug_log.write(f"\nAll CLAUDE* env vars:\n")
+        for key, value in sorted(os.environ.items()):
+            if 'CLAUDE' in key.upper():
+                debug_log.write(f"  {key} = {value}\n")
+
+        settings_file = Path('.claude/settings.json')
+        debug_log.write(f"\nChecking .claude/settings.json: {settings_file.exists()}\n")
+        if settings_file.exists():
+            debug_log.write(f"  Found at: {settings_file.absolute()}\n")
+
+        pwd = os.environ.get('PWD')
+        if pwd:
+            settings_file_pwd = Path(pwd) / '.claude/settings.json'
+            debug_log.write(f"Checking $PWD/.claude/settings.json: {settings_file_pwd.exists()}\n")
+            if settings_file_pwd.exists():
+                debug_log.write(f"  Found at: {settings_file_pwd.absolute()}\n")
+
     # Build context output
     output = []
 
@@ -314,8 +340,7 @@ def main():
     output.append(f"**Working Directory**: {os.getcwd()}")
     output.append(f"**PWD env var**: {os.environ.get('PWD', 'NOT SET')}")
     output.append(f"**CLAUDE_PLUGIN_ROOT**: {os.environ.get('CLAUDE_PLUGIN_ROOT', 'NOT SET')}")
-    output.append(f"**CLAUDECODE**: {os.environ.get('CLAUDECODE', 'NOT SET')}")
-    output.append(f"**HOME**: {os.environ.get('HOME', 'NOT SET')}")
+    output.append(f"**Debug log written to**: /tmp/claude_hook_debug.log")
 
     # Show ALL Claude-related env vars
     output.append("\n**All CLAUDE* environment variables**:")
