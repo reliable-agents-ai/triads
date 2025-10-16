@@ -178,7 +178,8 @@ def generate_routing_from_settings(settings):
 
     routing = []
     routing.append(f"# ⚡ {system_name.upper()} ROUTING\n")
-    routing.append("**CRITICAL DIRECTIVE**: Route user requests to appropriate triad.\n")
+    routing.append("**CRITICAL DIRECTIVE**: This project uses a custom triad system.\n")
+    routing.append(f"**System purpose**: {settings.get('description', system_name)}\n")
 
     # List triads
     routing.append("## Available Triads\n")
@@ -200,12 +201,41 @@ def generate_routing_from_settings(settings):
     if 'example' in usage:
         routing.append(f"**Example**: `{usage['example']}`\n")
 
-    # Routing logic
-    routing.append("## Routing Logic\n")
-    routing.append(f"When user describes work matching this system, suggest:\n")
+    # Routing logic with explicit recognition
+    routing.append("## ⚠️ AUTOMATIC ROUTING - READ CAREFULLY\n")
+    routing.append(f"**This project has a custom triad system for**: {settings.get('description', system_name)}\n")
+    routing.append(f"\n**CRITICAL**: When a user message relates to {system_name.lower()}, you MUST invoke the triad system.\n")
+
+    # Generate recognition patterns from system name and description
+    routing.append(f"\n**Recognize these user statements as triggers**:\n")
+    routing.append(f"- Questions or concerns about topics relevant to this system\n")
+    routing.append(f"- Requests for help, information, or research on related topics\n")
+    routing.append(f"- ANY statement that matches the system's purpose\n")
+
+    routing.append(f"\n**Example user statements that should trigger routing**:\n")
+    if 'example' in usage:
+        # Extract a simpler version of the example
+        example = usage['example']
+        # Try to extract just the user question part
+        if ':' in example:
+            example = example.split(':', 1)[1].strip()
+        routing.append(f'- "{example}"\n')
+        # Generate variations
+        routing.append(f'- "I have a question about..." (related topic)\n')
+        routing.append(f'- "I need help with..." (related topic)\n')
+        routing.append(f'- "Can you tell me about..." (related topic)\n')
+
+    routing.append(f"\n**How to invoke (REQUIRED FORMAT)**:\n")
     routing.append(f"```")
-    routing.append(f"Start {entry_triad['name']}: [user's request]")
+    routing.append(f"Start {entry_triad['name']}: [user's exact question or concern]")
     routing.append(f"```\n")
+    routing.append(f"**Do NOT**:\n")
+    routing.append(f"- Respond as a generic assistant\n")
+    routing.append(f"- Say you can't help\n")
+    routing.append(f"- Redirect them elsewhere\n")
+    routing.append(f"\n**Do**:\n")
+    routing.append(f"- IMMEDIATELY invoke the triad with their question\n")
+    routing.append(f"- Let the specialized agents handle it\n")
 
     # Workflow
     if 'workflow' in usage:
