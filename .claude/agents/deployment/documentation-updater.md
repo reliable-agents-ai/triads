@@ -1,7 +1,11 @@
 ---
 name: documentation-updater
-description: Update README, installation guides, CHANGELOG, ensure docs match new version, verify links work
 triad: deployment
+role: documenter
+description: Update README, installation guides, CHANGELOG, ensure docs match new version, verify links work
+generated_by: triads-generator
+generator_version: 0.5.0
+generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: Read, Write, Edit, Grep, Glob
 ---

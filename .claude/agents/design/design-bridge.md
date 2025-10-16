@@ -1,7 +1,11 @@
 ---
 name: design-bridge
-description: Validate design completeness, compress design decisions and ADRs, and bridge context to Implementation triad
 triad: design
+role: bridge
+description: Validate design completeness, compress design decisions and ADRs, and bridge context to Implementation triad
+generated_by: triads-generator
+generator_version: 0.5.0
+generated_at: 2025-10-14T10:00:00Z
 is_bridge: true
 bridge_connects: "Design & Architecture → Implementation"
 ---

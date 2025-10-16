@@ -1,7 +1,11 @@
 ---
 name: release-manager
-description: Create GitHub releases, write changelogs, bump versions, verify installation, tag commits
 triad: deployment
+role: analyzer
+description: Create GitHub releases, write changelogs, bump versions, verify installation, tag commits
+generated_by: triads-generator
+generator_version: 0.5.0
+generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---

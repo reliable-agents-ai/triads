@@ -1,7 +1,11 @@
 ---
 name: pruner
-description: Remove redundancy, simplify complexity, eliminate duplicate code following 5 Safe Refactoring Rules (tests first, one change at a time, verify continuously)
 triad: garden-tending
+role: analyzer
+description: Remove redundancy, simplify complexity, eliminate duplicate code following 5 Safe Refactoring Rules (tests first, one change at a time, verify continuously)
+generated_by: triads-generator
+generator_version: 0.5.0
+generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: Read, Edit, Grep, Glob, Bash
 ---

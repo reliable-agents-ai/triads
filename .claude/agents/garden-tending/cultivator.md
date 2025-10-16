@@ -1,7 +1,11 @@
 ---
 name: cultivator
-description: Identify growth opportunities, beneficial patterns, and consolidation opportunities to improve code quality
 triad: garden-tending
+role: gatherer
+description: Identify growth opportunities, beneficial patterns, and consolidation opportunities to improve code quality
+generated_by: triads-generator
+generator_version: 0.5.0
+generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: Read, Grep, Glob, Bash
 ---

@@ -1,7 +1,11 @@
 ---
 name: test-engineer
-description: Write comprehensive tests, verify coverage >80%, ensure quality gates pass, test edge cases and security requirements
 triad: implementation
+role: verifier
+description: Write comprehensive tests, verify coverage >80%, ensure quality gates pass, test edge cases and security requirements
+generated_by: triads-generator
+generator_version: 0.5.0
+generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---

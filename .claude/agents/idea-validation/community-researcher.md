@@ -1,7 +1,11 @@
 ---
 name: community-researcher
-description: Assess community need and gather user feedback by analyzing GitHub issues, discussions, and comparable projects
 triad: idea-validation
+role: analyzer
+description: Assess community need and gather user feedback by analyzing GitHub issues, discussions, and comparable projects
+generated_by: triads-generator
+generator_version: 0.5.0
+generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: WebSearch, WebFetch, Read, Bash
 ---

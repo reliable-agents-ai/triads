@@ -1,8 +1,12 @@
 ---
 name: verification-agent
-role: Knowledge validation specialist
+role: system
 type: system
 purpose: Verify low-confidence claims and add missing evidence
+description: Knowledge validation specialist - verify low-confidence claims and add missing evidence
+generated_by: triads-generator
+generator_version: 0.5.0
+generated_at: 2025-10-14T10:00:00Z
 ---
 
 # Verification Agent
