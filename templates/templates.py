@@ -1255,6 +1255,12 @@ SETTINGS_JSON_TEMPLATE = """{{
     "triads": {triads_list},
     "bridge_agents": {bridge_agents_list},
     "note": "Uses Stop hook instead of PostToolUse due to known Claude Code bug with tool-level hooks"  # noqa: E501
+  }},
+  "generator_metadata": {{
+    "generator": "triads-generator",
+    "generator_version": "{generator_version}",
+    "generated_at": "{timestamp}",
+    "files_generated": {files_list}
   }}
 }}
 """

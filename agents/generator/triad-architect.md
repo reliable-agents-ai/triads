@@ -101,6 +101,9 @@ For each agent, create a markdown file with the following format:
 name: {agent_name}
 triad: {triad_name}
 role: {role_type}
+generated_by: triads-generator
+generator_version: {get version from git or use 0.3.0+}
+generated_at: {ISO 8601 timestamp}
 ---
 
 # {Agent Title}
@@ -255,12 +258,39 @@ write_file(".claude/constitutional-principles.md", content)
 from generator.lib.templates import SETTINGS_JSON_TEMPLATE
 import json
 from datetime import datetime
+import subprocess
+
+# Get generator version from git
+try:
+    generator_version = subprocess.check_output(
+        ['git', 'describe', '--tags'],
+        cwd='path/to/plugin',
+        stderr=subprocess.DEVNULL
+    ).decode().strip()
+except:
+    generator_version = "0.3.0+"
+
+# Build list of all generated files
+files_generated = []
+for triad in triads:
+    for agent in triad['agents']:
+        files_generated.append(f".claude/agents/{triad['name']}/{agent['name']}.md")
+files_generated.extend([
+    ".claude/hooks/session_start.py",
+    ".claude/hooks/on_stop.py",
+    ".claude/constitutional-principles.md",
+    ".claude/settings.json",
+    ".claude/README.md",
+    ".claude/WORKFLOW.md"
+])
 
 content = SETTINGS_JSON_TEMPLATE.format(
     workflow_name=workflow_info['name'],
     timestamp=datetime.now().isoformat(),
     triads_list=json.dumps([t['name'] for t in triads]),
-    bridge_agents_list=json.dumps([b['name'] for b in bridges])
+    bridge_agents_list=json.dumps([b['name'] for b in bridges]),
+    generator_version=generator_version,
+    files_list=json.dumps(files_generated, indent=4)
 )
 
 write_file(".claude/settings.json", content)
