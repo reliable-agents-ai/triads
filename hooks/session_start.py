@@ -304,65 +304,8 @@ def load_routing_directives():
 def main():
     """Generate routing + knowledge graph context for session."""
 
-    # === WRITE DEBUG LOG (temporary for debugging) ===
-    debug_log_path = Path('/tmp/claude_hook_debug.log')
-    with open(debug_log_path, 'w') as debug_log:
-        debug_log.write("=" * 80 + "\n")
-        debug_log.write(f"SessionStart Hook Debug Log - {datetime.now().isoformat()}\n")
-        debug_log.write("=" * 80 + "\n")
-        debug_log.write(f"CWD: {os.getcwd()}\n")
-        debug_log.write(f"PWD: {os.environ.get('PWD', 'NOT SET')}\n")
-        debug_log.write(f"CLAUDE_PLUGIN_ROOT: {os.environ.get('CLAUDE_PLUGIN_ROOT', 'NOT SET')}\n")
-        debug_log.write(f"\nAll CLAUDE* env vars:\n")
-        for key, value in sorted(os.environ.items()):
-            if 'CLAUDE' in key.upper():
-                debug_log.write(f"  {key} = {value}\n")
-
-        settings_file = Path('.claude/settings.json')
-        debug_log.write(f"\nChecking .claude/settings.json: {settings_file.exists()}\n")
-        if settings_file.exists():
-            debug_log.write(f"  Found at: {settings_file.absolute()}\n")
-
-        pwd = os.environ.get('PWD')
-        if pwd:
-            settings_file_pwd = Path(pwd) / '.claude/settings.json'
-            debug_log.write(f"Checking $PWD/.claude/settings.json: {settings_file_pwd.exists()}\n")
-            if settings_file_pwd.exists():
-                debug_log.write(f"  Found at: {settings_file_pwd.absolute()}\n")
-
     # Build context output
     output = []
-
-    # === DIAGNOSTIC INFO (temporary for debugging) ===
-    output.append("=" * 80)
-    output.append("# 🔍 HOOK DIAGNOSTIC INFO")
-    output.append("=" * 80)
-    output.append(f"**Working Directory**: {os.getcwd()}")
-    output.append(f"**PWD env var**: {os.environ.get('PWD', 'NOT SET')}")
-    output.append(f"**CLAUDE_PLUGIN_ROOT**: {os.environ.get('CLAUDE_PLUGIN_ROOT', 'NOT SET')}")
-    output.append(f"**Debug log written to**: /tmp/claude_hook_debug.log")
-
-    # Show ALL Claude-related env vars
-    output.append("\n**All CLAUDE* environment variables**:")
-    for key, value in sorted(os.environ.items()):
-        if 'CLAUDE' in key.upper():
-            output.append(f"  {key} = {value}")
-
-    # Check for settings.json
-    settings_file_relative = Path('.claude/settings.json')
-    output.append(f"**Checking .claude/settings.json**: {settings_file_relative.exists()}")
-    if settings_file_relative.exists():
-        output.append(f"  → Found at: {settings_file_relative.absolute()}")
-
-    pwd = os.environ.get('PWD')
-    if pwd:
-        settings_file_pwd = Path(pwd) / '.claude/settings.json'
-        output.append(f"**Checking $PWD/.claude/settings.json**: {settings_file_pwd.exists()}")
-        if settings_file_pwd.exists():
-            output.append(f"  → Found at: {settings_file_pwd.absolute()}")
-
-    output.append("=" * 80)
-    output.append("")
 
     # === ROUTING DIRECTIVES ===
 
@@ -371,9 +314,6 @@ def main():
     settings = load_project_settings()
     if settings:
         routing_content = generate_routing_from_settings(settings)
-        output.append("✅ **Loaded routing from settings.json**\n")
-    else:
-        output.append("⚠️  **No settings.json found - falling back to ROUTING.md**\n")
 
     # Priority 2: Fall back to .claude/ROUTING.md or plugin ROUTING.md
     if not routing_content:
@@ -398,18 +338,7 @@ def main():
         output.append("No knowledge graphs exist yet. As agents work, they will create and update graphs.")
         output.append("\nAgents should use [GRAPH_UPDATE] blocks to document findings.\n")
 
-        # Debug: Write to log
-        try:
-            with open('/tmp/claude_hook_debug.log', 'a') as debug_log:
-                debug_log.write("\n" + "=" * 80 + "\n")
-                debug_log.write("MINIMAL OUTPUT PATH (no graphs)\n")
-                debug_log.write("=" * 80 + "\n")
-                debug_log.write("\n".join(output))
-                debug_log.write("\n")
-        except:
-            pass
-
-        # Output in JSON format
+        # Output in JSON format for Claude Code
         hook_output = {
             "hookSpecificOutput": {
                 "hookEventName": "SessionStart",
@@ -457,18 +386,6 @@ def main():
     output.append("")
     output.append("=" * 80)
     output.append("")
-
-    # Debug: Write full output to log
-    try:
-        with open('/tmp/claude_hook_debug.log', 'a') as debug_log:
-            debug_log.write("\n" + "=" * 80 + "\n")
-            debug_log.write("FULL OUTPUT (what gets printed to stdout)\n")
-            debug_log.write(f"Output has {len(output)} lines\n")
-            debug_log.write("=" * 80 + "\n")
-            debug_log.write("\n".join(output))
-            debug_log.write("\n" + "=" * 80 + "\n")
-    except:
-        pass
 
     # Output in the correct JSON format for Claude Code
     hook_output = {
