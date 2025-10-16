@@ -409,7 +409,14 @@ def main():
         except:
             pass
 
-        print("\n".join(output))
+        # Output in JSON format
+        hook_output = {
+            "hookSpecificOutput": {
+                "hookEventName": "SessionStart",
+                "additionalContext": "\n".join(output)
+            }
+        }
+        print(json.dumps(hook_output))
         return
 
     output.append("=" * 80)
@@ -463,11 +470,15 @@ def main():
     except:
         pass
 
-    # ULTRA MINIMAL TEST - Single line
-    print("HOOK_TEST_WORKING")
+    # Output in the correct JSON format for Claude Code
+    hook_output = {
+        "hookSpecificOutput": {
+            "hookEventName": "SessionStart",
+            "additionalContext": "\n".join(output)
+        }
+    }
 
-    # Full output (commented out for testing)
-    # print("\n".join(output))
+    print(json.dumps(hook_output))
 
 if __name__ == "__main__":
     main()
