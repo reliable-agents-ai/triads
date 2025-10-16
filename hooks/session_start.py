@@ -314,6 +314,14 @@ def main():
     output.append(f"**Working Directory**: {os.getcwd()}")
     output.append(f"**PWD env var**: {os.environ.get('PWD', 'NOT SET')}")
     output.append(f"**CLAUDE_PLUGIN_ROOT**: {os.environ.get('CLAUDE_PLUGIN_ROOT', 'NOT SET')}")
+    output.append(f"**CLAUDECODE**: {os.environ.get('CLAUDECODE', 'NOT SET')}")
+    output.append(f"**HOME**: {os.environ.get('HOME', 'NOT SET')}")
+
+    # Show ALL Claude-related env vars
+    output.append("\n**All CLAUDE* environment variables**:")
+    for key, value in sorted(os.environ.items()):
+        if 'CLAUDE' in key.upper():
+            output.append(f"  {key} = {value}")
 
     # Check for settings.json
     settings_file_relative = Path('.claude/settings.json')
