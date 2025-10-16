@@ -36,6 +36,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from triads.km import config
+
 # Initialize module logger
 logger = logging.getLogger(__name__)
 
@@ -527,18 +529,18 @@ class GraphSearcher:
         """
         # Check label (highest priority)
         if query in label.lower():
-            snippet = self._create_snippet(label, query, max_len=100)
-            return ("label", snippet, 1.0)
+            snippet = self._create_snippet(label, query, max_len=config.SEARCH_SNIPPET_LENGTH_LABEL)
+            return ("label", snippet, config.RELEVANCE_SCORE_LABEL_MATCH)
 
         # Check description (medium priority)
         if query in description.lower():
-            snippet = self._create_snippet(description, query, max_len=150)
-            return ("description", snippet, 0.7)
+            snippet = self._create_snippet(description, query, max_len=config.SEARCH_SNIPPET_LENGTH_DESCRIPTION)
+            return ("description", snippet, config.RELEVANCE_SCORE_DESCRIPTION_MATCH)
 
         # Check ID (lowest priority)
         if query in node_id.lower():
             snippet = node_id
-            return ("id", snippet, 0.5)
+            return ("id", snippet, config.RELEVANCE_SCORE_ID_MATCH)
 
         return None
 
