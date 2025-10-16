@@ -11,7 +11,7 @@
       "name": "triads",
       "source": "./",
       "description": "Triad workflow system - organize complex work into phases with specialized agents and automatic knowledge management",
-      "version": "0.4.0"
+      "version": "0.4.1"
     }
   ]
 }
