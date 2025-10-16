@@ -101,6 +101,7 @@ For each agent, create a markdown file with the following format:
 name: {agent_name}
 triad: {triad_name}
 role: {role_type}
+description: {brief one-line description of agent's purpose}
 generated_by: triads-generator
 generator_version: {get version from git or use 0.3.0+}
 generated_at: {ISO 8601 timestamp}
