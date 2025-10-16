@@ -30,10 +30,14 @@ Usage:
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+# Initialize module logger
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -197,8 +201,16 @@ class GraphLoader:
             graphs_resolved = self._graphs_dir.resolve()
             if not str(resolved).startswith(str(graphs_resolved)):
                 # Path traversal attempt detected
+                logger.warning(
+                    "Path traversal attempt blocked",
+                    extra={"triad": triad, "requested_path": str(graph_file)}
+                )
                 return None
-        except (OSError, RuntimeError):
+        except (OSError, RuntimeError) as e:
+            logger.warning(
+                f"Failed to resolve graph path: {type(e).__name__}",
+                extra={"triad": triad, "error": str(e)}
+            )
             return None
 
         # Load and parse JSON
@@ -211,14 +223,22 @@ class GraphLoader:
 
             # Validate basic structure
             if not isinstance(graph_data, dict):
+                logger.warning(
+                    "Invalid graph structure: expected dict",
+                    extra={"triad": triad, "type": type(graph_data).__name__}
+                )
                 return None
 
             # Cache and return
             self._cache[triad] = graph_data
             return graph_data
 
-        except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
             # Corrupted or unreadable file
+            logger.warning(
+                f"Failed to load graph: {type(e).__name__}",
+                extra={"triad": triad, "error": str(e), "file": str(graph_file)}
+            )
             return None
 
     def load_all_graphs(self) -> dict[str, dict[str, Any]]:
@@ -273,12 +293,21 @@ class GraphLoader:
             # Search specific triad only
             graph = self.load_graph(triad)
             if not graph:
+                logger.debug(
+                    "Node search failed: graph not found",
+                    extra={"node_id": node_id, "triad": triad}
+                )
                 return None
 
             nodes = graph.get("nodes", [])
             for node in nodes:
                 if node.get("id") == node_id:
                     return (node, triad)
+
+            logger.debug(
+                "Node not found in triad",
+                extra={"node_id": node_id, "triad": triad, "nodes_count": len(nodes)}
+            )
             return None
 
         # Search all triads
@@ -295,11 +324,19 @@ class GraphLoader:
                     found_nodes.append((node, triad_name))
 
         if not found_nodes:
+            logger.debug(
+                "Node not found in any triad",
+                extra={"node_id": node_id, "triads_searched": len(self.list_triads())}
+            )
             return None
 
         if len(found_nodes) > 1:
             # Ambiguous - node exists in multiple triads
             triads = [t for _, t in found_nodes]
+            logger.info(
+                "Ambiguous node ID: found in multiple triads",
+                extra={"node_id": node_id, "triads": triads}
+            )
             raise AmbiguousNodeError(node_id, triads)
 
         return found_nodes[0]
@@ -401,11 +438,19 @@ class GraphSearcher:
                 graph = self.loader.load_graph(triad)
                 if not graph:
                     available = self.loader.list_triads()
+                    logger.warning(
+                        "Search failed: graph not found",
+                        extra={"triad": triad, "available": available}
+                    )
                     raise GraphNotFoundError(triad, available)
                 graphs_to_search = {triad: graph}
-            except InvalidTriadNameError:
+            except InvalidTriadNameError as e:
                 available = self.loader.list_triads()
-                raise GraphNotFoundError(triad, available)
+                logger.warning(
+                    "Search failed: invalid triad name",
+                    extra={"triad": triad, "available": available}
+                )
+                raise GraphNotFoundError(triad, available) from e
         else:
             graphs_to_search = self.loader.load_all_graphs()
 
