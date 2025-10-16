@@ -307,6 +307,30 @@ def main():
     # Build context output
     output = []
 
+    # === DIAGNOSTIC INFO (temporary for debugging) ===
+    output.append("=" * 80)
+    output.append("# 🔍 HOOK DIAGNOSTIC INFO")
+    output.append("=" * 80)
+    output.append(f"**Working Directory**: {os.getcwd()}")
+    output.append(f"**PWD env var**: {os.environ.get('PWD', 'NOT SET')}")
+    output.append(f"**CLAUDE_PLUGIN_ROOT**: {os.environ.get('CLAUDE_PLUGIN_ROOT', 'NOT SET')}")
+
+    # Check for settings.json
+    settings_file_relative = Path('.claude/settings.json')
+    output.append(f"**Checking .claude/settings.json**: {settings_file_relative.exists()}")
+    if settings_file_relative.exists():
+        output.append(f"  → Found at: {settings_file_relative.absolute()}")
+
+    pwd = os.environ.get('PWD')
+    if pwd:
+        settings_file_pwd = Path(pwd) / '.claude/settings.json'
+        output.append(f"**Checking $PWD/.claude/settings.json**: {settings_file_pwd.exists()}")
+        if settings_file_pwd.exists():
+            output.append(f"  → Found at: {settings_file_pwd.absolute()}")
+
+    output.append("=" * 80)
+    output.append("")
+
     # === ROUTING DIRECTIVES ===
 
     # Priority 1: Generate routing from settings.json (if exists)
@@ -314,6 +338,9 @@ def main():
     settings = load_project_settings()
     if settings:
         routing_content = generate_routing_from_settings(settings)
+        output.append("✅ **Loaded routing from settings.json**\n")
+    else:
+        output.append("⚠️  **No settings.json found - falling back to ROUTING.md**\n")
 
     # Priority 2: Fall back to .claude/ROUTING.md or plugin ROUTING.md
     if not routing_content:
