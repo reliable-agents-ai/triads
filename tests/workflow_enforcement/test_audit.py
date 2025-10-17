@@ -152,79 +152,62 @@ class TestLogBypass:
 class TestGetUser:
     """Test user detection."""
 
-    @patch("subprocess.run")
-    def test_get_user_from_git_config(self, mock_run, logger):
+    @patch("triads.workflow_enforcement.git_utils.GitRunner.get_user_email")
+    @patch("triads.workflow_enforcement.git_utils.GitRunner.get_user_name")
+    def test_get_user_from_git_config(self, mock_get_user_name, mock_get_user_email, logger):
         """Test user detection from git config."""
-        # Mock git config user.name
-        mock_name = MagicMock()
-        mock_name.returncode = 0
-        mock_name.stdout = "John Doe"
-
-        # Mock git config user.email
-        mock_email = MagicMock()
-        mock_email.returncode = 0
-        mock_email.stdout = "john@example.com"
-
-        mock_run.side_effect = [mock_name, mock_email]
+        mock_get_user_name.return_value = "John Doe"
+        mock_get_user_email.return_value = "john@example.com"
 
         user = logger._get_user()
 
         assert user == "John Doe <john@example.com>"
 
-    @patch("subprocess.run")
-    def test_get_user_git_name_only(self, mock_run, logger):
+    @patch("triads.workflow_enforcement.git_utils.GitRunner.get_user_email")
+    @patch("triads.workflow_enforcement.git_utils.GitRunner.get_user_name")
+    def test_get_user_git_name_only(self, mock_get_user_name, mock_get_user_email, logger):
         """Test user detection with git name but no email."""
-        # Mock git config user.name
-        mock_name = MagicMock()
-        mock_name.returncode = 0
-        mock_name.stdout = "John Doe"
-
-        # Mock git config user.email (fails)
-        mock_email = MagicMock()
-        mock_email.returncode = 1
-        mock_email.stdout = ""
-
-        mock_run.side_effect = [mock_name, mock_email]
+        mock_get_user_name.return_value = "John Doe"
+        mock_get_user_email.return_value = "unknown"
 
         user = logger._get_user()
 
         assert user == "John Doe"
 
-    @patch("subprocess.run")
     @patch("getpass.getuser")
+    @patch("triads.workflow_enforcement.git_utils.GitRunner.get_user_name")
     def test_get_user_fallback_to_system(
-        self, mock_getuser, mock_run, logger
+        self, mock_get_user_name, mock_getuser, logger
     ):
         """Test fallback to system user when git unavailable."""
-        mock_run.side_effect = FileNotFoundError("git not found")
+        mock_get_user_name.side_effect = Exception("git not found")
         mock_getuser.return_value = "systemuser"
 
         user = logger._get_user()
 
         assert user == "systemuser"
 
-    @patch("subprocess.run")
+    @patch("triads.workflow_enforcement.git_utils.GitRunner.get_user_name")
     @patch("getpass.getuser")
     def test_get_user_fallback_on_git_error(
-        self, mock_getuser, mock_run, logger
+        self, mock_getuser, mock_get_user_name, logger
     ):
         """Test fallback when git config fails."""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_run.return_value = mock_result
+        # GitRunner returns "unknown" when git config fails
+        mock_get_user_name.return_value = "unknown"
         mock_getuser.return_value = "systemuser"
 
         user = logger._get_user()
 
         assert user == "systemuser"
 
-    @patch("subprocess.run")
     @patch("getpass.getuser")
+    @patch("triads.workflow_enforcement.git_utils.GitRunner.get_user_name")
     def test_get_user_unknown_on_all_failures(
-        self, mock_getuser, mock_run, logger
+        self, mock_get_user_name, mock_getuser, logger
     ):
         """Test returns 'unknown' when all methods fail."""
-        mock_run.side_effect = Exception("Git failed")
+        mock_get_user_name.side_effect = Exception("Git failed")
         mock_getuser.side_effect = Exception("Getuser failed")
 
         user = logger._get_user()
@@ -479,11 +462,11 @@ class TestEdgeCases:
         # Should return empty list instead of crashing
         assert recent == []
 
-    @patch("subprocess.run")
     @patch("getpass.getuser")
-    def test_get_user_timeout(self, mock_getuser, mock_run, logger):
+    @patch("triads.workflow_enforcement.git_utils.GitRunner.get_user_name")
+    def test_get_user_timeout(self, mock_get_user_name, mock_getuser, logger):
         """Test handling of git timeout."""
-        mock_run.side_effect = subprocess.TimeoutExpired("git", 2)
+        mock_get_user_name.side_effect = Exception("Timeout")
         mock_getuser.return_value = "systemuser"
 
         user = logger._get_user()

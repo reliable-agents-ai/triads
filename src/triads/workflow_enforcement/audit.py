@@ -120,33 +120,21 @@ class AuditLogger:
         """
         try:
             # Try to get git user first
-            import subprocess
+            from triads.workflow_enforcement.git_utils import GitRunner
 
-            result = subprocess.run(
-                ["git", "config", "user.name"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-            )
+            git_user = GitRunner.get_user_name()
 
-            if result.returncode == 0 and result.stdout.strip():
-                git_user = result.stdout.strip()
-
+            if git_user != "unknown":
                 # Also get email for full identification
-                email_result = subprocess.run(
-                    ["git", "config", "user.email"],
-                    capture_output=True,
-                    text=True,
-                    timeout=2,
-                )
+                git_email = GitRunner.get_user_email()
 
-                if email_result.returncode == 0 and email_result.stdout.strip():
-                    return f"{git_user} <{email_result.stdout.strip()}>"
+                if git_email != "unknown":
+                    return f"{git_user} <{git_email}>"
 
                 return git_user
 
-        except (subprocess.SubprocessError, FileNotFoundError, Exception):
-            # Catch all subprocess/git errors including generic exceptions from mocking
+        except Exception:
+            # Catch all errors including generic exceptions from mocking
             pass
 
         # Fall back to system user
