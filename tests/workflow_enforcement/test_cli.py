@@ -197,6 +197,53 @@ class TestListWorkflows:
 
         assert id3_line < id2_line < id1_line
 
+    def test_list_workflows_pagination_first_page(self, manager, test_workflows_dir):
+        """Test pagination - first page."""
+        # Create 10 instances
+        for i in range(10):
+            manager.create_instance("software-development", f"Feature {i}", "user@example.com")
+
+        output = list_workflows(limit=5, offset=0, base_dir=test_workflows_dir)
+
+        assert "Showing 5 of 10 workflow instance(s)" in output
+        assert "(5 more available)" in output
+        assert "(skipped first" not in output
+
+    def test_list_workflows_pagination_second_page(self, manager, test_workflows_dir):
+        """Test pagination - second page."""
+        # Create 10 instances
+        for i in range(10):
+            manager.create_instance("software-development", f"Feature {i}", "user@example.com")
+
+        output = list_workflows(limit=5, offset=5, base_dir=test_workflows_dir)
+
+        assert "Showing 5 of 10 workflow instance(s)" in output
+        assert "(skipped first 5)" in output
+        assert "more available" not in output
+
+    def test_list_workflows_pagination_larger_than_total(self, manager, test_workflows_dir):
+        """Test pagination with limit larger than total."""
+        # Create 3 instances
+        for i in range(3):
+            manager.create_instance("software-development", f"Feature {i}", "user@example.com")
+
+        output = list_workflows(limit=10, offset=0, base_dir=test_workflows_dir)
+
+        assert "Showing 3 of 3 workflow instance(s)" in output
+        assert "more available" not in output
+        assert "skipped" not in output
+
+    def test_list_workflows_pagination_offset_beyond_total(self, manager, test_workflows_dir):
+        """Test pagination with offset beyond total."""
+        # Create 3 instances
+        for i in range(3):
+            manager.create_instance("software-development", f"Feature {i}", "user@example.com")
+
+        output = list_workflows(limit=5, offset=10, base_dir=test_workflows_dir)
+
+        assert "Showing 0 of 3 workflow instance(s)" in output
+        assert "(skipped first 10)" in output
+
 
 class TestShowWorkflow:
     """Tests for show_workflow function."""

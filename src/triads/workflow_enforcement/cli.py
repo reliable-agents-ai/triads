@@ -24,12 +24,19 @@ from triads.workflow_enforcement.instance_manager import (
 from triads.workflow_enforcement.schema_loader import WorkflowSchemaLoader
 
 
-def list_workflows(status: str | None = None, base_dir: Path | str | None = None) -> str:
-    """List all workflow instances, optionally filtered by status.
+def list_workflows(
+    status: str | None = None,
+    base_dir: Path | str | None = None,
+    limit: int | None = None,
+    offset: int = 0
+) -> str:
+    """List workflow instances with optional pagination.
 
     Args:
         status: Optional status filter ("in_progress", "completed", "abandoned")
         base_dir: Base directory for workflows (default: .claude/workflows, used for testing)
+        limit: Maximum number of instances to show (None = show all)
+        offset: Number of instances to skip (for pagination)
 
     Returns:
         Formatted string showing instance list
@@ -47,6 +54,12 @@ def list_workflows(status: str | None = None, base_dir: Path | str | None = None
         >>> print(list_workflows(status="completed"))
         Found 1 workflow instance(s):
         ...
+
+        >>> # Show first 10 instances
+        >>> print(list_workflows(limit=10))
+
+        >>> # Show next 10 instances
+        >>> print(list_workflows(limit=10, offset=10))
     """
     manager = WorkflowInstanceManager(base_dir=base_dir)
 
@@ -60,7 +73,27 @@ def list_workflows(status: str | None = None, base_dir: Path | str | None = None
             return f"No {status} workflow instances found."
         return "No workflow instances found."
 
-    output = [f"Found {len(instances)} workflow instance(s):\n"]
+    total_count = len(instances)
+
+    # Apply pagination
+    if limit is not None:
+        end = offset + limit
+        instances = instances[offset:end]
+
+        # Add pagination info to output
+        showing_count = len(instances)
+        output = [f"Showing {showing_count} of {total_count} workflow instance(s)"]
+
+        if offset > 0:
+            output.append(f"(skipped first {offset})")
+
+        if end < total_count:
+            remaining = total_count - end
+            output.append(f"({remaining} more available)")
+
+        output.append("")  # Blank line
+    else:
+        output = [f"Found {total_count} workflow instance(s):\n"]
 
     for inst in instances:
         output.append(f"  {inst['instance_id']}")
