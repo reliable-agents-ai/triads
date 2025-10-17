@@ -185,9 +185,9 @@ class WorkflowValidator:
             return False
 
         # Apply enforcement rules
-        loc = metrics.get("loc_changed", 0)
-        files = metrics.get("files_changed", 0)
-        has_features = metrics.get("has_new_features", False)
+        loc = metrics.get("loc_changed") or 0
+        files = metrics.get("files_changed") or 0
+        has_features = bool(metrics.get("has_new_features"))
 
         return loc > LOC_THRESHOLD or files > FILES_THRESHOLD or has_features
 
