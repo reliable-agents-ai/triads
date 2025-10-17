@@ -59,7 +59,7 @@ class BlockingEnforcement:
         """
         # Load current workflow state
         state = self.state_manager.load_state()
-        completed_triads = state.get("completed_triads", [])
+        completed_triads = state.get("completed_triads") or []
 
         # Check if Garden Tending has been completed
         if "garden-tending" in completed_triads:
