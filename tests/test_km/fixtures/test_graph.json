@@ -1,0 +1,136 @@
+{
+  "directed": true,
+  "nodes": [
+    {
+      "id": "test_checklist_critical",
+      "type": "Concept",
+      "label": "Version Bump File Checklist",
+      "description": "Complete checklist of files to update during version bump",
+      "confidence": 1.0,
+      "evidence": "Missed marketplace.json in v0.7.0-alpha.1",
+      "created_by": "test-fixture",
+      "created_at": "2025-10-17T00:00:00.000000",
+      "process_type": "checklist",
+      "priority": "CRITICAL",
+      "trigger_conditions": {
+        "tool_names": ["Write", "Edit"],
+        "file_patterns": ["**/plugin.json", "**/marketplace.json", "**/*version*"],
+        "action_keywords": ["version", "bump"],
+        "context_keywords": ["deployment", "release"]
+      },
+      "checklist": {
+        "title": "Version Bump Complete Checklist",
+        "items": [
+          "pyproject.toml",
+          "plugin.json",
+          "marketplace.json",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    {
+      "id": "test_pattern_high",
+      "type": "Concept",
+      "label": "ADR Before Implementation Pattern",
+      "description": "Always write ADR before implementing architectural changes",
+      "confidence": 0.95,
+      "evidence": "design_graph.json:234",
+      "created_by": "test-fixture",
+      "created_at": "2025-10-17T00:00:00.000000",
+      "process_type": "pattern",
+      "priority": "HIGH",
+      "trigger_conditions": {
+        "tool_names": ["Write", "Edit"],
+        "file_patterns": ["**/src/**/*.py", "**/lib/**/*.py"],
+        "action_keywords": ["architecture", "design", "refactor"],
+        "context_keywords": ["design", "architecture"]
+      },
+      "pattern": {
+        "when": "Making architectural changes to core code",
+        "then": "Write ADR documenting decision, alternatives, and rationale first"
+      }
+    },
+    {
+      "id": "test_warning_medium",
+      "type": "Concept",
+      "label": "Database Migration Warning",
+      "description": "Warning about breaking changes in database migrations",
+      "confidence": 0.90,
+      "evidence": "Past production incidents",
+      "created_by": "test-fixture",
+      "created_at": "2025-10-17T00:00:00.000000",
+      "process_type": "warning",
+      "priority": "MEDIUM",
+      "trigger_conditions": {
+        "tool_names": ["Write", "Edit"],
+        "file_patterns": ["**/migrations/**/*.py", "**/alembic/**/*.py"],
+        "action_keywords": ["migration", "schema", "database"],
+        "context_keywords": ["database", "migration"]
+      },
+      "warning": {
+        "risk": "Schema changes can break existing deployments",
+        "mitigation": "Always write backward-compatible migrations and test rollback"
+      }
+    },
+    {
+      "id": "test_requirement_low",
+      "type": "Concept",
+      "label": "Code Comment Requirement",
+      "description": "Requirement to add comments for complex logic",
+      "confidence": 0.85,
+      "evidence": "Code review feedback",
+      "created_by": "test-fixture",
+      "created_at": "2025-10-17T00:00:00.000000",
+      "process_type": "requirement",
+      "priority": "LOW",
+      "trigger_conditions": {
+        "tool_names": ["Write", "Edit"],
+        "file_patterns": ["**/*.py", "**/*.js"],
+        "action_keywords": ["complex", "algorithm"],
+        "context_keywords": ["implementation"]
+      },
+      "requirement": {
+        "must": "Add docstrings to all public functions",
+        "rationale": "Improves code maintainability and onboarding"
+      }
+    },
+    {
+      "id": "test_non_process_node",
+      "type": "Entity",
+      "label": "Regular Entity Node",
+      "description": "This is not a process knowledge node",
+      "confidence": 1.0,
+      "evidence": "test:1",
+      "created_by": "test-fixture"
+    },
+    {
+      "id": "test_wildcard_match",
+      "type": "Concept",
+      "label": "Universal Pre-Flight Check",
+      "description": "Always check git status before making changes",
+      "confidence": 0.90,
+      "evidence": "Best practice",
+      "created_by": "test-fixture",
+      "created_at": "2025-10-17T00:00:00.000000",
+      "process_type": "pattern",
+      "priority": "MEDIUM",
+      "trigger_conditions": {
+        "tool_names": ["*"],
+        "file_patterns": ["**/*"],
+        "action_keywords": [],
+        "context_keywords": []
+      },
+      "pattern": {
+        "when": "Before any file modification",
+        "then": "Check git status to avoid uncommitted changes"
+      }
+    }
+  ],
+  "links": [],
+  "_meta": {
+    "triad_name": "test",
+    "created_at": "2025-10-17T00:00:00.000000",
+    "node_count": 6,
+    "edge_count": 0
+  }
+}
