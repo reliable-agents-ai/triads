@@ -10,10 +10,11 @@ Per ADR-003: Uses fcntl for atomic writes on Unix systems
 from __future__ import annotations
 
 import fcntl
-import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from triads.utils.file_operations import atomic_read_json, atomic_write_json, ensure_parent_dir
 
 
 # Configuration
@@ -65,39 +66,17 @@ class WorkflowStateManager:
             if "design" in state["completed_triads"]:
                 print("Design phase completed")
         """
-        # Ensure directory exists
-        self.state_file.parent.mkdir(parents=True, exist_ok=True)
+        # Load state using utility (handles locking and defaults)
+        state = atomic_read_json(self.state_file, default=self._default_state())
 
-        # Return default state if file doesn't exist
-        if not self.state_file.exists():
-            return self._default_state()
+        # Ensure required fields exist (in case file had partial data)
+        state.setdefault("session_id", self._generate_session_id())
+        state.setdefault("completed_triads", [])
+        state.setdefault("current_phase", None)
+        state.setdefault("last_transition", None)
+        state.setdefault("metadata", {})
 
-        try:
-            with open(self.state_file, "r") as f:
-                # Acquire shared lock for reading
-                fcntl.flock(f.fileno(), fcntl.LOCK_SH)
-                try:
-                    state = json.load(f)
-                finally:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-
-            # Validate state structure
-            if not isinstance(state, dict):
-                return self._default_state()
-
-            # Ensure required fields exist
-            state.setdefault("session_id", self._generate_session_id())
-            state.setdefault("completed_triads", [])
-            state.setdefault("current_phase", None)
-            state.setdefault("last_transition", None)
-            state.setdefault("metadata", {})
-
-            return state
-
-        except (json.JSONDecodeError, OSError) as e:
-            # Corrupted file - log and return default
-            print(f"Warning: Corrupted state file ({e}). Using default state.")
-            return self._default_state()
+        return state
 
     def save_state(self, state: dict[str, Any]) -> None:
         """Save workflow state with atomic write and file locking.
@@ -116,36 +95,8 @@ class WorkflowStateManager:
             state["current_phase"] = "implementation"
             manager.save_state(state)
         """
-        # Ensure directory exists
-        self.state_file.parent.mkdir(parents=True, exist_ok=True)
-
-        # Write to temporary file first for atomicity
-        # Use PID and high-resolution timestamp to avoid collision in concurrent writes
-        import os
-        import time
-        temp_file = self.state_file.with_suffix(f".tmp.{os.getpid()}.{int(time.time() * 1000000)}")
-
-        try:
-            with open(temp_file, "w") as f:
-                # Acquire exclusive lock for writing
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-                try:
-                    json.dump(state, f, indent=2)
-                    f.flush()
-                    # Ensure data is written to disk
-                    import os
-                    os.fsync(f.fileno())
-                finally:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-
-            # Atomic rename (overwrites existing file)
-            temp_file.replace(self.state_file)
-
-        except Exception as e:
-            # Clean up temp file on failure
-            if temp_file.exists():
-                temp_file.unlink()
-            raise OSError(f"Failed to save state: {e}") from e
+        # Save state using utility (handles locking, atomicity, directory creation)
+        atomic_write_json(self.state_file, state)
 
     def mark_completed(self, triad: str, metadata: dict[str, Any] | None = None) -> None:
         """Mark a triad as completed and update state.
@@ -170,9 +121,8 @@ class WorkflowStateManager:
             )
 
         # Acquire lock for entire read-modify-write operation to prevent race conditions
-        # Create lock file if it doesn't exist
-        self.state_file.parent.mkdir(parents=True, exist_ok=True)
         lock_file = self.state_file.with_suffix(".lock")
+        ensure_parent_dir(lock_file)
 
         with open(lock_file, "a+") as lock_fh:
             # Acquire exclusive lock for the entire operation
