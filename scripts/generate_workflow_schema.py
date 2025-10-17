@@ -36,6 +36,9 @@ DEFAULT_WORKFLOWS_DIR = Path(".claude/workflows")
 def infer_triad_type(triad_id: str) -> str:
     """Infer triad type from ID using keyword matching.
 
+    Falls back to 'execution' if no keywords match.
+    Prints warning to stderr when defaulting.
+
     Args:
         triad_id: Triad identifier (directory name)
 
@@ -96,7 +99,15 @@ def infer_triad_type(triad_id: str) -> str:
     if any(kw in triad_lower for kw in release_keywords):
         return "release"
 
-    # Default to execution for unknown
+    # Default to execution (with warning)
+    print(
+        f"Warning: Could not infer type for triad '{triad_id}', defaulting to 'execution'",
+        file=sys.stderr
+    )
+    print(
+        f"  Suggestion: Review workflow.json and set type manually if needed",
+        file=sys.stderr
+    )
     return "execution"
 
 

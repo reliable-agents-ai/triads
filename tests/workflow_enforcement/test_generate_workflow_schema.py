@@ -103,7 +103,7 @@ class TestInferTriadType:
         for triad_id in release_ids:
             assert infer_triad_type(triad_id) == "release", f"Failed for {triad_id}"
 
-    def test_infer_default_type(self):
+    def test_infer_default_type(self, capsys):
         """Test default type for unknown keywords."""
         unknown_ids = [
             "unknown-triad",
@@ -114,11 +114,31 @@ class TestInferTriadType:
         for triad_id in unknown_ids:
             assert infer_triad_type(triad_id) == "execution", f"Failed for {triad_id}"
 
+        # Should have printed warnings (but we don't need to assert on them here,
+        # that's tested in test_unknown_triad_warning)
+        captured = capsys.readouterr()
+        # Just verify stderr was written
+        assert len(captured.err) > 0
+
     def test_case_insensitive(self):
         """Test that inference is case-insensitive."""
         assert infer_triad_type("DESIGN") == "planning"
         assert infer_triad_type("Design") == "planning"
         assert infer_triad_type("design") == "planning"
+
+    def test_unknown_triad_warning(self, capsys):
+        """Test that warning is printed for unknown triad names."""
+        # Call with unknown triad name
+        result = infer_triad_type("unknown-custom-triad")
+
+        # Should default to execution
+        assert result == "execution"
+
+        # Should print warning to stderr
+        captured = capsys.readouterr()
+        assert "Warning: Could not infer type for triad 'unknown-custom-triad'" in captured.err
+        assert "defaulting to 'execution'" in captured.err
+        assert "Suggestion: Review workflow.json" in captured.err
 
 
 class TestGenerateTriadName:
