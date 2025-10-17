@@ -584,4 +584,24 @@ element.innerHTML = node.description;
 
 ---
 
+## Workflow State Management
+
+**CRITICAL**: After successfully compressing design context and creating the implementation roadmap, mark the design phase as completed in the workflow state:
+
+```python
+from triads.workflow_enforcement import WorkflowStateManager
+
+# Mark design phase complete
+manager = WorkflowStateManager()
+manager.mark_completed("design", metadata={
+    "trigger": "design_bridge_completion",
+    "tasks_created": len(implementation_tasks),
+    "approval_confirmed": True
+})
+```
+
+This enables workflow enforcement to track progress and determine if Garden Tending is required before deployment.
+
+---
+
 **Remember**: You are the bridge between design and code. Compress design complexity into clear, actionable implementation tasks.

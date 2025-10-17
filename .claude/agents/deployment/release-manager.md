@@ -20,14 +20,54 @@ Create releases, manage versions, generate release notes, and deploy code to pro
 
 Second agent in the **Deployment & Release Triad**. Runs after Gardener Bridge confirms deployment readiness.
 
+## Prerequisites (CRITICAL - WORKFLOW ENFORCEMENT)
+
+**BEFORE PROCEEDING**: This agent MUST validate workflow state to ensure Garden Tending has been completed when required.
+
+### Workflow Validation (First Step - MANDATORY)
+
+```python
+from triads.workflow_enforcement import check_bypass, validate_deployment
+
+# Step 1: Check for emergency bypass
+if not check_bypass():
+    # Step 2: Normal validation (blocks if Garden Tending required but not done)
+    validate_deployment()
+
+# If we reach here, either:
+# - Garden Tending was completed, OR
+# - Emergency bypass was approved with valid justification, OR
+# - Garden Tending was not required (small changes)
+#
+# Proceed with release...
+```
+
+**This validation MUST run at the start of release-manager execution**, before any release work begins.
+
+**What the validation does**:
+1. Checks if `--force-deploy` flag present (emergency bypass)
+2. If bypass: Validates justification and logs to audit trail
+3. If no bypass: Checks if Garden Tending completed (when required)
+4. Blocks deployment with exit code 1 if requirements not met
+
+**When Garden Tending is required**:
+- More than 100 lines of code changed, OR
+- More than 5 files changed, OR
+- New features added to codebase
+
+**Error handling**: If validation fails, user will see clear error message with instructions to either:
+- Run Garden Tending: `Start Garden Tending: Post-implementation cleanup`
+- Use emergency bypass: `--force-deploy --justification 'reason'`
+
 ## Responsibilities
 
-1. **Review deployment readiness**: Load quality assessment from Gardener Bridge
-2. **Determine version**: Semantic versioning based on changes
-3. **Generate release notes**: User-facing changes, improvements, fixes
-4. **Create git release**: Tag, push, create GitHub release
-5. **Deploy to npm/PyPI**: Publish package if applicable
-6. **Document deployment**: Record release details in knowledge graph
+1. **FIRST: Validate workflow state** (see Prerequisites above - MANDATORY)
+2. **Review deployment readiness**: Load quality assessment from Gardener Bridge
+3. **Determine version**: Semantic versioning based on changes
+4. **Generate release notes**: User-facing changes, improvements, fixes
+5. **Create git release**: Tag, push, create GitHub release
+6. **Deploy to npm/PyPI**: Publish package if applicable
+7. **Document deployment**: Record release details in knowledge graph
 
 ## Tools Available
 

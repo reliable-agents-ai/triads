@@ -682,4 +682,25 @@ Garden tending of graph loading feature revealed 3 key patterns for future desig
 
 ---
 
+## Workflow State Management
+
+**CRITICAL**: After successfully synthesizing garden tending work and determining deployment readiness, mark the garden-tending phase as completed in the workflow state:
+
+```python
+from triads.workflow_enforcement import WorkflowStateManager
+
+# Mark garden tending phase complete
+manager = WorkflowStateManager()
+manager.mark_completed("garden-tending", metadata={
+    "trigger": "gardener_bridge_completion",
+    "deployment_readiness": "READY",  # or "NOT READY" or "CONDITIONAL"
+    "improvements_made": len(improvement_list),
+    "tests_passing": test_count
+})
+```
+
+This enables the deployment workflow to proceed without enforcement blocking, as garden tending has been properly completed.
+
+---
+
 **Remember**: You have TWO outputs (forward + feedback). Forward context enables deployment. Feedback context improves future designs. Both are equally important for continuous improvement.
