@@ -61,6 +61,11 @@ def list_workflows(
         >>> # Show next 10 instances
         >>> print(list_workflows(limit=10, offset=10))
     """
+    # Validate inputs
+    valid_statuses = ["in_progress", "completed", "abandoned"]
+    if status is not None and status not in valid_statuses:
+        return f"Error: Invalid status '{status}'. Must be one of: {', '.join(valid_statuses)}"
+
     manager = WorkflowInstanceManager(base_dir=base_dir)
 
     try:
@@ -126,6 +131,10 @@ def show_workflow(instance_id: str, base_dir: Path | str | None = None) -> str:
         Status: in_progress
         ...
     """
+    # Validate inputs
+    if not instance_id or not isinstance(instance_id, str):
+        return "Error: Valid instance ID required (must be non-empty string)"
+
     manager = WorkflowInstanceManager(base_dir=base_dir)
 
     try:
@@ -225,6 +234,10 @@ def resume_workflow(instance_id: str, base_dir: Path | str | None = None, schema
         Continue with current: Start implementation
         Or proceed to next: Start garden-tending
     """
+    # Validate inputs
+    if not instance_id or not isinstance(instance_id, str):
+        return "Error: Valid instance ID required (must be non-empty string)"
+
     manager = WorkflowInstanceManager(base_dir=base_dir)
     schema_loader = WorkflowSchemaLoader(schema_file=schema_file)
 
@@ -294,6 +307,10 @@ def workflow_history(instance_id: str, base_dir: Path | str | None = None) -> st
         Chronological History:
         ...
     """
+    # Validate inputs
+    if not instance_id or not isinstance(instance_id, str):
+        return "Error: Valid instance ID required (must be non-empty string)"
+
     manager = WorkflowInstanceManager(base_dir=base_dir)
 
     try:
@@ -355,8 +372,12 @@ def abandon_workflow(instance_id: str, reason: str, base_dir: Path | str | None 
         ✓ Workflow abandoned: feature-oauth2-20251017-100523
         Moved to: .claude/workflows/abandoned/feature-oauth2-20251017-100523.json
     """
-    if not reason:
-        return "Error: Reason required for abandoning workflow"
+    # Validate inputs
+    if not instance_id or not isinstance(instance_id, str):
+        return "Error: Valid instance ID required (must be non-empty string)"
+
+    if not reason or not isinstance(reason, str):
+        return "Error: Reason required for abandoning workflow (must be non-empty string)"
 
     manager = WorkflowInstanceManager(base_dir=base_dir)
 

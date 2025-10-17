@@ -245,6 +245,51 @@ class TestListWorkflows:
         assert "(skipped first 10)" in output
 
 
+class TestInputValidation:
+    """Tests for input validation in CLI functions."""
+
+    def test_show_workflow_invalid_instance_id_empty(self, test_workflows_dir):
+        """Test show_workflow with empty instance ID."""
+        output = show_workflow("", base_dir=test_workflows_dir)
+        assert "Error: Valid instance ID required" in output
+
+    def test_show_workflow_invalid_instance_id_none(self, test_workflows_dir):
+        """Test show_workflow with None instance ID."""
+        output = show_workflow(None, base_dir=test_workflows_dir)
+        assert "Error: Valid instance ID required" in output
+
+    def test_resume_workflow_invalid_instance_id_empty(self, test_workflows_dir):
+        """Test resume_workflow with empty instance ID."""
+        output = resume_workflow("", base_dir=test_workflows_dir)
+        assert "Error: Valid instance ID required" in output
+
+    def test_workflow_history_invalid_instance_id_empty(self, test_workflows_dir):
+        """Test workflow_history with empty instance ID."""
+        output = workflow_history("", base_dir=test_workflows_dir)
+        assert "Error: Valid instance ID required" in output
+
+    def test_abandon_workflow_invalid_instance_id_empty(self, test_workflows_dir):
+        """Test abandon_workflow with empty instance ID."""
+        output = abandon_workflow("", "reason", base_dir=test_workflows_dir)
+        assert "Error: Valid instance ID required" in output
+
+    def test_abandon_workflow_invalid_reason_empty(self, test_workflows_dir):
+        """Test abandon_workflow with empty reason."""
+        output = abandon_workflow("some-id", "", base_dir=test_workflows_dir)
+        assert "Error: Reason required for abandoning workflow" in output
+
+    def test_abandon_workflow_invalid_reason_none(self, test_workflows_dir):
+        """Test abandon_workflow with None reason."""
+        output = abandon_workflow("some-id", None, base_dir=test_workflows_dir)
+        assert "Error: Reason required for abandoning workflow" in output
+
+    def test_list_workflows_invalid_status(self, test_workflows_dir):
+        """Test list_workflows with invalid status."""
+        output = list_workflows(status="invalid_status", base_dir=test_workflows_dir)
+        assert "Error: Invalid status 'invalid_status'" in output
+        assert "Must be one of: in_progress, completed, abandoned" in output
+
+
 class TestShowWorkflow:
     """Tests for show_workflow function."""
 
