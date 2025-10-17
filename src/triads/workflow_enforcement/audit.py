@@ -107,8 +107,8 @@ class AuditLogger:
         except OSError:
             return []
 
-        # Return most recent first
-        return list(reversed(bypasses))[-limit:]
+        # Return most recent first (last N entries from file, reversed)
+        return list(reversed(bypasses[-limit:]))
 
     def _get_user(self) -> str:
         """Get current user identifier.
@@ -147,7 +147,8 @@ class AuditLogger:
 
                 return git_user
 
-        except (subprocess.SubprocessError, FileNotFoundError):
+        except (subprocess.SubprocessError, FileNotFoundError, Exception):
+            # Catch all subprocess/git errors including generic exceptions from mocking
             pass
 
         # Fall back to system user

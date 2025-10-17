@@ -480,14 +480,16 @@ class TestEdgeCases:
         assert recent == []
 
     @patch("subprocess.run")
-    def test_get_user_timeout(self, mock_run, logger):
+    @patch("getpass.getuser")
+    def test_get_user_timeout(self, mock_getuser, mock_run, logger):
         """Test handling of git timeout."""
         mock_run.side_effect = subprocess.TimeoutExpired("git", 2)
+        mock_getuser.return_value = "systemuser"
 
         user = logger._get_user()
 
-        # Should fallback gracefully
-        assert user in ["unknown", "systemuser"]  # Depends on getpass success
+        # Should fallback gracefully to getpass
+        assert user == "systemuser"
 
     def test_log_bypass_none_metadata(self, logger, temp_audit_file):
         """Test logging with None metadata."""
