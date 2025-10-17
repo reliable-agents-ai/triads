@@ -285,6 +285,28 @@ class TestGenerateWorkflowSchema:
         assert exc_info.value.code == 1
 
 
+class TestConstants:
+    """Tests for module constants."""
+
+    def test_constants_defined(self):
+        """Test that path constants are properly defined."""
+        from scripts.generate_workflow_schema import (
+            DEFAULT_WORKFLOW_SCHEMA_PATH,
+            DEFAULT_AGENTS_DIR,
+            DEFAULT_WORKFLOWS_DIR
+        )
+
+        # Verify constants are Path objects
+        assert isinstance(DEFAULT_WORKFLOW_SCHEMA_PATH, Path)
+        assert isinstance(DEFAULT_AGENTS_DIR, Path)
+        assert isinstance(DEFAULT_WORKFLOWS_DIR, Path)
+
+        # Verify expected paths
+        assert str(DEFAULT_WORKFLOW_SCHEMA_PATH) == ".claude/workflow.json"
+        assert str(DEFAULT_AGENTS_DIR) == ".claude/agents"
+        assert str(DEFAULT_WORKFLOWS_DIR) == ".claude/workflows"
+
+
 class TestSaveSchema:
     """Tests for schema file saving."""
 

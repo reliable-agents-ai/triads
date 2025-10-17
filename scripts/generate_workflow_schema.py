@@ -27,6 +27,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from triads.workflow_enforcement.triad_discovery import TriadDiscovery
 
+# Default paths
+DEFAULT_WORKFLOW_SCHEMA_PATH = Path(".claude/workflow.json")
+DEFAULT_AGENTS_DIR = Path(".claude/agents")
+DEFAULT_WORKFLOWS_DIR = Path(".claude/workflows")
+
 
 def infer_triad_type(triad_id: str) -> str:
     """Infer triad type from ID using keyword matching.
@@ -142,10 +147,10 @@ def generate_workflow_schema(
     """
     # Set defaults
     if output_path is None:
-        output_path = Path(".claude/workflow.json")
+        output_path = DEFAULT_WORKFLOW_SCHEMA_PATH
 
     if agents_dir is None:
-        agents_dir = Path(".claude/agents")
+        agents_dir = DEFAULT_AGENTS_DIR
 
     if workflow_name is None:
         # Infer from current directory
@@ -280,7 +285,7 @@ Examples:
     parser.add_argument(
         "--output", "-o",
         type=Path,
-        default=Path(".claude/workflow.json"),
+        default=DEFAULT_WORKFLOW_SCHEMA_PATH,
         help="Output path for workflow.json (default: .claude/workflow.json)"
     )
 
@@ -293,7 +298,7 @@ Examples:
     parser.add_argument(
         "--agents-dir", "-a",
         type=Path,
-        default=Path(".claude/agents"),
+        default=DEFAULT_AGENTS_DIR,
         help="Path to agents directory (default: .claude/agents)"
     )
 
