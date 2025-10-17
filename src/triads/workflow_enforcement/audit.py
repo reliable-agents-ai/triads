@@ -14,6 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from triads.utils.file_operations import atomic_append
+
 
 # Configuration
 AUDIT_LOG_FILE = Path(".claude/workflow_audit.log")
@@ -43,7 +45,7 @@ class AuditLogger:
         """Log an emergency bypass event.
 
         Creates a JSON log entry with timestamp, user, justification, and metadata.
-        Appends to audit log file.
+        Appends to audit log file with file locking to prevent corruption.
 
         Args:
             justification: Justification provided for bypass
@@ -55,9 +57,6 @@ class AuditLogger:
                 metadata={"loc_changed": 245, "files_changed": 8}
             )
         """
-        # Ensure directory exists
-        self.log_file.parent.mkdir(parents=True, exist_ok=True)
-
         # Build log entry
         entry = {
             "timestamp": datetime.now().isoformat(),
@@ -67,9 +66,8 @@ class AuditLogger:
             "metadata": metadata or {},
         }
 
-        # Append to log file
-        with open(self.log_file, "a") as f:
-            f.write(json.dumps(entry) + "\n")
+        # Append to log file with locking (prevents corruption in concurrent appends)
+        atomic_append(self.log_file, json.dumps(entry))
 
     def get_recent_bypasses(self, limit: int = 10) -> list[dict[str, Any]]:
         """Get recent bypass events from audit log.
