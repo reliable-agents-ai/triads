@@ -10,7 +10,6 @@ Reuses logic from validator.py but in domain-agnostic framework.
 
 from __future__ import annotations
 
-import subprocess
 from typing import Any
 
 from triads.workflow_enforcement.metrics.base import (
@@ -18,6 +17,7 @@ from triads.workflow_enforcement.metrics.base import (
     MetricsResult,
     MetricsCalculationError,
 )
+from triads.workflow_enforcement.git_utils import GitRunner, GitCommandError
 
 
 class CodeMetricsProvider(MetricsProvider):
@@ -124,45 +124,12 @@ class CodeMetricsProvider(MetricsProvider):
             print(f"Changed {added + deleted} lines total")
         """
         try:
-            result = subprocess.run(
-                ["git", "diff", "--numstat", base_ref],
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=30
-            )
-
-            added = 0
-            deleted = 0
-
-            for line in result.stdout.strip().split('\n'):
-                if not line:
-                    continue
-
-                parts = line.split('\t')
-                if len(parts) < 2:
-                    continue
-
-                # Skip binary files (marked with "-")
-                if parts[0] == "-" or parts[1] == "-":
-                    continue
-
-                # Parse additions and deletions
-                try:
-                    added += int(parts[0])
-                    deleted += int(parts[1])
-                except ValueError:
-                    # Skip lines that can't be parsed
-                    continue
-
+            changes = GitRunner.diff_numstat(base_ref, timeout=30)
+            added = sum(a for a, d, f in changes)
+            deleted = sum(d for a, d, f in changes)
             return added, deleted
-
-        except subprocess.CalledProcessError:
-            raise MetricsCalculationError(
-                f"Failed to calculate git diff from {base_ref}"
-            )
-        except subprocess.TimeoutExpired:
-            raise MetricsCalculationError("Git diff timed out")
+        except GitCommandError as e:
+            raise MetricsCalculationError(str(e)) from e
 
     def _count_files_changed(self, base_ref: str, include_untracked: bool) -> int:
         """Count files changed using git diff --name-only.
@@ -184,39 +151,15 @@ class CodeMetricsProvider(MetricsProvider):
             print(f"{count} files changed")
         """
         try:
-            # Count changed files
-            result = subprocess.run(
-                ["git", "diff", "--name-only", base_ref],
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=30
-            )
+            changed_count = len(GitRunner.diff_name_only(base_ref, timeout=30))
 
-            files = [f for f in result.stdout.strip().split('\n') if f]
-            changed_count = len(files)
-
-            # Optionally add untracked files
             if include_untracked:
-                result = subprocess.run(
-                    ["git", "ls-files", "--others", "--exclude-standard"],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                    timeout=30
-                )
-
-                untracked = [f for f in result.stdout.strip().split('\n') if f]
-                changed_count += len(untracked)
+                untracked_count = len(GitRunner.ls_files_untracked(timeout=30))
+                changed_count += untracked_count
 
             return changed_count
-
-        except subprocess.CalledProcessError:
-            raise MetricsCalculationError(
-                f"Failed to count changed files from {base_ref}"
-            )
-        except subprocess.TimeoutExpired:
-            raise MetricsCalculationError("Git file count timed out")
+        except GitCommandError as e:
+            raise MetricsCalculationError(str(e)) from e
 
     def _assess_complexity(self, total_loc: int, files_changed: int) -> str:
         """Assess complexity based on LoC and files changed.

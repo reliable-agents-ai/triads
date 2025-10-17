@@ -127,16 +127,20 @@ class TestLocCounting:
         """Test git command failure raises MetricsCalculationError."""
         provider = CodeMetricsProvider()
 
-        with patch('subprocess.run', side_effect=subprocess.CalledProcessError(1, 'git')):
-            with pytest.raises(MetricsCalculationError, match="Failed to calculate git diff"):
+        from triads.workflow_enforcement.git_utils import GitCommandError
+        with patch('triads.workflow_enforcement.metrics.code_metrics.GitRunner.diff_numstat',
+                   side_effect=GitCommandError("Git command failed")):
+            with pytest.raises(MetricsCalculationError):
                 provider._count_loc_changes("HEAD~1")
 
     def test_count_loc_changes_timeout(self):
         """Test git timeout raises MetricsCalculationError."""
         provider = CodeMetricsProvider()
 
-        with patch('subprocess.run', side_effect=subprocess.TimeoutExpired('git', 30)):
-            with pytest.raises(MetricsCalculationError, match="Git diff timed out"):
+        from triads.workflow_enforcement.git_utils import GitCommandError
+        with patch('triads.workflow_enforcement.metrics.code_metrics.GitRunner.diff_numstat',
+                   side_effect=GitCommandError("Git command timed out")):
+            with pytest.raises(MetricsCalculationError):
                 provider._count_loc_changes("HEAD~1")
 
     def test_count_loc_changes_uses_correct_git_command(self):
@@ -240,16 +244,20 @@ class TestFileChangeCounting:
         """Test git error raises MetricsCalculationError."""
         provider = CodeMetricsProvider()
 
-        with patch('subprocess.run', side_effect=subprocess.CalledProcessError(1, 'git')):
-            with pytest.raises(MetricsCalculationError, match="Failed to count changed files"):
+        from triads.workflow_enforcement.git_utils import GitCommandError
+        with patch('triads.workflow_enforcement.metrics.code_metrics.GitRunner.diff_name_only',
+                   side_effect=GitCommandError("Git command failed")):
+            with pytest.raises(MetricsCalculationError):
                 provider._count_files_changed("HEAD~1", include_untracked=False)
 
     def test_count_files_changed_timeout(self):
         """Test git timeout raises MetricsCalculationError."""
         provider = CodeMetricsProvider()
 
-        with patch('subprocess.run', side_effect=subprocess.TimeoutExpired('git', 30)):
-            with pytest.raises(MetricsCalculationError, match="Git file count timed out"):
+        from triads.workflow_enforcement.git_utils import GitCommandError
+        with patch('triads.workflow_enforcement.metrics.code_metrics.GitRunner.diff_name_only',
+                   side_effect=GitCommandError("Git command timed out")):
+            with pytest.raises(MetricsCalculationError):
                 provider._count_files_changed("HEAD~1", include_untracked=False)
 
 
