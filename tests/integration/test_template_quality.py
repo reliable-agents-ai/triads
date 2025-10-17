@@ -16,7 +16,7 @@ import pytest
 
 # Import the template generation function
 repo_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(repo_root / ".claude/generator/lib"))
+sys.path.insert(0, str(repo_root / "templates"))
 
 from templates import AGENT_TEMPLATE  # noqa: E402
 
@@ -244,6 +244,7 @@ class TestTemplateIntegration:
             example_interaction="Test example",
             confidence_threshold="0.85",
             additional_reminders="",
+            same_as_graph_update="node123",
         )
 
         # Should have YAML frontmatter

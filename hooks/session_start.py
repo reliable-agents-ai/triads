@@ -29,13 +29,16 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+# Add src to path for ExperienceQueryEngine import
+repo_root = Path(__file__).parent.parent
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root / "src"))
+
+from triads.hooks.safe_io import safe_load_json_file  # noqa: E402
+
 def load_graph(graph_path):
     """Load a knowledge graph JSON file."""
-    try:
-        with open(graph_path, 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return None
+    return safe_load_json_file(graph_path, default=None)
 
 def format_graph_summary(graph_data, triad_name):
     """Format a knowledge graph as human-readable context."""
@@ -142,17 +145,119 @@ def load_bridge_contexts():
 
     bridges = []
     for bridge_file in graphs_dir.glob('bridge_*.json'):
-        try:
-            with open(bridge_file, 'r') as f:
-                bridge_data = json.load(f)
-                bridges.append({
-                    'file': bridge_file.name,
-                    'data': bridge_data
-                })
-        except (FileNotFoundError, json.JSONDecodeError):
-            continue
+        bridge_data = safe_load_json_file(bridge_file, default=None)
+        if bridge_data is not None:
+            bridges.append({
+                'file': bridge_file.name,
+                'data': bridge_data
+            })
 
     return bridges
+
+def load_critical_knowledge():
+    """
+    Load CRITICAL priority process knowledge for display at session start.
+
+    Returns:
+        List of critical knowledge items
+    """
+    try:
+        from triads.km.experience_query import ExperienceQueryEngine
+
+        # Determine graphs directory
+        graphs_dir = Path('.claude/graphs')
+        if not graphs_dir.exists():
+            pwd = os.environ.get('PWD')
+            if pwd:
+                graphs_dir = Path(pwd) / '.claude/graphs'
+
+        if not graphs_dir.exists():
+            return []
+
+        # Query for CRITICAL knowledge
+        engine = ExperienceQueryEngine(base_dir=graphs_dir.parent)
+        critical_items = engine.get_critical_knowledge()
+
+        return critical_items
+    except Exception:
+        # If import fails or any error, silently return empty list
+        return []
+
+def format_critical_knowledge(critical_items):
+    """
+    Format CRITICAL priority knowledge for session start display.
+
+    Args:
+        critical_items: List of ProcessKnowledge objects
+
+    Returns:
+        str: Formatted critical knowledge section
+    """
+    if not critical_items:
+        return ""
+
+    output = []
+    output.append("=" * 80)
+    output.append("# ⚠️  CRITICAL LESSONS LEARNED")
+    output.append("=" * 80)
+    output.append("")
+    output.append("**The following CRITICAL lessons were learned from previous mistakes:**")
+    output.append("")
+
+    for i, item in enumerate(critical_items[:5], 1):  # Show top 5 CRITICAL items
+        output.append(f"## {i}. {item.label}")
+        output.append(f"**Priority**: {item.priority}")
+        output.append(f"**Type**: {item.process_type}")
+        output.append(f"**Triad**: {item.triad}")
+
+        # Format content based on type
+        if item.process_type == 'checklist' and 'checklist' in item.content:
+            output.append("")
+            output.append("**Checklist**:")
+            for check_item in item.content['checklist']:
+                required = "🔴 REQUIRED" if check_item.get('required') else "🟡 Optional"
+                file_ref = f" ({check_item.get('file', '')})" if check_item.get('file') else ""
+                output.append(f"  □ {check_item['item']}{file_ref} — {required}")
+
+        elif item.process_type == 'warning' and 'warning' in item.content:
+            warning = item.content['warning']
+            output.append("")
+            output.append(f"**⚠️  Warning**: {warning.get('condition', '')}")
+            output.append(f"**Consequence**: {warning.get('consequence', '')}")
+            output.append(f"**Prevention**: {warning.get('prevention', '')}")
+
+        elif item.process_type == 'pattern' and 'pattern' in item.content:
+            pattern = item.content['pattern']
+            output.append("")
+            output.append(f"**When**: {pattern.get('when', '')}")
+            output.append(f"**Then**: {pattern.get('then', '')}")
+            output.append(f"**Rationale**: {pattern.get('rationale', '')}")
+
+        # Show trigger conditions
+        if item.content.get('trigger_conditions'):
+            triggers = item.content['trigger_conditions']
+            trigger_parts = []
+            if triggers.get('tool_names'):
+                trigger_parts.append(f"Tools: {', '.join(triggers['tool_names'])}")
+            if triggers.get('file_patterns'):
+                trigger_parts.append(f"Files: {', '.join(triggers['file_patterns'][:2])}")
+            if triggers.get('action_keywords'):
+                trigger_parts.append(f"Keywords: {', '.join(triggers['action_keywords'][:3])}")
+
+            if trigger_parts:
+                output.append("")
+                output.append(f"**Applies when**: {' | '.join(trigger_parts)}")
+
+        output.append("")
+        output.append("-" * 80)
+        output.append("")
+
+    output.append("**💡 TIP**: Review these lessons before starting work to avoid repeating mistakes.")
+    output.append("")
+    output.append("=" * 80)
+    output.append("")
+
+    return "\n".join(output)
 
 def load_project_settings():
     """
@@ -170,13 +275,7 @@ def load_project_settings():
         if pwd:
             settings_file = Path(pwd) / '.claude/settings.json'
 
-    if settings_file.exists():
-        try:
-            with open(settings_file, 'r') as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            return None
-    return None
+    return safe_load_json_file(settings_file, default=None)
 
 def generate_routing_from_settings(settings):
     """
@@ -363,6 +462,13 @@ def main():
             output.append(format_graph_summary(graph_info['data'], graph_info['triad']))
             output.append("-" * 80)
             output.append("")
+
+    # Add CRITICAL learned knowledge (from experience system)
+    critical_knowledge = load_critical_knowledge()
+    if critical_knowledge:
+        critical_section = format_critical_knowledge(critical_knowledge)
+        if critical_section:
+            output.append(critical_section)
 
     # Add bridge contexts (compressed context from previous triads)
     if bridges:

@@ -61,6 +61,8 @@ from pathlib import Path
 repo_root = Path(__file__).parent.parent
 sys.path.insert(0, str(repo_root / "src"))
 
+from triads.hooks.safe_io import safe_load_json_stdin  # noqa: E402
+
 try:
     from triads.km.experience_query import ExperienceQueryEngine
 except ImportError as e:
@@ -283,10 +285,9 @@ def main():
             sys.exit(0)
 
         # Read hook input from stdin
-        try:
-            input_data = json.load(sys.stdin)
-        except json.JSONDecodeError as e:
-            print(f"Warning: Invalid JSON input: {e}", file=sys.stderr)
+        input_data = safe_load_json_stdin(default={})
+        if not input_data:
+            # Failed to parse stdin, exit silently
             sys.exit(0)
 
         # Extract hook parameters

@@ -46,11 +46,13 @@ try:
     from km.auto_invocation import process_and_queue_invocations  # noqa: E402
     from km.detection import detect_km_issues, update_km_queue  # noqa: E402
     from km.formatting import format_km_notification, write_km_status_file  # noqa: E402
+    from triads.hooks.safe_io import safe_load_json_file, safe_save_json_file  # noqa: E402
 except ImportError:
     # Fall back to development location
     from triads.km.auto_invocation import process_and_queue_invocations  # noqa: E402
     from triads.km.detection import detect_km_issues, update_km_queue  # noqa: E402
     from triads.km.formatting import format_km_notification, write_km_status_file  # noqa: E402
+    from triads.hooks.safe_io import safe_load_json_file, safe_save_json_file  # noqa: E402
 
 # ============================================================================
 # Graph Update Extraction
@@ -362,15 +364,8 @@ def load_graph(triad_name):
 
     graph_file = graphs_dir / f"{triad_name}_graph.json"
 
-    if graph_file.exists():
-        try:
-            with open(graph_file, 'r') as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            print("⚠️  Warning: Corrupt graph file, creating new one", file=sys.stderr)
-
-    # Create new graph structure
-    return {
+    # Use safe_load_json_file with default structure
+    return safe_load_json_file(graph_file, default={
         "directed": True,
         "nodes": [],
         "links": [],
@@ -381,7 +376,7 @@ def load_graph(triad_name):
             "node_count": 0,
             "edge_count": 0
         }
-    }
+    })
 
 def save_graph(graph_data, triad_name):
     """Save a knowledge graph to disk."""
@@ -395,8 +390,9 @@ def save_graph(graph_data, triad_name):
     graph_data['_meta']['node_count'] = len(graph_data['nodes'])
     graph_data['_meta']['edge_count'] = len(graph_data['links'])
 
-    with open(graph_file, 'w') as f:
-        json.dump(graph_data, f, indent=2)
+    # Use safe_save_json_file with atomic write
+    if not safe_save_json_file(graph_file, graph_data):
+        print(f"❌ Failed to save {triad_name} graph", file=sys.stderr)
 
 def apply_update(graph_data, update, agent_name):
     """
@@ -522,6 +518,403 @@ def apply_update(graph_data, update, agent_name):
         print(f"⚠️  Unknown update type: {update_type}", file=sys.stderr)
 
     return graph_data
+
+# ============================================================================
+# Lesson Extraction (Experience-Based Learning)
+# ============================================================================
+
+def extract_process_knowledge_blocks(text):
+    """
+    Extract [PROCESS_KNOWLEDGE] blocks from conversation.
+
+    These are explicitly formatted lessons agents create during conversation.
+
+    Args:
+        text: Conversation text
+
+    Returns:
+        List of process knowledge dictionaries
+    """
+    pattern = r'\[PROCESS_KNOWLEDGE\](.*?)\[/PROCESS_KNOWLEDGE\]'
+    matches = re.findall(pattern, text, re.DOTALL)
+
+    lessons = []
+    for match in matches:
+        lesson = parse_process_knowledge_block(match)
+        if lesson:
+            lessons.append(lesson)
+
+    return lessons
+
+def parse_process_knowledge_block(block_text):
+    """
+    Parse a PROCESS_KNOWLEDGE block into structured data.
+
+    Expected format:
+    type: checklist|pattern|warning|requirement
+    label: Human-readable label
+    priority: CRITICAL|HIGH|MEDIUM|LOW
+    process_type: checklist|pattern|warning|requirement
+    trigger_conditions:
+      tool_names: [tool1, tool2]
+      file_patterns: [pattern1, pattern2]
+      action_keywords: [keyword1, keyword2]
+    checklist:
+      - item: Description
+        required: true|false
+        file: path/to/file
+
+    Args:
+        block_text: Text inside PROCESS_KNOWLEDGE block
+
+    Returns:
+        Dictionary with process knowledge, or None if parse fails
+    """
+    lesson = {
+        'type': 'Concept',
+        'process_type': 'checklist',  # default
+        'priority': 'MEDIUM',  # default
+        'trigger_conditions': {
+            'tool_names': [],
+            'file_patterns': [],
+            'action_keywords': [],
+            'context_keywords': [],
+            'triad_names': []
+        }
+    }
+
+    current_section = None
+    checklist_items = []
+
+    for line in block_text.strip().split('\n'):
+        # Keep original line for indentation check
+        original_line = line
+        line = line.strip()
+
+        if not line or line.startswith('#'):
+            continue
+
+        # Section headers (only non-indented lines ending with :)
+        if line.endswith(':') and ':' not in line[:-1] and not original_line.startswith((' ', '\t')):
+            current_section = line[:-1].lower()
+            continue
+
+        # Parse trigger_conditions (indented sub-keys)
+        if current_section == 'trigger_conditions' and original_line.startswith((' ', '\t')):
+            if 'tool_names:' in line:
+                value = line.split(':', 1)[1].strip()
+                lesson['trigger_conditions']['tool_names'] = json.loads(value)
+            elif 'file_patterns:' in line:
+                value = line.split(':', 1)[1].strip()
+                lesson['trigger_conditions']['file_patterns'] = json.loads(value)
+            elif 'action_keywords:' in line:
+                value = line.split(':', 1)[1].strip()
+                lesson['trigger_conditions']['action_keywords'] = json.loads(value)
+            elif 'context_keywords:' in line:
+                value = line.split(':', 1)[1].strip()
+                lesson['trigger_conditions']['context_keywords'] = json.loads(value)
+            elif 'triad_names:' in line:
+                value = line.split(':', 1)[1].strip()
+                lesson['trigger_conditions']['triad_names'] = json.loads(value)
+            continue
+
+        # Parse key: value (for top-level fields only)
+        if ':' in line and current_section not in ['checklist', 'pattern', 'warning', 'trigger_conditions']:
+            key, value = line.split(':', 1)
+            key = key.strip()
+            value = value.strip()
+
+            if key == 'type':
+                lesson['process_type'] = value
+            elif key == 'label':
+                lesson['label'] = value
+            elif key == 'priority':
+                lesson['priority'] = value.upper()
+            elif key == 'description':
+                lesson['description'] = value
+            elif key == 'triad':
+                lesson['triad'] = value
+
+        # Parse checklist items
+        elif current_section == 'checklist':
+            if line.startswith('-') or line.startswith('•'):
+                item_text = line[1:].strip()
+                item = {'item': item_text, 'required': True}
+
+                # Parse item properties
+                if 'required:' in item_text:
+                    parts = item_text.split('required:')
+                    item['item'] = parts[0].strip()
+                    item['required'] = 'true' in parts[1].lower()
+
+                if 'file:' in item_text:
+                    parts = item_text.split('file:')
+                    item['item'] = parts[0].replace('required:', '').strip()
+                    item['file'] = parts[1].strip()
+
+                checklist_items.append(item)
+
+    if checklist_items:
+        lesson['checklist'] = checklist_items
+
+    # Validate required fields
+    if 'label' not in lesson:
+        return None
+
+    return lesson
+
+def detect_user_corrections(conversation_text):
+    """
+    Detect when user corrects the agent (indicates a lesson to learn).
+
+    Patterns:
+    - "you missed X"
+    - "you forgot Y"
+    - "don't forget Z"
+    - "you should have checked A"
+    - "why didn't you B"
+
+    Args:
+        conversation_text: Full conversation text
+
+    Returns:
+        List of correction dictionaries
+    """
+    correction_patterns = [
+        r'you\s+(missed|forgot|skipped)\s+(.+?)[\.\n]',
+        r'why\s+(didn\'t|did not)\s+you\s+(.+?)[\?\.\n]',
+        r'you\s+should\s+have\s+(.+?)[\.\n]',
+        r'don\'t\s+forget\s+(.+?)[\.\n]',
+        r'remember\s+to\s+(.+?)[\.\n]',
+        r'you\s+need\s+to\s+(.+?)[\.\n]'
+    ]
+
+    corrections = []
+
+    for pattern in correction_patterns:
+        matches = re.finditer(pattern, conversation_text, re.IGNORECASE | re.MULTILINE)
+        for match in matches:
+            # Extract what was missed/forgotten
+            if len(match.groups()) == 2:
+                action_verb = match.group(1)
+                missed_item = match.group(2).strip()
+            else:
+                action_verb = 'check'
+                missed_item = match.group(1).strip()
+
+            corrections.append({
+                'type': 'user_correction',
+                'pattern': pattern,
+                'action': action_verb,
+                'missed_item': missed_item,
+                'context': match.group(0)
+            })
+
+    return corrections
+
+def detect_repeated_mistakes(conversation_text, graph_updates):
+    """
+    Detect when the same mistake happens multiple times.
+
+    Indicators:
+    - Same file edited twice for the same reason
+    - Same error message appears multiple times
+    - Same operation attempted multiple times
+
+    Args:
+        conversation_text: Full conversation text
+        graph_updates: List of graph updates from this conversation
+
+    Returns:
+        List of repeated mistake dictionaries
+    """
+    repeated = []
+
+    # Look for explicit "again" or "another" patterns
+    repeat_patterns = [
+        r'(?:we|I|you)\s+(?:need to|should|must)\s+(.+?)\s+again',
+        r'another\s+(.+?)\s+(?:was|is)\s+(?:missing|needed)',
+        r'(.+?)\s+is\s+still\s+missing',  # More specific "X is still missing" pattern
+        r'forgot\s+(.+?)\s+again',
+        r'(.+?)\s+again[\.\n]',  # More general "X again" pattern
+    ]
+
+    for pattern in repeat_patterns:
+        matches = re.finditer(pattern, conversation_text, re.IGNORECASE | re.MULTILINE)
+        for match in matches:
+            repeated.append({
+                'type': 'repeated_mistake',
+                'pattern': pattern,
+                'item': match.group(1).strip(),
+                'context': match.group(0)
+            })
+
+    return repeated
+
+def infer_priority_from_context(lesson_data, conversation_text):
+    """
+    Infer priority level from context.
+
+    Rules:
+    1. User-reported corrections → CRITICAL
+    2. Deployment triad context → CRITICAL
+    3. Repeated mistakes → HIGH
+    4. Security-related → HIGH
+    5. Explicit priority in lesson → use that
+    6. Default → LOW (for review)
+
+    Args:
+        lesson_data: Lesson dictionary
+        conversation_text: Full conversation text
+
+    Returns:
+        Priority string (CRITICAL, HIGH, MEDIUM, LOW)
+    """
+    # Use explicit priority if provided
+    if 'priority' in lesson_data and lesson_data['priority'] in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']:
+        return lesson_data['priority']
+
+    # User correction = CRITICAL
+    if lesson_data.get('type') == 'user_correction':
+        return 'CRITICAL'
+
+    # Repeated mistake = HIGH
+    if lesson_data.get('type') == 'repeated_mistake':
+        return 'HIGH'
+
+    # Check for deployment context
+    deployment_keywords = ['deploy', 'release', 'version', 'publish', 'marketplace']
+    if any(kw in conversation_text.lower() for kw in deployment_keywords):
+        if lesson_data.get('triad') == 'deployment':
+            return 'CRITICAL'
+
+    # Check for security context
+    security_keywords = ['security', 'validation', 'injection', 'path traversal', 'sanitize']
+    if any(kw in str(lesson_data).lower() for kw in security_keywords):
+        return 'HIGH'
+
+    # Default to LOW for manual review
+    return 'LOW'
+
+def create_process_knowledge_node(lesson_data, conversation_text):
+    """
+    Create a Process Concept node from lesson data.
+
+    Args:
+        lesson_data: Lesson dictionary
+        conversation_text: Full conversation text
+
+    Returns:
+        Node dictionary ready for graph insertion
+    """
+    # Generate node ID
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    lesson_type = lesson_data.get('type', 'lesson')
+    node_id = f"process_{lesson_type}_{timestamp}"
+
+    # Infer priority
+    priority = infer_priority_from_context(lesson_data, conversation_text)
+
+    # Build node
+    node = {
+        'id': node_id,
+        'type': 'Concept',
+        'label': lesson_data.get('label', f"Lesson: {lesson_data.get('missed_item', 'Unknown')}"),
+        'description': lesson_data.get('description', ''),
+        'confidence': 0.9,  # High confidence for user corrections
+        'priority': priority,
+        'process_type': lesson_data.get('process_type', 'warning'),
+        'detection_method': lesson_data.get('type', 'explicit'),  # Preserve detection method
+        'status': 'draft',  # Requires user review
+        'created_by': 'experience-learning-system',
+        'created_at': datetime.now().isoformat(),
+        'evidence': f"Learned from conversation at {datetime.now().isoformat()}"
+    }
+
+    # Add trigger conditions if present
+    if 'trigger_conditions' in lesson_data:
+        node['trigger_conditions'] = lesson_data['trigger_conditions']
+
+    # Add process-type specific content
+    if lesson_data.get('process_type') == 'checklist' and 'checklist' in lesson_data:
+        node['checklist'] = lesson_data['checklist']
+    elif lesson_data.get('process_type') == 'pattern' and 'pattern' in lesson_data:
+        node['pattern'] = lesson_data['pattern']
+    elif lesson_data.get('process_type') == 'warning':
+        node['warning'] = {
+            'condition': lesson_data.get('missed_item', ''),
+            'consequence': lesson_data.get('description', 'May cause issues'),
+            'prevention': lesson_data.get('prevention', 'Verify before proceeding')
+        }
+
+    return node
+
+def extract_lessons_from_conversation(conversation_text, graph_updates):
+    """
+    Extract all lessons from a conversation.
+
+    Combines three detection methods:
+    1. [PROCESS_KNOWLEDGE] blocks (explicit)
+    2. User corrections (implicit)
+    3. Repeated mistakes (implicit)
+
+    Args:
+        conversation_text: Full conversation text
+        graph_updates: List of graph updates from this conversation
+
+    Returns:
+        List of process knowledge nodes to add to graphs
+    """
+    lessons = []
+
+    # Method 1: Extract explicit [PROCESS_KNOWLEDGE] blocks
+    explicit_lessons = extract_process_knowledge_blocks(conversation_text)
+    for lesson_data in explicit_lessons:
+        node = create_process_knowledge_node(lesson_data, conversation_text)
+        lessons.append(node)
+
+    # Method 2: Detect user corrections
+    corrections = detect_user_corrections(conversation_text)
+    for correction in corrections:
+        # Create a warning-type process knowledge
+        lesson_data = {
+            'type': 'user_correction',
+            'process_type': 'warning',
+            'label': f"Remember: {correction['missed_item']}",
+            'description': f"User correction: {correction['action']} - {correction['missed_item']}",
+            'missed_item': correction['missed_item'],
+            'trigger_conditions': {
+                'tool_names': ['Write', 'Edit'],
+                'file_patterns': [],
+                'action_keywords': [correction['missed_item'].split()[0]],
+                'context_keywords': [],
+                'triad_names': []
+            }
+        }
+        node = create_process_knowledge_node(lesson_data, conversation_text)
+        lessons.append(node)
+
+    # Method 3: Detect repeated mistakes
+    repeated = detect_repeated_mistakes(conversation_text, graph_updates)
+    for mistake in repeated:
+        lesson_data = {
+            'type': 'repeated_mistake',
+            'process_type': 'warning',
+            'label': f"Repeated Issue: {mistake['item']}",
+            'description': f"This mistake has occurred multiple times: {mistake['item']}",
+            'missed_item': mistake['item'],
+            'trigger_conditions': {
+                'tool_names': ['*'],
+                'file_patterns': [],
+                'action_keywords': [mistake['item'].split()[0]],
+                'context_keywords': [],
+                'triad_names': []
+            }
+        }
+        node = create_process_knowledge_node(lesson_data, conversation_text)
+        lessons.append(node)
+
+    return lessons
 
 # ============================================================================
 # Main Stop Hook Logic
@@ -692,6 +1085,69 @@ def main():
         write_km_status_file()
     except Exception as e:
         print(f"❌ Error writing KM status file: {e}", file=sys.stderr)
+
+    # ========================================================================
+    # Experience-Based Learning: Extract lessons from conversation
+    # ========================================================================
+    print(f"\n{'='*80}", file=sys.stderr)
+    print("🧠 Experience-Based Learning: Lesson Extraction", file=sys.stderr)
+    print(f"{'='*80}", file=sys.stderr)
+
+    try:
+        lessons = extract_lessons_from_conversation(conversation_text, updates)
+
+        if lessons:
+            print(f"Found {len(lessons)} lesson(s) to learn", file=sys.stderr)
+
+            # Group lessons by triad (use 'default' if not specified)
+            lessons_by_triad = {}
+            for lesson in lessons:
+                triad = lesson.get('triad', 'default')
+                if triad not in lessons_by_triad:
+                    lessons_by_triad[triad] = []
+                lessons_by_triad[triad].append(lesson)
+
+            # Add lessons to graphs
+            for triad, triad_lessons in lessons_by_triad.items():
+                print(f"\nAdding {len(triad_lessons)} lesson(s) to {triad} graph...", file=sys.stderr)
+
+                graph_data = load_graph(triad)
+
+                for i, lesson in enumerate(triad_lessons, 1):
+                    node_id = lesson['id']
+                    priority = lesson.get('priority', 'LOW')
+                    status = lesson.get('status', 'draft')
+
+                    # Check if lesson already exists
+                    existing = [n for n in graph_data['nodes'] if n.get('id') == node_id]
+                    if existing:
+                        print(f"  [{i}/{len(triad_lessons)}] ⚠️  Lesson {node_id} already exists, skipping", file=sys.stderr)
+                        continue
+
+                    # Add lesson node to graph
+                    graph_data['nodes'].append(lesson)
+                    print(f"  [{i}/{len(triad_lessons)}] ✓ Added lesson: {lesson['label']} (priority: {priority}, status: {status})", file=sys.stderr)
+
+                # Save updated graph
+                try:
+                    save_graph(graph_data, triad)
+                    print(f"✅ {triad}_graph.json updated with lessons", file=sys.stderr)
+                except Exception as e:
+                    print(f"❌ Error saving lessons to {triad} graph: {e}", file=sys.stderr)
+
+            # Show summary of draft lessons
+            draft_lessons = [l for l in lessons if l.get('status') == 'draft']
+            if draft_lessons:
+                print(f"\n📋 {len(draft_lessons)} draft lesson(s) created (require review)", file=sys.stderr)
+                print("   Use /knowledge-review-drafts to review and promote lessons", file=sys.stderr)
+
+        else:
+            print("No lessons extracted from this conversation", file=sys.stderr)
+
+    except Exception as e:
+        print(f"❌ Error during lesson extraction: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
 
     print(f"{'='*80}\n", file=sys.stderr)
 

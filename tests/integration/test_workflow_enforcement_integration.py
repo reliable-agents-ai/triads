@@ -20,7 +20,7 @@ from triads.workflow_enforcement import (
     BlockingEnforcement,
     EmergencyBypass,
     WorkflowStateManager,
-    WorkflowValidator,
+    LegacyWorkflowValidator as WorkflowValidator,
     check_bypass,
     validate_deployment,
 )
@@ -98,7 +98,7 @@ class TestCompleteWorkflow:
                 result = MagicMock()
                 result.returncode = 0
                 return result
-            elif "numstat" in cmd:
+            elif "--numstat" in cmd or any("numstat" in str(arg) for arg in cmd):
                 result = MagicMock()
                 result.returncode = 0
                 # High LoC
@@ -228,7 +228,7 @@ class TestBlockingScenarios:
                 result = MagicMock()
                 result.returncode = 0
                 return result
-            elif "numstat" in cmd:
+            elif "--numstat" in cmd or any("numstat" in str(arg) for arg in cmd):
                 result = MagicMock()
                 result.returncode = 0
                 result.stdout = "\n".join([f"50\t50\tfile{i}.py" for i in range(3)])
