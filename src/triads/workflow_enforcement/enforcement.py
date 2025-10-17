@@ -4,16 +4,29 @@ This module provides the entry point for validating workflow state
 before allowing deployment to proceed.
 
 Per ADR-004: Blocks deployment with exit code 1 if Garden Tending required
+
+DEPRECATED: This module is deprecated in v0.7.0 and will be removed in v1.0.0.
+Use enforcement_new.py instead. See docs/MIGRATION_v1.0.md for migration guide.
 """
 
 from __future__ import annotations
 
 import sys
+import warnings
 from pathlib import Path
 from typing import Any
 
 from triads.workflow_enforcement.state_manager import WorkflowStateManager
 from triads.workflow_enforcement.validator import WorkflowValidator
+
+# Issue deprecation warning when module is imported
+warnings.warn(
+    "enforcement.py is deprecated and will be removed in v1.0.0. "
+    "Use enforcement_new.py instead. "
+    "See migration guide: docs/MIGRATION_v1.0.md",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class BlockingEnforcement:

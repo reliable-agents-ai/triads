@@ -7,12 +7,25 @@ Per ADR-002: Enforcement rules are:
 - >100 lines of code changed, OR
 - >5 files changed, OR
 - New features added
+
+DEPRECATED: This module is deprecated in v0.7.0 and will be removed in v1.0.0.
+Use validator_new.py instead. See docs/MIGRATION_v1.0.md for migration guide.
 """
 
 from __future__ import annotations
 
 import subprocess
+import warnings
 from typing import Any
+
+# Issue deprecation warning when module is imported
+warnings.warn(
+    "validator.py is deprecated and will be removed in v1.0.0. "
+    "Use validator_new.py instead. "
+    "See migration guide: docs/MIGRATION_v1.0.md",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 # Enforcement thresholds (per ADR-002)
