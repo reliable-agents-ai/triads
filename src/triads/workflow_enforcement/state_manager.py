@@ -120,7 +120,10 @@ class WorkflowStateManager:
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Write to temporary file first for atomicity
-        temp_file = self.state_file.with_suffix(".tmp")
+        # Use PID and high-resolution timestamp to avoid collision in concurrent writes
+        import os
+        import time
+        temp_file = self.state_file.with_suffix(f".tmp.{os.getpid()}.{int(time.time() * 1000000)}")
 
         try:
             with open(temp_file, "w") as f:
@@ -166,25 +169,36 @@ class WorkflowStateManager:
                 f"Invalid triad '{triad}'. Must be one of: {', '.join(sorted(VALID_TRIADS))}"
             )
 
-        # Load current state
-        state = self.load_state()
+        # Acquire lock for entire read-modify-write operation to prevent race conditions
+        # Create lock file if it doesn't exist
+        self.state_file.parent.mkdir(parents=True, exist_ok=True)
+        lock_file = self.state_file.with_suffix(".lock")
 
-        # Add to completed list (avoid duplicates)
-        if triad not in state["completed_triads"]:
-            state["completed_triads"].append(triad)
+        with open(lock_file, "a+") as lock_fh:
+            # Acquire exclusive lock for the entire operation
+            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
+            try:
+                # Load current state
+                state = self.load_state()
 
-        # Update current phase
-        state["current_phase"] = triad
+                # Add to completed list (avoid duplicates)
+                if triad not in state["completed_triads"]:
+                    state["completed_triads"].append(triad)
 
-        # Update timestamp
-        state["last_transition"] = datetime.now().isoformat()
+                # Update current phase
+                state["current_phase"] = triad
 
-        # Merge metadata
-        if metadata:
-            state["metadata"].update(metadata)
+                # Update timestamp
+                state["last_transition"] = datetime.now().isoformat()
 
-        # Save updated state
-        self.save_state(state)
+                # Merge metadata
+                if metadata:
+                    state["metadata"].update(metadata)
+
+                # Save updated state
+                self.save_state(state)
+            finally:
+                fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
 
     def clear_state(self) -> None:
         """Clear workflow state (start fresh).
