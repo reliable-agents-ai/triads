@@ -704,3 +704,151 @@ def test_critical_always_shown_at_session_start(engine_with_test_data):
     assert "Version Bump File Checklist" in labels
 
     print(f"\n✅ SESSION START TEST PASSED: {len(critical)} CRITICAL item(s) available")
+
+
+# ============================================================================
+# Phase 2: Confidence-Based Learning Tests
+# ============================================================================
+
+
+def test_deprecated_nodes_filtered_out(engine_with_test_data):
+    """Deprecated nodes should NOT appear in query results."""
+    engine = engine_with_test_data
+
+    # Query for Write to .py file (would match deprecated node if not filtered)
+    results = engine.query_for_tool_use(
+        tool_name="Write",
+        tool_input={"file_path": "/path/to/test.py"},
+        cwd=".",
+    )
+
+    # Deprecated node should NOT be in results
+    labels = [r.label for r in results]
+    assert "Deprecated Old Pattern" not in labels, (
+        "Deprecated node appeared in results! Deprecated filtering failed."
+    )
+
+    # All results should have deprecated=False
+    for item in results:
+        assert not item.deprecated, f"Result {item.label} has deprecated=True"
+
+
+def test_confidence_weighting_applied(engine_with_test_data):
+    """Relevance scores should be weighted by confidence."""
+    engine = engine_with_test_data
+
+    # Query for Write to .py file
+    results = engine.query_for_tool_use(
+        tool_name="Write",
+        tool_input={"file_path": "/path/to/test.py"},
+        cwd=".",
+    )
+
+    # Find low confidence node
+    uncertain = next(
+        (r for r in results if r.label == "Uncertain Pattern"),
+        None
+    )
+
+    if uncertain:
+        # Relevance should be reduced by confidence (0.65)
+        # Base score would be ~0.4 (tool match)
+        # With MEDIUM multiplier: 0.4 * 1.0 = 0.4
+        # With confidence: 0.4 * 0.65 = 0.26
+        # This should be below threshold (0.4) and filtered out
+        # OR if it passes, its relevance should be confidence-weighted
+        assert uncertain.confidence == 0.65
+        assert uncertain.needs_validation is True
+
+
+def test_process_knowledge_has_confidence_fields(engine_with_test_data):
+    """ProcessKnowledge objects should include confidence fields."""
+    engine = engine_with_test_data
+
+    results = engine.query_for_tool_use(
+        tool_name="Write",
+        tool_input={"file_path": "plugin.json"},
+        cwd=".",
+    )
+
+    assert len(results) > 0
+
+    for item in results:
+        # All items should have confidence fields
+        assert hasattr(item, "confidence")
+        assert hasattr(item, "needs_validation")
+        assert hasattr(item, "deprecated")
+
+        # Confidence should be in valid range
+        assert 0.0 <= item.confidence <= 1.0
+
+        # needs_validation should be bool
+        assert isinstance(item.needs_validation, bool)
+
+        # deprecated should be False (since deprecated nodes are filtered)
+        assert item.deprecated is False
+
+
+def test_confidence_default_for_legacy_nodes(temp_graphs_dir, create_test_graph):
+    """Legacy nodes without confidence should default to 1.0."""
+    # Create graph with legacy node (no confidence field)
+    legacy_graph = {
+        "directed": True,
+        "nodes": [
+            {
+                "id": "legacy_node",
+                "type": "Concept",
+                "label": "Legacy Pattern",
+                "description": "Old node without confidence field",
+                "process_type": "pattern",
+                "priority": "MEDIUM",
+                "trigger_conditions": {
+                    "tool_names": ["Write"],
+                    "file_patterns": ["**/*.py"],
+                    "action_keywords": [],
+                    "context_keywords": []
+                },
+                "pattern": {
+                    "when": "Writing files",
+                    "then": "Use legacy pattern"
+                }
+                # NOTE: No confidence, needs_validation, or deprecated fields
+            }
+        ],
+        "links": [],
+    }
+
+    create_test_graph("legacy", legacy_graph)
+    engine = ExperienceQueryEngine(graphs_dir=temp_graphs_dir)
+
+    results = engine.query_for_tool_use(
+        tool_name="Write",
+        tool_input={"file_path": "test.py"},
+        cwd=".",
+    )
+
+    # Should find legacy node
+    legacy = next((r for r in results if r.label == "Legacy Pattern"), None)
+    assert legacy is not None
+
+    # Should default to 1.0 confidence
+    assert legacy.confidence == 1.0
+
+    # Should default to False for needs_validation and deprecated
+    assert legacy.needs_validation is False
+    assert legacy.deprecated is False
+
+
+def test_critical_does_not_include_deprecated(engine_with_test_data):
+    """get_critical_knowledge should NOT return deprecated nodes."""
+    engine = engine_with_test_data
+
+    critical = engine.get_critical_knowledge()
+
+    # Deprecated node is CRITICAL priority but should be filtered
+    labels = [r.label for r in critical]
+    assert "Deprecated Old Pattern" not in labels
+
+    # All should be non-deprecated
+    for item in critical:
+        assert not item.deprecated

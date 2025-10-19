@@ -99,6 +99,9 @@ class ProcessKnowledge:
         content: Type-specific content (e.g., checklist items)
         relevance_score: Calculated relevance (0-1, after priority multiplier)
         formatted_text: Pre-formatted text for injection into context
+        confidence: Confidence score (0.0-1.0) indicating reliability
+        needs_validation: Whether this knowledge needs validation (confidence < 0.70)
+        deprecated: Whether this knowledge has been deprecated
     """
 
     node_id: str
@@ -111,6 +114,9 @@ class ProcessKnowledge:
     content: dict[str, Any]
     relevance_score: float
     formatted_text: str
+    confidence: float
+    needs_validation: bool
+    deprecated: bool
 
 
 # ============================================================================
@@ -309,6 +315,8 @@ class ExperienceQueryEngine:
     def _load_process_knowledge(self) -> dict[str, list[dict[str, Any]]]:
         """Load all process knowledge nodes from all graphs.
 
+        Filters out deprecated nodes (deprecated = True).
+
         Returns:
             Dictionary mapping triad_name to list of process knowledge nodes.
             Empty dict if no graphs or no process knowledge found.
@@ -320,9 +328,14 @@ class ExperienceQueryEngine:
             nodes = graph.get("nodes", [])
 
             # Filter to process knowledge nodes (Concept type with process_type)
+            # and exclude deprecated nodes
             process_nodes = [
                 node for node in nodes
-                if node.get("type") == "Concept" and "process_type" in node
+                if (
+                    node.get("type") == "Concept"
+                    and "process_type" in node
+                    and not node.get("deprecated", False)  # Filter deprecated
+                )
             ]
 
             if process_nodes:
@@ -350,6 +363,7 @@ class ExperienceQueryEngine:
         - Action keywords: 10%
         - Context keywords: 10%
         - Priority multiplier: CRITICAL=2.0x, HIGH=1.5x, MEDIUM=1.0x, LOW=0.5x
+        - Confidence weighting: final_score * confidence (0.0-1.0)
 
         Args:
             node: Process knowledge node dictionary
@@ -403,7 +417,11 @@ class ExperienceQueryEngine:
         # 5. Apply priority multiplier
         priority = node.get("priority", "MEDIUM")
         multiplier = PRIORITY_MULTIPLIERS.get(priority, 1.0)
-        final_score = base_score * multiplier
+        priority_score = base_score * multiplier
+
+        # 6. Apply confidence weighting (Phase 2: Confidence-based learning)
+        confidence = node.get("confidence", 1.0)  # Default to 1.0 for legacy nodes
+        final_score = priority_score * confidence
 
         # Cap at 1.0 for sanity (though CRITICAL can exceed)
         return min(final_score, 1.0) if priority != "CRITICAL" else final_score
@@ -474,6 +492,11 @@ class ExperienceQueryEngine:
             process_type = node.get("process_type", "pattern")
             priority = node.get("priority", "MEDIUM")
 
+            # Extract confidence fields (Phase 2: Confidence-based learning)
+            confidence = node.get("confidence", 1.0)  # Default to 1.0 for legacy nodes
+            needs_validation = node.get("needs_validation", False)
+            deprecated = node.get("deprecated", False)
+
             # Extract type-specific content
             content = {}
             if process_type == "checklist":
@@ -499,6 +522,9 @@ class ExperienceQueryEngine:
                 content=content,
                 relevance_score=relevance,
                 formatted_text=formatted_text,
+                confidence=confidence,
+                needs_validation=needs_validation,
+                deprecated=deprecated,
             )
 
         except Exception as e:

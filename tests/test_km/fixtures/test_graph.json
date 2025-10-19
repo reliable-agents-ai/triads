@@ -7,6 +7,8 @@
       "label": "Version Bump File Checklist",
       "description": "Complete checklist of files to update during version bump",
       "confidence": 1.0,
+      "needs_validation": false,
+      "deprecated": false,
       "evidence": "Missed marketplace.json in v0.7.0-alpha.1",
       "created_by": "test-fixture",
       "created_at": "2025-10-17T00:00:00.000000",
@@ -34,6 +36,8 @@
       "label": "ADR Before Implementation Pattern",
       "description": "Always write ADR before implementing architectural changes",
       "confidence": 0.95,
+      "needs_validation": false,
+      "deprecated": false,
       "evidence": "design_graph.json:234",
       "created_by": "test-fixture",
       "created_at": "2025-10-17T00:00:00.000000",
@@ -56,6 +60,8 @@
       "label": "Database Migration Warning",
       "description": "Warning about breaking changes in database migrations",
       "confidence": 0.90,
+      "needs_validation": false,
+      "deprecated": false,
       "evidence": "Past production incidents",
       "created_by": "test-fixture",
       "created_at": "2025-10-17T00:00:00.000000",
@@ -78,6 +84,8 @@
       "label": "Code Comment Requirement",
       "description": "Requirement to add comments for complex logic",
       "confidence": 0.85,
+      "needs_validation": false,
+      "deprecated": false,
       "evidence": "Code review feedback",
       "created_by": "test-fixture",
       "created_at": "2025-10-17T00:00:00.000000",
@@ -109,6 +117,8 @@
       "label": "Universal Pre-Flight Check",
       "description": "Always check git status before making changes",
       "confidence": 0.90,
+      "needs_validation": false,
+      "deprecated": false,
       "evidence": "Best practice",
       "created_by": "test-fixture",
       "created_at": "2025-10-17T00:00:00.000000",
@@ -124,13 +134,62 @@
         "when": "Before any file modification",
         "then": "Check git status to avoid uncommitted changes"
       }
+    },
+    {
+      "id": "test_deprecated_node",
+      "type": "Concept",
+      "label": "Deprecated Old Pattern",
+      "description": "This pattern is deprecated and should not appear in results",
+      "confidence": 0.25,
+      "needs_validation": false,
+      "deprecated": true,
+      "deprecated_reason": "Replaced by better pattern",
+      "evidence": "Outdated",
+      "created_by": "test-fixture",
+      "created_at": "2025-10-17T00:00:00.000000",
+      "process_type": "pattern",
+      "priority": "CRITICAL",
+      "trigger_conditions": {
+        "tool_names": ["Write"],
+        "file_patterns": ["**/*.py"],
+        "action_keywords": [],
+        "context_keywords": []
+      },
+      "pattern": {
+        "when": "Writing Python files",
+        "then": "Use outdated pattern (DEPRECATED)"
+      }
+    },
+    {
+      "id": "test_low_confidence_node",
+      "type": "Concept",
+      "label": "Uncertain Pattern",
+      "description": "This pattern needs validation due to low confidence",
+      "confidence": 0.65,
+      "needs_validation": true,
+      "deprecated": false,
+      "evidence": "Single observation",
+      "created_by": "test-fixture",
+      "created_at": "2025-10-17T00:00:00.000000",
+      "process_type": "pattern",
+      "priority": "MEDIUM",
+      "trigger_conditions": {
+        "tool_names": ["Write"],
+        "file_patterns": ["**/*.py"],
+        "action_keywords": [],
+        "context_keywords": []
+      },
+      "pattern": {
+        "when": "Writing Python files",
+        "then": "Apply uncertain pattern (needs validation)"
+      }
     }
   ],
   "links": [],
   "_meta": {
     "triad_name": "test",
     "created_at": "2025-10-17T00:00:00.000000",
-    "node_count": 6,
+    "node_count": 8,
     "edge_count": 0
   }
 }
