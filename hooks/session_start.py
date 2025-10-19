@@ -470,6 +470,29 @@ def main():
         if critical_section:
             output.append(critical_section)
 
+    # Add calibration warnings for uncertain lessons (Phase 3: Confidence-based learning)
+    uncertain_lessons = [item for item in critical_knowledge if item.needs_validation]
+    if uncertain_lessons:
+        output.append("=" * 80)
+        output.append("# ⚠️  CALIBRATION WARNING")
+        output.append("=" * 80)
+        output.append("")
+        output.append(f"**{len(uncertain_lessons)} lesson(s) need validation** (confidence < 0.70):")
+        output.append("")
+        for lesson in uncertain_lessons:
+            conf_pct = int(lesson.confidence * 100)
+            output.append(f"  • {lesson.label}")
+            output.append(f"    Confidence: {conf_pct}% | Triad: {lesson.triad}")
+            output.append(f"    This lesson is uncertain and may need validation.")
+            output.append("")
+        output.append("**Actions**:")
+        output.append("- If a lesson proves correct during use, it will gain confidence")
+        output.append("- If a lesson proves incorrect, mark it with `/knowledge-contradict`")
+        output.append("- If you can validate a lesson, use `/knowledge-validate`")
+        output.append("")
+        output.append("=" * 80)
+        output.append("")
+
     # Add bridge contexts (compressed context from previous triads)
     if bridges:
         output.append("## 🌉 Bridge Context\n")

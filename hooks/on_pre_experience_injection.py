@@ -65,10 +65,12 @@ from triads.hooks.safe_io import safe_load_json_stdin  # noqa: E402
 
 try:
     from triads.km.experience_query import ExperienceQueryEngine
+    from triads.km.experience_tracker import ExperienceTracker
 except ImportError as e:
     # If import fails, log but don't block
-    print(f"Warning: Could not import ExperienceQueryEngine: {e}", file=sys.stderr)
+    print(f"Warning: Could not import KM modules: {e}", file=sys.stderr)
     ExperienceQueryEngine = None
+    ExperienceTracker = None
 
 
 # ============================================================================
@@ -330,6 +332,22 @@ def main():
 
         # Limit to top N items (avoid context pollution)
         items_to_inject = relevant_knowledge[:MAX_INJECTION_ITEMS]
+
+        # Record injections for outcome detection (Phase 3: Confidence-based learning)
+        if ExperienceTracker is not None:
+            try:
+                tracker = ExperienceTracker(base_dir=Path(cwd))
+                for knowledge in items_to_inject:
+                    tracker.record_injection(
+                        lesson_id=knowledge.node_id,
+                        triad=knowledge.triad,
+                        label=knowledge.label,
+                        tool_name=tool_name,
+                        confidence=knowledge.confidence
+                    )
+            except Exception as e:
+                # Don't block on tracking errors
+                print(f"Warning: Failed to record injection: {e}", file=sys.stderr)
 
         # Format output for injection
         output_lines = ["\n" + "=" * 80]

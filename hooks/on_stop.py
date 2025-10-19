@@ -1191,5 +1191,126 @@ def main():
 
     print(f"{'='*80}\n", file=sys.stderr)
 
+    # ========================================================================
+    # Phase 3: Outcome Detection & Confidence Updates
+    # ========================================================================
+    print(f"\n{'='*80}", file=sys.stderr)
+    print("🎯 Confidence-Based Learning: Outcome Detection", file=sys.stderr)
+    print(f"{'='*80}", file=sys.stderr)
+
+    try:
+        # Import experience tracker
+        try:
+            from triads.km.experience_tracker import ExperienceTracker
+        except ImportError as e:
+            print(f"⚠️  Experience tracker not available: {e}", file=sys.stderr)
+            ExperienceTracker = None
+
+        if ExperienceTracker is not None:
+            tracker = ExperienceTracker()
+
+            # Detect outcomes from conversation
+            outcomes = tracker.detect_outcomes(conversation_text)
+
+            if outcomes:
+                print(f"Found {len(outcomes)} lesson outcome(s)", file=sys.stderr)
+
+                # Group outcomes by lesson and update confidence
+                outcomes_by_lesson = {}
+                for outcome in outcomes:
+                    lesson_id = outcome.lesson_id
+                    if lesson_id not in outcomes_by_lesson:
+                        outcomes_by_lesson[lesson_id] = []
+                    outcomes_by_lesson[lesson_id].append(outcome)
+
+                # Update confidence scores in graphs
+                for lesson_id, lesson_outcomes in outcomes_by_lesson.items():
+                    # Find which graph contains this lesson
+                    for triad in ['deployment', 'design', 'implementation', 'garden-tending', 'idea-validation', 'default']:
+                        graph_data = load_graph(triad)
+
+                        # Find the lesson node
+                        lesson_node = next(
+                            (n for n in graph_data['nodes'] if n.get('id') == lesson_id),
+                            None
+                        )
+
+                        if lesson_node:
+                            current_confidence = lesson_node.get('confidence', 0.75)
+
+                            # Apply all outcomes to this lesson
+                            for outcome_record in lesson_outcomes:
+                                outcome_type = outcome_record.outcome
+                                strength = outcome_record.strength
+
+                                # Update confidence using Bayesian method
+                                new_confidence = update_confidence(
+                                    current_confidence,
+                                    outcome_type,
+                                    strength
+                                )
+
+                                # Update node
+                                lesson_node['confidence'] = new_confidence
+
+                                # Track statistics
+                                if 'success_count' not in lesson_node:
+                                    lesson_node['success_count'] = 0
+                                if 'failure_count' not in lesson_node:
+                                    lesson_node['failure_count'] = 0
+                                if 'contradiction_count' not in lesson_node:
+                                    lesson_node['contradiction_count'] = 0
+
+                                if outcome_type == 'success':
+                                    lesson_node['success_count'] += 1
+                                elif outcome_type == 'failure':
+                                    lesson_node['failure_count'] += 1
+                                elif outcome_type == 'contradiction':
+                                    lesson_node['contradiction_count'] += 1
+                                elif outcome_type == 'validation':
+                                    lesson_node['success_count'] += 1
+
+                                # Update needs_validation flag
+                                lesson_node['needs_validation'] = new_confidence < 0.70
+
+                                # Check deprecation
+                                from triads.km.confidence import check_deprecation
+                                if check_deprecation(lesson_node):
+                                    lesson_node['deprecated'] = True
+                                    lesson_node['deprecated_reason'] = f"Confidence dropped below threshold ({new_confidence:.2f})"
+
+                                current_confidence = new_confidence
+
+                                print(
+                                    f"  ✓ {outcome_type.upper()}: {lesson_node.get('label', lesson_id)} "
+                                    f"({current_confidence:.2f})",
+                                    file=sys.stderr
+                                )
+
+                            # Save updated graph
+                            try:
+                                save_graph(graph_data, triad)
+                            except Exception as e:
+                                print(f"❌ Error saving confidence updates to {triad} graph: {e}", file=sys.stderr)
+
+                            break  # Found the lesson, stop searching other triads
+
+                # Clear session state for next session
+                tracker.clear_session()
+                print(f"✅ Confidence scores updated, session cleared", file=sys.stderr)
+
+            else:
+                print("No outcomes detected in this session", file=sys.stderr)
+        else:
+            print("Experience tracker not available, skipping outcome detection", file=sys.stderr)
+
+    except Exception as e:
+        print(f"❌ Error during outcome detection: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+
+    print(f"{'='*80}\n", file=sys.stderr)
+
+
 if __name__ == "__main__":
     main()
