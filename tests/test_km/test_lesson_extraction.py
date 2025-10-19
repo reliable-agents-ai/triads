@@ -90,7 +90,8 @@ def test_extract_process_knowledge_blocks(sample_process_knowledge_block):
     assert len(lessons) == 1
     lesson = lessons[0]
 
-    assert lesson['type'] == 'Concept'
+    # 'type' field is the source for confidence calculation
+    assert lesson['type'] == 'process_knowledge_block'
     assert lesson['label'] == 'Version Bump File Checklist'
     assert lesson['priority'] == 'CRITICAL'
     assert lesson['process_type'] == 'checklist'
@@ -348,9 +349,15 @@ def test_create_process_knowledge_node_basic():
     assert node['label'] == 'Test Lesson'
     assert node['description'] == 'This is a test'
     assert node['process_type'] == 'warning'
-    assert node['status'] == 'draft'
+    # User corrections have high confidence (0.95) → active status
+    assert node['status'] == 'active'
     assert node['created_by'] == 'experience-learning-system'
-    assert node['confidence'] == 0.9
+    assert node['confidence'] == 0.95  # User correction confidence
+    assert node['source'] == 'user_correction'  # NEW: Source tracking
+    # NEW: Outcome tracking fields
+    assert node['success_count'] == 0
+    assert node['failure_count'] == 0
+    assert node['outcome_history'] == []
     assert 'id' in node
     assert node['id'].startswith('process_')
 
@@ -425,8 +432,12 @@ def test_extract_lessons_explicit_block(sample_process_knowledge_block):
     assert len(explicit_lessons) == 1
 
     lesson = explicit_lessons[0]
-    assert lesson['status'] == 'draft'
+    # Explicit PROCESS_KNOWLEDGE blocks have high confidence (0.90 base) → active status
+    # CRITICAL priority adds 5% boost: 0.90 * 1.05 = 0.945
+    assert lesson['status'] == 'active'
     assert lesson['type'] == 'Concept'
+    assert lesson['confidence'] >= 0.90  # Base explicit block confidence
+    assert lesson['source'] == 'process_knowledge_block'
 
 
 def test_extract_lessons_user_corrections(user_correction_conversation):
@@ -443,9 +454,12 @@ def test_extract_lessons_user_corrections(user_correction_conversation):
     assert len(changelog_lessons) > 0
 
     # All should be CRITICAL priority (user corrections)
+    # User corrections have high confidence (0.95) → active status
     for lesson in lessons:
         assert lesson['priority'] == 'CRITICAL'
-        assert lesson['status'] == 'draft'
+        assert lesson['status'] == 'active'
+        assert lesson['confidence'] == 0.95  # User correction confidence
+        assert lesson['source'] == 'user_correction'
 
 
 def test_extract_lessons_repeated_mistakes(repeated_mistake_conversation):

@@ -44,12 +44,22 @@ else:
 try:
     # Try plugin location first
     from km.auto_invocation import process_and_queue_invocations  # noqa: E402
+    from km.confidence import (  # noqa: E402
+        calculate_initial_confidence,
+        assign_status,
+        validate_confidence_value,
+    )
     from km.detection import detect_km_issues, update_km_queue  # noqa: E402
     from km.formatting import format_km_notification, write_km_status_file  # noqa: E402
     from triads.hooks.safe_io import safe_load_json_file, safe_save_json_file  # noqa: E402
 except ImportError:
     # Fall back to development location
     from triads.km.auto_invocation import process_and_queue_invocations  # noqa: E402
+    from triads.km.confidence import (  # noqa: E402
+        calculate_initial_confidence,
+        assign_status,
+        validate_confidence_value,
+    )
     from triads.km.detection import detect_km_issues, update_km_queue  # noqa: E402
     from triads.km.formatting import format_km_notification, write_km_status_file  # noqa: E402
     from triads.hooks.safe_io import safe_load_json_file, safe_save_json_file  # noqa: E402
@@ -542,6 +552,8 @@ def extract_process_knowledge_blocks(text):
     for match in matches:
         lesson = parse_process_knowledge_block(match)
         if lesson:
+            # Mark as explicit PROCESS_KNOWLEDGE block (for confidence calculation)
+            lesson['type'] = 'process_knowledge_block'
             lessons.append(lesson)
 
     return lessons
@@ -815,20 +827,48 @@ def create_process_knowledge_node(lesson_data, conversation_text):
     # Infer priority
     priority = infer_priority_from_context(lesson_data, conversation_text)
 
+    # Calculate initial confidence based on evidence source
+    source = lesson_data.get('type', 'unknown')
+    repetition_count = lesson_data.get('repetition_count', 1)
+    confidence = calculate_initial_confidence(
+        source=source,
+        priority=priority,
+        repetition_count=repetition_count,
+        context=lesson_data
+    )
+
+    # Assign status based on confidence
+    status = assign_status(confidence, priority)
+
     # Build node
     node = {
         'id': node_id,
         'type': 'Concept',
         'label': lesson_data.get('label', f"Lesson: {lesson_data.get('missed_item', 'Unknown')}"),
         'description': lesson_data.get('description', ''),
-        'confidence': 0.9,  # High confidence for user corrections
+        'confidence': confidence,  # Calculated from evidence source
         'priority': priority,
         'process_type': lesson_data.get('process_type', 'warning'),
-        'detection_method': lesson_data.get('type', 'explicit'),  # Preserve detection method
-        'status': 'draft',  # Requires user review
+        'detection_method': lesson_data.get('type', 'explicit'),  # Preserve detection method (legacy)
+        'source': source,  # NEW: Source for confidence tracking
+        'status': status,  # NEW: Confidence-based status (active/needs_validation)
         'created_by': 'experience-learning-system',
         'created_at': datetime.now().isoformat(),
-        'evidence': f"Learned from conversation at {datetime.now().isoformat()}"
+        'updated_at': datetime.now().isoformat(),  # NEW: Track updates
+        'evidence': f"Learned from conversation at {datetime.now().isoformat()}",
+
+        # NEW: Initialize outcome tracking fields
+        'success_count': 0,
+        'failure_count': 0,
+        'confirmation_count': 0,
+        'contradiction_count': 0,
+        'injection_count': 0,
+        'last_injected_at': None,
+        'last_outcome': None,
+        'outcome_history': [],
+        'deprecated_at': None,
+        'deprecated_reason': None,
+        'deprecation_automatic': False,
     }
 
     # Add trigger conditions if present
