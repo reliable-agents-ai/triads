@@ -1156,7 +1156,8 @@ def main():
                 for i, lesson in enumerate(triad_lessons, 1):
                     node_id = lesson['id']
                     priority = lesson.get('priority', 'LOW')
-                    status = lesson.get('status', 'draft')
+                    confidence = lesson.get('confidence', 0.75)
+                    status = lesson.get('status', 'needs_validation')
 
                     # Check if lesson already exists
                     existing = [n for n in graph_data['nodes'] if n.get('id') == node_id]
@@ -1166,7 +1167,7 @@ def main():
 
                     # Add lesson node to graph
                     graph_data['nodes'].append(lesson)
-                    print(f"  [{i}/{len(triad_lessons)}] ✓ Added lesson: {lesson['label']} (priority: {priority}, status: {status})", file=sys.stderr)
+                    print(f"  [{i}/{len(triad_lessons)}] ✓ Added lesson: {lesson['label']} (confidence: {int(confidence*100)}%, status: {status})", file=sys.stderr)
 
                 # Save updated graph
                 try:
@@ -1175,11 +1176,11 @@ def main():
                 except Exception as e:
                     print(f"❌ Error saving lessons to {triad} graph: {e}", file=sys.stderr)
 
-            # Show summary of draft lessons
-            draft_lessons = [l for l in lessons if l.get('status') == 'draft']
-            if draft_lessons:
-                print(f"\n📋 {len(draft_lessons)} draft lesson(s) created (require review)", file=sys.stderr)
-                print("   Use /knowledge-review-drafts to review and promote lessons", file=sys.stderr)
+            # Show summary of uncertain lessons
+            uncertain_lessons = [l for l in lessons if l.get('confidence', 1.0) < 0.70]
+            if uncertain_lessons:
+                print(f"\n⚠️  {len(uncertain_lessons)} uncertain lesson(s) created (confidence < 70%)", file=sys.stderr)
+                print("   Use /knowledge-review-uncertain to review and validate lessons", file=sys.stderr)
 
         else:
             print("No lessons extracted from this conversation", file=sys.stderr)
@@ -1241,13 +1242,11 @@ def main():
                             # Apply all outcomes to this lesson
                             for outcome_record in lesson_outcomes:
                                 outcome_type = outcome_record.outcome
-                                strength = outcome_record.strength
 
                                 # Update confidence using Bayesian method
                                 new_confidence = update_confidence(
                                     current_confidence,
-                                    outcome_type,
-                                    strength
+                                    outcome_type
                                 )
 
                                 # Update node
@@ -1267,7 +1266,8 @@ def main():
                                     lesson_node['failure_count'] += 1
                                 elif outcome_type == 'contradiction':
                                     lesson_node['contradiction_count'] += 1
-                                elif outcome_type == 'validation':
+                                elif outcome_type == 'confirmation':
+                                    # Confirmation is manual validation, treat as success
                                     lesson_node['success_count'] += 1
 
                                 # Update needs_validation flag

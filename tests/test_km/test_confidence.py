@@ -167,10 +167,10 @@ class TestUpdateConfidence:
         assert updated == pytest.approx(0.48, abs=0.01)  # 0.80 * 0.60
 
     def test_confirmation_increases_confidence(self):
-        """Confirmation outcome should increase confidence by 10%."""
+        """Confirmation outcome should increase confidence by 20%."""
         initial = 0.80
         updated = update_confidence(initial, OUTCOME_CONFIRMATION)
-        assert updated == pytest.approx(0.88, abs=0.01)  # 0.80 * 1.10
+        assert updated == pytest.approx(0.96, abs=0.01)  # 0.80 * 1.20
 
     def test_contradiction_decreases_confidence(self):
         """Contradiction outcome should decrease confidence by 60%."""

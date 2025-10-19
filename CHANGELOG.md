@@ -5,6 +5,76 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0-alpha.3] - 2025-10-19
+
+### Changed
+- **BREAKING: Confidence-Based Immediate Learning** - Redesigned experience-based learning to work like human learning
+  - Removed manual approval workflow (`/knowledge-promote`, `/knowledge-review-drafts` deprecated)
+  - Lessons now activate immediately based on confidence scores (≥ 0.70 threshold)
+  - Bayesian updating refines confidence based on outcomes (success, failure, contradiction, confirmation)
+  - Auto-deprecation when confidence drops below 0.30
+  - System learns in real-time from experience, no manual intervention required
+
+### Added
+- **Confidence Calculation System** (`src/triads/km/confidence.py`)
+  - Evidence-based initial confidence scoring (user_correction: 95%, repeated_mistake: 80%, agent_inference: 65%)
+  - Bayesian confidence updates: success +15%, confirmation +20%, failure -40%, contradiction -60%
+  - Automatic deprecation when confidence < 0.30 or after 3+ contradictions
+  - Status assignment based on confidence thresholds (active, needs_validation, deprecated)
+
+- **CLI Commands for Manual Intervention** (3 new commands)
+  - `/knowledge-validate <lesson>` - Manually validate uncertain lesson (+20% confidence boost)
+  - `/knowledge-contradict <lesson> [reason]` - Mark lesson as incorrect (-60% confidence)
+  - `/knowledge-review-uncertain [triad]` - Review all lessons with confidence < 0.70
+
+- **Automatic Outcome Detection** (`src/triads/km/experience_tracker.py`)
+  - Pattern-based conversation analysis detects lesson outcomes automatically
+  - Tracks lesson injections in `.claude/experience_state.json`
+  - Updates confidence scores on session stop based on detected outcomes
+  - 21/21 tests passing with 97% code coverage
+
+- **Hook Enhancements**
+  - SessionStart: Shows calibration warnings for uncertain lessons (confidence < 0.70)
+  - PreToolUse: Records injections for outcome tracking
+  - Stop: Detects outcomes and updates confidence scores automatically
+
+### Fixed
+- Query engine now filters out deprecated lessons (`deprecated: true`)
+- Confidence weighting applied to relevance scores (final_score = priority_score × confidence)
+- Fuzzy label search in CLI commands (supports partial matching)
+- **Hook Integration Bugs**:
+  - Fixed `update_confidence()` being called with wrong number of parameters (removed `strength` parameter)
+  - Fixed outcome name mismatch ('validation' → 'confirmation')
+  - Removed all `status: "draft"` references from lesson extraction
+  - Updated lesson summary to show uncertain lessons (confidence < 70%) instead of drafts
+  - Fixed plugin deployment: `/plugin` command doesn't update hook files, must manually copy or use installation script
+
+### Testing
+- 332/332 tests passing (100% pass rate)
+- 100% coverage on `confidence.py` module
+- 93% coverage on `commands.py` module
+- 97% coverage on `experience_tracker.py` module
+- 91% coverage on `experience_query.py` module
+
+### Documentation
+- Updated `.claude/commands/knowledge-validate.md` with confidence-based validation guide
+- Updated `.claude/commands/knowledge-contradict.md` with contradiction workflow
+- Added `.claude/commands/knowledge-review-uncertain.md` for reviewing uncertain lessons
+- Comprehensive inline documentation with examples
+
+### Migration Notes
+- **No migration required**: The draft-based workflow was never fully implemented in production
+- Legacy commands `/knowledge-promote`, `/knowledge-review-drafts`, and `/knowledge-archive` mentioned in v0.7.0-alpha.2 are now deprecated
+- New workflow: Lessons learn immediately based on confidence scores (≥ 0.70 threshold)
+- Use `/knowledge-review-uncertain` to see all uncertain lessons (confidence < 0.70)
+- Use `/knowledge-validate` and `/knowledge-contradict` for manual intervention when needed
+
+### Deprecated
+- Draft-based approval workflow (never fully implemented)
+- `/knowledge-promote` command (planned but not implemented)
+- `/knowledge-review-drafts` command (planned but not implemented)
+- `/knowledge-archive` command (planned but not implemented)
+
 ## [0.7.0-alpha.2] - 2025-10-17
 
 ### Added

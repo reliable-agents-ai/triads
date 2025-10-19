@@ -166,6 +166,8 @@ def update_confidence(
     Examples:
         >>> update_confidence(0.80, "success")
         0.92  # +15%
+        >>> update_confidence(0.80, "confirmation")
+        0.96  # +20%
         >>> update_confidence(0.80, "failure")
         0.48  # -40%
         >>> update_confidence(0.80, "contradiction")
@@ -173,7 +175,7 @@ def update_confidence(
     """
     multipliers = {
         OUTCOME_SUCCESS: 1.15,       # +15% (lesson worked)
-        OUTCOME_CONFIRMATION: 1.10,  # +10% (human validated)
+        OUTCOME_CONFIRMATION: 1.20,  # +20% (human validated)
         OUTCOME_FAILURE: 0.60,       # -40% (lesson didn't work)
         OUTCOME_CONTRADICTION: 0.40, # -60% (human rejected)
     }

@@ -316,10 +316,10 @@ class OutcomeDetector:
             if re.search(pattern, context, re.IGNORECASE):
                 return ("contradiction", context, 1.0)
 
-        # 2. Validation (explicit user feedback)
+        # 2. Confirmation (explicit user feedback)
         for pattern in self.VALIDATION_PATTERNS:
             if re.search(pattern, context, re.IGNORECASE):
-                return ("validation", context, 1.0)
+                return ("confirmation", context, 1.0)
 
         # 3. Failure (user admitted mistake)
         for pattern in self.FAILURE_PATTERNS:

@@ -1,9 +1,17 @@
 # Experience Learning System - Implementation Bridge
 
+> **⚠️ DEPRECATED**: This document describes the draft-based approval workflow implemented in v0.7.0-alpha.2.
+>
+> **Current Version**: v0.7.0-alpha.3 replaced this with **confidence-based immediate learning** (see CHANGELOG.md).
+>
+> This document is preserved for historical reference only.
+
+---
+
 **Design Bridge Agent Handoff**
 **Date**: 2025-10-17
-**Status**: Design Approved ✅ - Ready for Implementation
-**Target Version**: 0.8.0
+**Status**: ~~Design Approved ✅~~ SUPERSEDED by confidence-based learning (v0.7.0-alpha.3)
+**Target Version**: ~~0.8.0~~ REPLACED
 
 ---
 

@@ -4,6 +4,8 @@ Browse and search knowledge graphs stored in `.claude/graphs/`.
 
 ## Commands
 
+### Graph Query Commands
+
 ### `/knowledge-status [triad]`
 Show status of knowledge graphs.
 
@@ -85,6 +87,72 @@ Show this help message.
 from triads.km.graph_access import get_help
 print(get_help())
 ```
+
+---
+
+## Confidence-Based Learning Commands
+
+### `/knowledge-review-uncertain [triad]`
+Review all lessons that need validation (confidence < 0.70).
+
+**Purpose**: Show uncertain lessons that may need manual review
+
+**Output:**
+- Grouped by confidence band (Low < 0.50, Medium 0.50-0.69)
+- Statistics (success/failure/contradiction counts)
+- Recommended actions for each lesson
+
+**Example:**
+```bash
+/knowledge-review-uncertain          # All triads
+/knowledge-review-uncertain design   # Design triad only
+```
+
+---
+
+### `/knowledge-validate <lesson-id-or-label>`
+Manually validate an uncertain lesson to increase confidence (+20%).
+
+**Purpose**: Confirm a lesson is correct when you have strong evidence
+
+**When to Use:**
+- You've verified the lesson through experience
+- Testing confirmed the lesson works
+- Multiple successes give you confidence
+
+**Example:**
+```bash
+/knowledge-validate "Version Bump Checklist"
+/knowledge-validate version_bump_001
+```
+
+**Effect:**
+- Confidence increases by 20% (multiplier: 1.20)
+- Sets `needs_validation: false` if confidence rises above 0.70
+- Increments `validation_count`
+
+---
+
+### `/knowledge-contradict <lesson-id-or-label> [reason]`
+Mark a lesson as incorrect to decrease confidence (-60%).
+
+**Purpose**: Flag lessons that give wrong advice
+
+**When to Use:**
+- Lesson is wrong or doesn't apply
+- Better approach exists
+- Context has changed
+
+**Example:**
+```bash
+/knowledge-contradict "DB Pattern" "Doesn't work for NoSQL"
+/knowledge-contradict db_pattern_001
+```
+
+**Effect:**
+- Confidence decreases by 60% (multiplier: 0.40)
+- Auto-deprecates if confidence drops below 0.30
+- Records contradiction reason and timestamp
 
 ---
 

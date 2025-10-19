@@ -175,7 +175,7 @@ def test_detect_contradiction_outcome():
 
 
 def test_detect_validation_outcome():
-    """Should detect validation when user confirms lesson."""
+    """Should detect confirmation when user confirms lesson."""
     conversation = """
     User: Thanks for that reminder about the Version Bump Checklist!
     That prevented a mistake - good catch.
@@ -184,7 +184,7 @@ def test_detect_validation_outcome():
     detector = OutcomeDetector(conversation)
     outcome, evidence, strength = detector.detect_for_lesson("Version Bump Checklist")
 
-    assert outcome == "validation"
+    assert outcome == "confirmation"
     assert "prevented" in evidence.lower() or "thanks" in evidence.lower()
     assert strength == 1.0
 
@@ -371,7 +371,7 @@ def test_contradiction_patterns():
 
 
 def test_validation_patterns():
-    """Should match various validation patterns."""
+    """Should match various confirmation patterns."""
     cases = [
         "That was helpful",
         "Good catch on that",
@@ -383,7 +383,7 @@ def test_validation_patterns():
     for case in cases:
         detector = OutcomeDetector(f"About the checklist: {case}")
         outcome, _, _ = detector.detect_for_lesson("checklist")
-        assert outcome == "validation", f"Failed to detect validation in: {case}"
+        assert outcome == "confirmation", f"Failed to detect confirmation in: {case}"
 
 
 # ============================================================================
