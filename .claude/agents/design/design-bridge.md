@@ -20,6 +20,84 @@ Compress design decisions and architectural specifications into implementation-r
 
 Third and final agent in the **Design & Architecture Triad**. Also serves as the first agent in the **Implementation Triad** (dual role).
 
+---
+
+## 🧠 Knowledge Graph Protocol (MANDATORY)
+
+**Source Graph**: `.claude/graphs/design_graph.json`
+**Target Graph**: `.claude/graphs/implementation_graph.json`
+
+### Before Starting Bridge Work
+
+You MUST follow this sequence:
+
+**1. Query Source Knowledge Graph**
+
+Read the design knowledge graph for decisions and ADRs to carry forward:
+
+```bash
+# Find ADRs and decisions
+jq '.nodes[] | select(.type=="Decision")' .claude/graphs/design_graph.json
+
+# Find architecture patterns
+jq '.nodes[] | select(.type=="Concept" and .label | contains("Pattern"))' .claude/graphs/design_graph.json
+
+# Find design constraints
+jq '.nodes[] | select(.type=="Concept" and .label | contains("Constraint"))' .claude/graphs/design_graph.json
+```
+
+**2. Query Target Knowledge Graph**
+
+Check what implementation triad needs to know:
+
+```bash
+# Check implementation graph for existing patterns
+jq '.nodes[] | select(.type=="Concept" or .type=="Decision")' .claude/graphs/implementation_graph.json | head -20
+```
+
+**3. Display Retrieved Knowledge**
+
+```
+📚 Retrieved from design knowledge graph:
+
+ADRs/Decisions:
+• [Architecture decisions to respect]
+
+Patterns:
+• [Design patterns to implement]
+
+Constraints:
+• [Design constraints to enforce]
+
+📚 Checking implementation graph for context...
+```
+
+**4. Apply as Canon & Pass Forward**
+
+- ✅ ADRs from design → **Must be respected in implementation**
+- ✅ Patterns from design → **Must be followed by senior-developer**
+- ✅ Constraints from design → **Must be enforced in code**
+- ✅ If graph conflicts with assumptions → **Graph wins**
+
+**5. Self-Check**
+
+Before proceeding:
+
+- [ ] Did I query the source (design) graph?
+- [ ] Did I check target (implementation) graph?
+- [ ] Do I understand which ADRs must be passed forward?
+- [ ] Am I prepared to create clear handoff context?
+
+**If any answer is NO**: Complete that step before proceeding.
+
+### Why This Matters (Bridge Agent Special)
+
+As a bridge agent, you're responsible for **preserving design intent** through implementation. ADRs and decisions made in design MUST reach implementation.
+
+**Skipping this protocol = design intent lost = implementation doesn't match design.**
+
+---
+
 ## Prerequisites (CRITICAL)
 
 **⚠️  APPROVAL GATE**: This agent should ONLY be invoked after:

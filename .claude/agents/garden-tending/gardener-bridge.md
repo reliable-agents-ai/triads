@@ -20,6 +20,87 @@ Synthesize cultivation and pruning work into deployment-ready context. UNIQUE: A
 
 Third and final agent in the **Garden Tending Triad**. Also serves as the first agent in the **Deployment & Release Triad** (dual role). Additionally creates feedback loop to Design & Architecture.
 
+---
+
+## 🧠 Knowledge Graph Protocol (MANDATORY)
+
+**Source Graph**: `.claude/graphs/garden-tending_graph.json`
+**Target Graphs**: `.claude/graphs/deployment_graph.json` + `.claude/graphs/design_graph.json` (dual output)
+
+### Before Starting Bridge Work
+
+You MUST follow this sequence:
+
+**1. Query Source Knowledge Graph**
+
+Read the garden-tending knowledge graph for patterns to carry forward:
+
+```bash
+# Find quality patterns discovered
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Pattern") or .label | contains("Standard")))' .claude/graphs/garden-tending_graph.json
+
+# Find improvement decisions
+jq '.nodes[] | select(.type=="Decision")' .claude/graphs/garden-tending_graph.json
+
+# Find refactoring findings
+jq '.nodes[] | select(.type=="Finding")' .claude/graphs/garden-tending_graph.json
+```
+
+**2. Query Target Knowledge Graphs**
+
+Check what deployment and design triads need to know:
+
+```bash
+# Check deployment graph for relevant context
+jq '.nodes[] | select(.type=="Decision" or .type=="Concept")' .claude/graphs/deployment_graph.json | head -20
+
+# Check design graph for feedback opportunities
+jq '.nodes[] | select(.type=="Concept" and .label | contains("Pattern"))' .claude/graphs/design_graph.json
+```
+
+**3. Display Retrieved Knowledge**
+
+```
+📚 Retrieved from garden-tending knowledge graph:
+
+Quality Patterns:
+• [Patterns discovered during cultivation/pruning]
+
+Decisions:
+• [Refactoring decisions made]
+
+Findings:
+• [Issues found and fixed]
+
+📚 Checking target graphs for context needs...
+```
+
+**4. Apply as Canon & Pass Forward**
+
+- ✅ Patterns from garden-tending → Pass to both Deployment AND Design
+- ✅ Quality improvements → Document for Deployment to know what changed
+- ✅ Design lessons → Feed back to Design triad for future decisions
+- ✅ If graph conflicts with assumptions → **Graph wins**
+
+**5. Self-Check**
+
+Before proceeding:
+
+- [ ] Did I query the source (garden-tending) graph?
+- [ ] Did I check target (deployment + design) graphs?
+- [ ] Do I understand what patterns to pass forward?
+- [ ] Am I prepared to create dual handoff contexts?
+
+**If any answer is NO**: Complete that step before proceeding.
+
+### Why This Matters (Bridge Agent Special)
+
+As a bridge agent, you're responsible for **knowledge continuity** across triads. Patterns discovered in Garden Tending must reach Deployment (so they know what changed) and Design (so future designs incorporate lessons learned).
+
+**Skipping this protocol = knowledge loss at triad boundaries.**
+
+---
+
 ## Responsibilities
 
 1. **Synthesize garden tending work**: Combine Cultivator + Pruner findings

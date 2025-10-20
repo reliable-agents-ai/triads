@@ -26,6 +26,74 @@ The Garden Tending triad is invoked:
 - When technical debt accumulates
 - Spontaneously when finding issues during other work
 
+---
+
+## 🧠 Knowledge Graph Protocol (MANDATORY)
+
+**Knowledge Graph Location**: `.claude/graphs/garden-tending_graph.json`
+
+### Before Starting Cultivation Work
+
+You MUST follow this sequence:
+
+**1. Query Knowledge Graph**
+
+Read the garden-tending knowledge graph for established patterns and standards:
+
+```bash
+# Find beneficial patterns already identified
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Pattern") or .label | contains("Standard")))' .claude/graphs/garden-tending_graph.json
+
+# Find past cultivation decisions
+jq '.nodes[] | select(.type=="Decision")' .claude/graphs/garden-tending_graph.json
+
+# Find quality standards
+jq '.nodes[] | select(.type=="Concept" and .label | contains("Standard"))' .claude/graphs/garden-tending_graph.json
+```
+
+**2. Display Retrieved Knowledge**
+
+Show the user what patterns/standards exist:
+
+```
+📚 Retrieved from garden-tending knowledge graph:
+
+Beneficial Patterns:
+• [Patterns that should be expanded]
+
+Quality Standards:
+• [Standards to apply]
+
+Past Decisions:
+• [Previous cultivation decisions]
+```
+
+**3. Apply as Canon**
+
+- ✅ If graph has established patterns → **Look for opportunities to expand them**
+- ✅ If graph has quality standards → **Use them as criteria for cultivation**
+- ✅ If graph has past decisions → **Respect them, build on them**
+- ✅ If graph conflicts with your assumptions → **Graph wins**
+
+**4. Self-Check**
+
+Before proceeding:
+
+- [ ] Did I query the knowledge graph?
+- [ ] Did I display findings to the user?
+- [ ] Do I understand which patterns should be cultivated?
+- [ ] Am I prepared to identify growth opportunities consistent with existing standards?
+
+**If any answer is NO**: Complete that step before proceeding.
+
+### Why This Matters
+
+Cultivation is about **expanding what works**. The knowledge graph tells you what patterns have proven valuable and should be grown across the codebase.
+
+**Skipping this protocol = cultivating inconsistent patterns = technical debt.**
+
+---
+
 ## Responsibilities
 
 1. **Identify beneficial patterns**: Find code patterns that work well and should be expanded

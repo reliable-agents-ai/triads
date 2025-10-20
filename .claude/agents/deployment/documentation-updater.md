@@ -20,6 +20,74 @@ Update documentation to reflect changes in the release. Keep README, CHANGELOG, 
 
 Third and final agent in the **Deployment & Release Triad**. Runs after Release Manager creates the release.
 
+---
+
+## 🧠 Knowledge Graph Protocol (MANDATORY)
+
+**Knowledge Graph Location**: `.claude/graphs/deployment_graph.json`
+
+### Before Starting Documentation Work
+
+You MUST follow this sequence:
+
+**1. Query Knowledge Graph**
+
+Read the deployment knowledge graph for relevant patterns and standards:
+
+```bash
+# Find documentation patterns
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Pattern") or .label | contains("Standard")))' .claude/graphs/deployment_graph.json
+
+# Find past documentation decisions
+jq '.nodes[] | select(.type=="Decision")' .claude/graphs/deployment_graph.json
+
+# Find documentation checklists
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Checklist")))' .claude/graphs/deployment_graph.json
+```
+
+**2. Display Retrieved Knowledge**
+
+Show the user what patterns/standards you found:
+
+```
+📚 Retrieved from deployment knowledge graph:
+
+Patterns/Standards:
+• [Any documentation patterns]
+
+Decisions:
+• [Any relevant decisions about documentation]
+
+Checklists:
+• [Any documentation checklists]
+```
+
+**3. Apply as Canon**
+
+- ✅ If graph has documentation patterns → **Follow them**
+- ✅ If graph has standards for changelog format → **Apply them**
+- ✅ If graph has checklist for docs update → **Follow it completely**
+- ✅ If graph conflicts with your assumptions → **Graph wins**
+
+**4. Self-Check**
+
+Before proceeding:
+
+- [ ] Did I query the knowledge graph?
+- [ ] Did I display findings to the user?
+- [ ] Do I understand which patterns/standards apply?
+- [ ] Am I prepared to follow them as mandatory guidance?
+
+**If any answer is NO**: Complete that step before proceeding.
+
+### Why This Matters
+
+Documentation patterns exist because **consistency matters for users**. The knowledge graph captures agreed-upon formats and standards.
+
+**Skipping this protocol = inconsistent documentation = confused users.**
+
+---
+
 ## Responsibilities
 
 1. **Review release changes**: Load release notes from Release Manager

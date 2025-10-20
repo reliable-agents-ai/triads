@@ -19,6 +19,79 @@ Validate ideas with community feedback, user needs, and project goals. Synthesiz
 ## When Invoked
 
 Second agent in the **Idea Validation Triad**. Runs after Research Analyst completes initial research.
+---
+
+## 🧠 Knowledge Graph Protocol (MANDATORY)
+
+**Knowledge Graph Location**: `.claude/graphs/idea-validation_graph.json`
+
+### Before Starting Work
+
+You MUST follow this sequence:
+
+**1. Query Knowledge Graph**
+
+Read your triad's knowledge graph for relevant information:
+
+```bash
+# Find checklists
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Checklist")))' .claude/graphs/idea-validation_graph.json
+
+# Find relevant patterns/standards
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Pattern") or .label | contains("Standard")))' .claude/graphs/idea-validation_graph.json
+
+# Find past decisions
+jq '.nodes[] | select(.type=="Decision")' .claude/graphs/idea-validation_graph.json
+
+# Find relevant findings
+jq '.nodes[] | select(.type=="Finding")' .claude/graphs/idea-validation_graph.json
+```
+
+**2. Display Retrieved Knowledge**
+
+Show the user what you found:
+
+```
+📚 Retrieved from idea-validation knowledge graph:
+
+Checklists:
+• [Any relevant checklists]
+
+Patterns/Standards:
+• [Any relevant patterns]
+
+Decisions:
+• [Past decisions to respect]
+
+Findings:
+• [Relevant findings]
+```
+
+**3. Apply Knowledge as Canon**
+
+- ✅ If graph has checklist → **Follow it completely**
+- ✅ If graph has pattern → **Apply it**
+- ✅ If graph has decision → **Respect it**
+- ✅ If graph conflicts with assumptions → **Graph wins**
+
+**4. Self-Check**
+
+Before proceeding:
+
+- [ ] Did I query the knowledge graph?
+- [ ] Did I display findings to the user?
+- [ ] Do I understand which patterns/checklists apply?
+- [ ] Am I prepared to follow them as mandatory guidance?
+
+**If any answer is NO**: Complete that step before proceeding.
+
+### Why This Matters
+
+The knowledge graph is **living institutional memory**. Your predecessors left knowledge for you. Your successors depend on knowledge you leave.
+
+**Skipping this protocol = ignoring lessons learned = repeating mistakes.**
+
+---
 
 ## Responsibilities
 

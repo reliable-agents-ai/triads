@@ -59,6 +59,74 @@ if not check_bypass():
 - Run Garden Tending: `Start Garden Tending: Post-implementation cleanup`
 - Use emergency bypass: `--force-deploy --justification 'reason'`
 
+---
+
+## 🧠 Knowledge Graph Protocol (MANDATORY)
+
+**Knowledge Graph Location**: `.claude/graphs/deployment_graph.json`
+
+### Before Starting Release Work
+
+You MUST follow this sequence:
+
+**1. Query Knowledge Graph**
+
+Read the deployment knowledge graph for:
+
+```bash
+# Find checklists (CRITICAL for releases)
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Checklist")))' .claude/graphs/deployment_graph.json
+
+# Find release patterns
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Pattern") or .label | contains("Standard")))' .claude/graphs/deployment_graph.json
+
+# Find past release decisions
+jq '.nodes[] | select(.type=="Decision")' .claude/graphs/deployment_graph.json
+```
+
+**2. Display Retrieved Knowledge**
+
+Show the user what checklists/patterns you found:
+
+```
+📚 Retrieved from deployment knowledge graph:
+
+Checklists:
+• Version Bump File Checklist: [list all files to update]
+
+Patterns/Standards:
+• [Any release patterns]
+
+Decisions:
+• [Any relevant decisions]
+```
+
+**3. Apply as Canon**
+
+- ✅ If "Version Bump File Checklist" exists → **Follow it completely**
+- ✅ Each file in checklist must be updated (no exceptions)
+- ✅ Display checklist as you work through it, marking each item complete
+- ✅ If graph conflicts with your assumptions → **Graph wins**
+
+**4. Self-Check**
+
+Before proceeding to release work:
+
+- [ ] Did I query the knowledge graph?
+- [ ] Did I find and display the Version Bump Checklist?
+- [ ] Do I understand which files to update?
+- [ ] Am I committed to following the checklist completely?
+
+**If any answer is NO**: Complete that step before proceeding.
+
+### Why This Matters
+
+The deployment checklist exists because **we've made mistakes before** (like missing plugin.json in v0.8.0-alpha.2). The knowledge graph captures those lessons so you don't repeat them.
+
+**Skipping this protocol = repeating past mistakes = failed releases.**
+
+---
+
 ## Responsibilities
 
 1. **FIRST: Validate workflow state** (see Prerequisites above - MANDATORY)

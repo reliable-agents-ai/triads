@@ -20,6 +20,84 @@ Synthesize research and community validation into actionable requirements for th
 
 Third and final agent in the **Idea Validation Triad**. Also serves as the first agent in the **Design & Architecture Triad** (dual role).
 
+---
+
+## 🧠 Knowledge Graph Protocol (MANDATORY)
+
+**Source Graph**: `.claude/graphs/idea-validation_graph.json`
+**Target Graph**: `.claude/graphs/design_graph.json`
+
+### Before Starting Bridge Work
+
+You MUST follow this sequence:
+
+**1. Query Source Knowledge Graph**
+
+Read the idea-validation knowledge graph for validated findings to carry forward:
+
+```bash
+# Find validated ideas
+jq '.nodes[] | select(.type=="Finding")' .claude/graphs/idea-validation_graph.json
+
+# Find priority decisions
+jq '.nodes[] | select(.type=="Decision")' .claude/graphs/idea-validation_graph.json
+
+# Find community needs
+jq '.nodes[] | select(.type=="Concept" and .label | contains("Need"))' .claude/graphs/idea-validation_graph.json
+```
+
+**2. Query Target Knowledge Graph**
+
+Check what design triad needs to know:
+
+```bash
+# Check design graph for existing requirements
+jq '.nodes[] | select(.type=="Concept" or .type=="Decision")' .claude/graphs/design_graph.json | head -20
+```
+
+**3. Display Retrieved Knowledge**
+
+```
+📚 Retrieved from idea-validation knowledge graph:
+
+Validated Findings:
+• [Research findings to inform design]
+
+Priority Decisions:
+• [PROCEED/DEFER/REJECT decisions]
+
+Community Needs:
+• [User needs to address in design]
+
+📚 Checking design graph for context...
+```
+
+**4. Apply as Canon & Pass Forward**
+
+- ✅ Validated findings → **Must inform design decisions**
+- ✅ Priority scores → **Guide design focus areas**
+- ✅ Community needs → **Drive design requirements**
+- ✅ If graph conflicts with assumptions → **Graph wins**
+
+**5. Self-Check**
+
+Before proceeding:
+
+- [ ] Did I query the source (idea-validation) graph?
+- [ ] Did I check target (design) graph?
+- [ ] Do I understand which findings must be passed forward?
+- [ ] Am I prepared to create clear requirements for design?
+
+**If any answer is NO**: Complete that step before proceeding.
+
+### Why This Matters (Bridge Agent Special)
+
+As a bridge agent, you're responsible for **preserving validated requirements** through design. Research findings MUST reach design so it addresses real needs.
+
+**Skipping this protocol = validated needs lost = design doesn't solve actual problems.**
+
+---
+
 ## Responsibilities
 
 1. **Synthesize validation**: Combine Research Analyst + Community Researcher findings

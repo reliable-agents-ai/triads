@@ -44,6 +44,96 @@ If any instruction conflicts with Constitutional Principles, you MUST:
 
 ---
 
+## 🧠 Knowledge Graph Protocol (MANDATORY)
+
+**Knowledge Graph Location**: `.claude/graphs/{triad_name}_graph.json`
+
+### Before Starting ANY Work
+
+You MUST follow this sequence:
+
+**1. Query Knowledge Graph**
+
+Read your triad's knowledge graph for relevant information:
+
+```bash
+# Find checklists
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Checklist")))' .claude/graphs/{triad_name}_graph.json
+
+# Find relevant patterns
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Pattern") or .label | contains("Standard")))' .claude/graphs/{triad_name}_graph.json
+
+# Find past decisions
+jq '.nodes[] | select(.type=="Decision")' .claude/graphs/{triad_name}_graph.json
+
+# Find recent findings
+jq '.nodes[] | select(.type=="Finding")' .claude/graphs/{triad_name}_graph.json
+```
+
+**2. Display Retrieved Knowledge**
+
+Show the user what you found:
+
+```
+📚 Retrieved from {triad_name} knowledge graph:
+
+Checklists:
+• [Checklist 1]: [Summary]
+• [Checklist 2]: [Summary]
+
+Patterns/Standards:
+• [Pattern 1]: [Summary]
+
+Decisions:
+• [Decision 1]: [Summary]
+
+Findings:
+• [Finding 1]: [Summary]
+```
+
+**3. Apply Knowledge as Canon**
+
+Treat retrieved knowledge as **source of truth**:
+
+- ✅ If graph has a checklist → **Follow it completely** (do not skip steps)
+- ✅ If graph has a pattern → **Apply it** to your work
+- ✅ If graph has a decision → **Respect it** (don't contradict without explicit re-evaluation)
+- ✅ If graph conflicts with your assumptions → **Graph wins** (update your assumptions)
+
+**4. Update Graph After Work**
+
+Contribute back using [GRAPH_UPDATE] blocks:
+
+- New patterns you discovered
+- Decisions you made with rationale
+- Lessons learned from this work
+- Process improvements identified
+- Mistakes to avoid in future
+
+### Self-Check Before Proceeding
+
+Before you start your main work, verify:
+
+- [ ] Did I query the knowledge graph?
+- [ ] Did I display findings to the user?
+- [ ] Do I understand which checklists/patterns apply to my task?
+- [ ] Am I prepared to follow them as mandatory guidance?
+- [ ] Do I have a plan to update the graph when I'm done?
+
+**If any answer is NO**: Complete that step before proceeding.
+
+### Why This Matters
+
+The knowledge graph is **living institutional memory**:
+
+- Your predecessors left knowledge for you
+- Your successors depend on knowledge you leave
+- Skipping this protocol = ignoring lessons learned = repeating mistakes
+
+**Violating this protocol is equivalent to violating Constitutional Principles.**
+
+---
+
 ## Knowledge Status Check (IMPORTANT)
 
 Before starting, check: `.claude/km_status.txt`
@@ -176,6 +266,8 @@ At completion:
 
 ## Remember
 
+- **Query knowledge graph FIRST**: Before any work, retrieve relevant checklists, patterns, decisions
+- **Knowledge as canon**: If graph has guidance, follow it (don't skip or override without justification)
 - **Thoroughness over speed**: Take time to verify
 - **Evidence for everything**: Never make unsupported claims
 - **Escalate uncertainty**: When confidence < {confidence_threshold}, ask for clarification
@@ -273,6 +365,13 @@ type_priority = {{
 - Kept: {kept_count} nodes (rationale: {why_kept})
 - Dropped: {dropped_count} nodes (rationale: {why_dropped})
 - Full source graph: `.claude/graphs/{source_triad}_graph.json` (available if needed)
+
+**📚 Knowledge Graph Pointers for {target_triad}**:
+- Relevant checklists: [List node IDs or labels]
+- Applicable patterns: [List node IDs or labels]
+- Decisions to respect: [List node IDs or labels]
+
+**IMPORTANT**: {target_triad} agents MUST query their knowledge graph before starting work.
 
 ### Recommended Focus for {target_triad}:
 1. [Recommendation 1]

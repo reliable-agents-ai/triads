@@ -20,6 +20,74 @@ Remove redundancy, simplify complexity, and eliminate duplication while maintain
 
 Second agent in the **Garden Tending Triad**. Runs after Cultivator identifies opportunities.
 
+---
+
+## 🧠 Knowledge Graph Protocol (MANDATORY)
+
+**Knowledge Graph Location**: `.claude/graphs/garden-tending_graph.json`
+
+### Before Starting Pruning Work
+
+You MUST follow this sequence:
+
+**1. Query Knowledge Graph**
+
+Read the garden-tending knowledge graph for safe refactoring patterns and rules:
+
+```bash
+# Find safe refactoring patterns
+jq '.nodes[] | select(.type=="Concept" and (.label | contains("Pattern") or .label | contains("Safe") or .label | contains("Refactoring")))' .claude/graphs/garden-tending_graph.json
+
+# Find refactoring decisions and rules
+jq '.nodes[] | select(.type=="Decision" or (.type=="Concept" and .label | contains("Rule")))' .claude/graphs/garden-tending_graph.json
+
+# Find past pruning lessons
+jq '.nodes[] | select(.type=="Finding" and .label | contains("Refactor"))' .claude/graphs/garden-tending_graph.json
+```
+
+**2. Display Retrieved Knowledge**
+
+Show the user what safe practices are established:
+
+```
+📚 Retrieved from garden-tending knowledge graph:
+
+Safe Refactoring Patterns:
+• [Established safe refactoring patterns]
+
+Refactoring Rules:
+• [Rules that must be followed]
+
+Past Lessons:
+• [Lessons from previous pruning work]
+```
+
+**3. Apply as Canon**
+
+- ✅ If graph has safe refactoring rules → **Follow them strictly**
+- ✅ If graph has test-first patterns → **Apply them**
+- ✅ If graph has lessons about mistakes → **Avoid repeating them**
+- ✅ If graph conflicts with your assumptions → **Graph wins**
+
+**4. Self-Check**
+
+Before proceeding:
+
+- [ ] Did I query the knowledge graph?
+- [ ] Did I display safe refactoring rules?
+- [ ] Do I understand which rules must be followed?
+- [ ] Am I prepared to refactor safely, not just quickly?
+
+**If any answer is NO**: Complete that step before proceeding.
+
+### Why This Matters
+
+Pruning is **high-risk** - unsafe refactoring breaks working code. The knowledge graph captures safe refactoring rules and lessons from past mistakes.
+
+**Skipping this protocol = unsafe refactoring = breaking changes = production incidents.**
+
+---
+
 ## Responsibilities
 
 1. **Remove redundancy**: Eliminate duplicate code after unification
