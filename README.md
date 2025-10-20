@@ -103,6 +103,16 @@ claude code
 
 ## Key Features
 
+### 🔄 Multi-Instance Workflow Management (v0.7.0+)
+
+**Track multiple concurrent workflows per project** - work on multiple features simultaneously without confusion:
+- **Workflow Index**: See all active workflows at session start
+- **Instance Management**: Each workflow tracked separately with unique instance IDs
+- **Slash Commands**: `/workflows list` and `/workflows resume <id>` for easy navigation
+- **Auto-Create**: New workflow instances created automatically when starting triads
+- **Progress Tracking**: Bridge agents track triad completion across instances
+- **Concurrent-Safe**: Atomic file operations prevent race conditions
+
 ### 🤖 Intelligent Auto-Router (v0.2.0+)
 
 **No more manual triad commands** - just describe what you want:
@@ -652,11 +662,34 @@ Self-organizing knowledge networks that:
 
 ---
 
+## Security
+
+### Critical Fixes in v0.7.0-alpha.7
+
+**Path Traversal Vulnerability** (CVE-eligible severity):
+- **Issue**: Workflow instance IDs were not validated, allowing potential arbitrary file access
+- **Fixed**: Comprehensive input validation in `src/triads/utils/workflow_context.py`
+- **Impact**: Prevents malicious instance IDs like `../../../etc/passwd` from accessing system files
+
+**Race Condition in Concurrent Workflows**:
+- **Issue**: Concurrent file access could corrupt workflow state
+- **Fixed**: Atomic file operations with locking in workflow instance management
+- **Impact**: 100% stability under concurrent access (tested with 5 concurrent threads)
+
+**Recommendation**: Upgrade to v0.7.0-alpha.7 or later for production use. These security fixes are critical for multi-user environments and concurrent workflow operations.
+
+### Reporting Security Issues
+
+Please report security vulnerabilities to: [security@reliable-agents.ai](mailto:security@reliable-agents.ai)
+
+---
+
 ## Documentation
 
 ### For Users
 - **[Installation Guide](docs/INSTALLATION.md)** - Detailed setup instructions
 - **[Usage Guide](docs/USAGE.md)** - How to use the generator
+- **[Workflow Management](docs/WORKFLOW_MANAGEMENT.md)** - Multi-instance workflow tracking (v0.7.0+)
 - **[Examples](docs/EXAMPLES.md)** - Real-world workflow examples
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[FAQ](docs/FAQ.md)** - Frequently asked questions
