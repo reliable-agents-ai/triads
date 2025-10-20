@@ -5,6 +5,197 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0-alpha.1] - 2025-10-20
+
+### 🎯 Major: Supervisor-First Architecture (Phase 1)
+
+**Breaking Change**: ALL user interactions now route through the Supervisor Agent. This fundamentally changes how you interact with the triads system.
+
+#### New Architecture
+
+- **Supervisor Agent** - Primary interface for all user interactions (`.claude/agents/supervisor/supervisor.md`)
+  - Automatically triages Q&A vs. work requests
+  - Classifies problem types: bug, feature, performance, refactoring, investigation, deployment
+  - Routes to appropriate workflows with user confirmation (training mode)
+  - Enforces triad atomicity (ADR-006 - triads are never decomposed)
+
+- **UserPromptSubmit Hook** - Supervisor instructions injected on every user message
+  - Implemented in `hooks/user_prompt_submit.py`
+  - Registered in `hooks/hooks.json`
+  - Fires before Claude sees your message
+  - Provides intelligent triage and routing
+
+#### Key Features (Phase 1)
+
+1. **Intelligent Triage**
+   - Q&A indicators: "What is...", "How does...", "Explain..."
+   - Work indicators: "Implement...", "Fix this bug...", "Optimize..."
+   - Answers Q&A directly, routes work to appropriate workflows
+
+2. **Problem Classification** (6 types)
+   - **Bug**: Error, crash, broken, not working → Investigation → Fixing → Verification (3 triads)
+   - **Performance**: Slow, optimize, speed up → Profiling → Optimization → Benchmarking (3 triads)
+   - **Feature**: Add, implement, new → Idea Validation → Design → Implementation → Garden Tending → Deployment (5 triads)
+   - **Refactoring**: Cleanup, consolidate, simplify → Garden Tending (1-2 triads)
+   - **Investigation**: Analyze, research, understand → Discovery → Analysis (2 triads)
+   - **Deployment**: Release, deploy, publish → Garden Tending → Deployment (2 triads)
+
+3. **Training Mode** (Always Active in Phase 1)
+   - Shows confidence score for classification
+   - Explains reasoning for workflow suggestion
+   - Asks for user confirmation before routing
+   - Example: "This appears to be a **bug fix** (confidence: 0.95). Would you like me to start Bug Investigation workflow?"
+
+4. **Emergency Bypass**
+   - Prefix message with `/direct` to skip Supervisor
+   - Returns to normal conversational mode
+   - Use when you need direct Claude interaction
+   - Example: `/direct Just show me the file contents`
+
+5. **Triad Atomicity Enforcement** (ADR-006)
+   - Triads are atomic units (like military fire teams)
+   - Cannot extract individual agents from triads
+   - Workflows compose intact triads, never decompose them
+   - Based on military organizational doctrine
+
+#### Architecture Decision Records
+
+- **ADR-007: Supervisor-First Multi-Workflow Architecture** (`docs/adrs/ADR-SUPERVISOR-ARCHITECTURE.md`)
+  - Decision: ALL user interactions route through Supervisor (not optional)
+  - Rationale: Systematic problem classification, learning from outcomes, consistent UX
+  - Rejected alternatives: Gradual migration, optional mode, decomposable triads
+
+#### Implementation Details
+
+**New Modules**:
+- `src/triads/supervisor/core.py` - Core supervisor logic (87% test coverage)
+- `src/triads/supervisor/__init__.py` - Module initialization
+
+**New Tests**:
+- `tests/supervisor/test_supervisor_core.py` - 8 core logic tests
+- `tests/supervisor/test_user_prompt_submit_hook.py` - 7 hook integration tests
+- **Total**: 15/15 tests passing (100% pass rate)
+
+**Documentation**:
+- `docs/SUPERVISOR_TESTING_GUIDE.md` - Comprehensive testing guide with 7 test scenarios
+- `docs/MILITARY_ORGANIZATIONAL_PATTERNS.md` - Theoretical background (military organizational patterns)
+- Updated agent definition with triage logic and classification guidelines
+
+#### How to Use
+
+**After updating, restart Claude Code** to activate the Supervisor hook.
+
+**Test Scenarios**:
+
+1. **Ask a question** (Q&A, no routing):
+   ```
+   What is the Supervisor agent?
+   ```
+   Expected: Direct answer, no workflow routing
+
+2. **Report a bug** (work, routing with confirmation):
+   ```
+   There's a bug where the hook doesn't load on session start
+   ```
+   Expected: Classifies as "bug", suggests workflow, asks for confirmation
+
+3. **Request a feature** (work, routing with confirmation):
+   ```
+   Let's add support for parallel workflow execution
+   ```
+   Expected: Classifies as "feature", suggests Idea Validation or Design, asks confirmation
+
+4. **Use emergency bypass**:
+   ```
+   /direct Just show me the contents of hooks/hooks.json
+   ```
+   Expected: Skips Supervisor, direct conversational response
+
+#### What's NOT in Phase 1
+
+⏳ **Future Phases**:
+- Phase 2: Workflow library (proven workflows for common problems)
+- Phase 3: Automated classification with semantic routing
+- Phase 4: Execution monitoring and progress tracking
+- Phase 5: Learning system (improves from outcomes)
+
+Phase 1 provides the foundation with manual classification and training mode confirmations.
+
+#### Migration Notes
+
+**Breaking Change**: Interaction model fundamentally changed
+
+**Before v0.8**:
+- Conversational sessions with main Claude
+- Manual workflow invocation (e.g., "Start Garden Tending: ...")
+- No systematic problem classification
+
+**After v0.8**:
+- ALL input routes through Supervisor
+- Automatic triage (Q&A vs. work)
+- Systematic problem classification
+- Workflow suggestions with confirmation
+
+**How to Adapt**:
+1. **Q&A works the same** - Ask questions normally, get direct answers
+2. **Work requests are triaged** - Supervisor classifies and suggests workflows
+3. **Training mode active** - You'll be asked to confirm routing (for now)
+4. **Use `/direct` if needed** - Skip Supervisor for direct conversation
+
+**No data loss**: Existing workflows, knowledge graphs, and configuration unchanged.
+
+#### Performance Impact
+
+**Minimal**: Hook adds ~50ms per message (supervisor instructions injection)
+
+**Test Results**:
+- Hook execution: <100ms
+- No impact on Claude response time
+- No impact on existing functionality
+
+#### Known Limitations (Phase 1)
+
+1. **Manual Classification** - Supervisor provides guidelines, not automated routing (Phase 3)
+2. **No Workflow Library** - Falls back to existing triad commands (Phase 2)
+3. **No Execution Monitoring** - Can't track workflow progress automatically (Phase 4)
+4. **No Learning** - Doesn't improve from outcomes yet (Phase 5)
+5. **Training Mode Always On** - Always asks for confirmation (will graduate in later phases)
+
+#### Troubleshooting
+
+**If Supervisor not active**:
+1. Restart Claude Code completely
+2. Check `hooks/hooks.json` has UserPromptSubmit hook
+3. Test hook: `python3 hooks/user_prompt_submit.py`
+4. Look for "🎯 SUPERVISOR MODE: ACTIVE" in session context
+
+**If you need to disable**:
+- Use `/direct` prefix for individual messages
+- Or temporarily comment out UserPromptSubmit in `hooks/hooks.json`
+
+See `docs/SUPERVISOR_TESTING_GUIDE.md` for complete testing scenarios and debugging.
+
+### Added
+
+- Supervisor Agent definition (`.claude/agents/supervisor/supervisor.md`)
+- UserPromptSubmit hook (`hooks/user_prompt_submit.py`)
+- Supervisor core logic module (`src/triads/supervisor/`)
+- 15 comprehensive tests (100% passing)
+- ADR-007: Supervisor-First Architecture
+- Comprehensive testing guide
+- Military organizational patterns documentation
+
+### Changed
+
+- Hook configuration (`hooks/hooks.json`) - Added UserPromptSubmit hook
+- Interaction model - ALL user input now routes through Supervisor
+
+### Documentation
+
+- `docs/SUPERVISOR_TESTING_GUIDE.md` - 7 test scenarios with expected behaviors
+- `docs/adrs/ADR-SUPERVISOR-ARCHITECTURE.md` - Architecture decision and rationale
+- `docs/MILITARY_ORGANIZATIONAL_PATTERNS.md` - Organizational theory background
+
 ## [0.7.0-alpha.7] - 2025-10-20
 
 ### Security (CRITICAL FIXES)

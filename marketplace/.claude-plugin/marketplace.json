@@ -11,7 +11,7 @@
       "name": "triads",
       "source": "github:reliable-agents-ai/triads",
       "description": "Triad workflow system - organize complex work into phases with specialized agents and automatic knowledge management",
-      "version": "0.7.0-alpha.7"
+      "version": "0.8.0-alpha.1"
     }
   ]
 }
