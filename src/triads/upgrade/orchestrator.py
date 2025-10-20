@@ -24,6 +24,13 @@ from typing import List, Optional
 
 from triads.templates.agent_templates import AGENT_TEMPLATE_VERSION
 
+from .exceptions import (
+    AgentNotFoundError,
+    InvalidAgentError,
+    UpgradeIOError,
+    UpgradeSecurityError,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -98,7 +105,8 @@ class UpgradeOrchestrator:
 
         # Validate agents directory exists
         if not self.agents_dir.exists():
-            raise FileNotFoundError(
+            logger.error("Agents directory not found: %s", self.agents_dir.absolute())
+            raise AgentNotFoundError(
                 f"Agents directory not found: {self.agents_dir.absolute()}"
             )
 
@@ -138,7 +146,7 @@ class UpgradeOrchestrator:
             # Security: Validate triad name to prevent path traversal
             if not self._is_safe_path_component(triad_name):
                 logger.error("Invalid triad name (security): %s", triad_name)
-                raise ValueError(f"Invalid triad name: {triad_name}")
+                raise UpgradeSecurityError(triad_name, "Invalid triad name (path traversal attempt)")
             pattern = f"{triad_name}/*.md"
         else:
             pattern = "**/*.md"
@@ -259,7 +267,7 @@ class UpgradeOrchestrator:
             content = agent_path.read_text()
             backup_path.write_text(content)
         except Exception as e:
-            raise IOError(f"Failed to create backup: {e}") from e
+            raise UpgradeIOError("backup_creation", str(agent_path), e) from e
 
         return backup_path
 
@@ -366,7 +374,7 @@ class UpgradeOrchestrator:
                 # Clean up temp file if it exists
                 if temp_path.exists():
                     temp_path.unlink()
-                raise IOError(f"Failed to write upgraded content: {e}") from e
+                raise UpgradeIOError("atomic_write", str(candidate.agent_path), e) from e
 
             logger.info("Successfully upgraded agent: %s from %s to %s",
                        candidate.agent_name, candidate.current_version, self.latest_version)
@@ -509,7 +517,7 @@ class UpgradeOrchestrator:
         # Extract frontmatter
         match = re.search(r'^---\s*\n(.*?)\n---\s*\n(.*)', content, re.DOTALL | re.MULTILINE)
         if not match:
-            raise ValueError("Could not parse agent frontmatter")
+            raise InvalidAgentError("agent_file", "Could not parse agent frontmatter")
 
         frontmatter_text = match.group(1)
         body = match.group(2)

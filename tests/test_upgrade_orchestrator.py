@@ -15,7 +15,7 @@ from textwrap import dedent
 
 import pytest
 
-from triads.upgrade import UpgradeCandidate, UpgradeOrchestrator
+from triads.upgrade import UpgradeCandidate, UpgradeOrchestrator, UpgradeSecurityError
 
 
 @pytest.fixture
@@ -229,8 +229,8 @@ class TestScanAgents:
         assert candidates[0].triad_name == "implementation"
 
     def test_scan_invalid_triad_raises_error(self, orchestrator_with_agents):
-        """Test scanning with path traversal attempt raises error."""
-        with pytest.raises(ValueError, match="Invalid triad name"):
+        """Test scanning with path traversal attempt raises security error."""
+        with pytest.raises(UpgradeSecurityError, match="Security violation"):
             orchestrator_with_agents.scan_agents(triad_name="../../../etc")
 
 
