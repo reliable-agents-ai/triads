@@ -598,10 +598,7 @@ class UpgradeOrchestrator:
     ) -> str:
         """Merge new template sections into existing agent body.
 
-        Strategy:
-        - Find insertion point (after Constitutional Principles section)
-        - Insert new sections
-        - Preserve all existing content
+        Simplified - delegates insertion point finding to helper.
 
         Args:
             current_body: Current agent body text
@@ -620,31 +617,9 @@ class UpgradeOrchestrator:
             # Get the Knowledge Graph Protocol section from template
             kg_protocol = self._get_kg_protocol_section()
 
-            # Find insertion point (after Constitutional Principles, before next section)
+            # Find insertion point and insert section
             lines = current_body.split('\n')
-            insert_idx = None
-
-            # Strategy: Find "Constitutional Principles" section, then find next ## heading
-            in_constitutional = False
-            for i, line in enumerate(lines):
-                if '## Constitutional Principles' in line:
-                    in_constitutional = True
-                elif in_constitutional and line.startswith('## ') and 'Constitutional' not in line:
-                    # Found next section after Constitutional Principles
-                    insert_idx = i
-                    break
-
-            if insert_idx is None:
-                # Fallback: insert after frontmatter/first section
-                # Find first ## after identity section
-                for i, line in enumerate(lines):
-                    if line.startswith('## ') and i > 10:  # Skip early sections
-                        insert_idx = i
-                        break
-
-            if insert_idx is None:
-                # Last resort: append to end
-                insert_idx = len(lines)
+            insert_idx = self._find_insertion_point(lines)
 
             # Insert the new section with proper spacing
             lines.insert(insert_idx, "")  # Blank line after previous section
@@ -654,6 +629,37 @@ class UpgradeOrchestrator:
             return '\n'.join(lines)
 
         return current_body
+
+    def _find_insertion_point(self, lines: List[str]) -> int:
+        """Find insertion point for new section.
+
+        Strategy:
+        1. After Constitutional Principles section (preferred)
+        2. After first section (fallback)
+        3. End of file (last resort)
+
+        Args:
+            lines: Agent body lines
+
+        Returns:
+            Line index for insertion
+        """
+        # Strategy 1: Find "Constitutional Principles" section, then find next ## heading
+        in_constitutional = False
+        for i, line in enumerate(lines):
+            if '## Constitutional Principles' in line:
+                in_constitutional = True
+            elif in_constitutional and line.startswith('## ') and 'Constitutional' not in line:
+                # Found next section after Constitutional Principles
+                return i
+
+        # Strategy 2: Fallback - insert after first section (skip identity/frontmatter)
+        for i, line in enumerate(lines):
+            if line.startswith('## ') and i > 10:  # Skip early sections
+                return i
+
+        # Strategy 3: Last resort - append to end
+        return len(lines)
 
     def _get_kg_protocol_section(self) -> str:
         """Get Knowledge Graph Protocol section from template.
