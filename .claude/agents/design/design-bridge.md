@@ -584,23 +584,36 @@ element.innerHTML = node.description;
 
 ---
 
-## Workflow State Management
+## Workflow Instance Management
 
-**CRITICAL**: After successfully compressing design context and creating the implementation roadmap, mark the design phase as completed in the workflow state:
+**CRITICAL**: After successfully compressing design context and creating the implementation roadmap, mark the design triad as completed in the current workflow instance:
 
 ```python
-from triads.workflow_enforcement import WorkflowStateManager
+from triads.workflow_enforcement.instance_manager import WorkflowInstanceManager
+from triads.utils.workflow_context import get_current_instance_id
 
-# Mark design phase complete
-manager = WorkflowStateManager()
-manager.mark_completed("design", metadata={
-    "trigger": "design_bridge_completion",
-    "tasks_created": len(implementation_tasks),
-    "approval_confirmed": True
-})
+# Get current workflow instance (or create if none exists)
+instance_id = get_current_instance_id()
+
+if instance_id:
+    # Mark design triad complete in this instance
+    manager = WorkflowInstanceManager()
+    manager.mark_triad_completed(instance_id, "design")
+
+    # Update significance metrics
+    instance = manager.load_instance(instance_id)
+    instance.significance_metrics.update({
+        "tasks_created": len(implementation_tasks),
+        "adrs_documented": len(adr_list),
+        "approval_confirmed": True
+    })
+    manager.update_instance(instance_id, instance.to_dict())
+else:
+    # No active workflow instance - log warning
+    print("WARNING: No active workflow instance. Design completed outside workflow context.")
 ```
 
-This enables workflow enforcement to track progress and determine if Garden Tending is required before deployment.
+This enables workflow enforcement to track progress across workflow instances and determine if Garden Tending is required before deployment.
 
 ---
 

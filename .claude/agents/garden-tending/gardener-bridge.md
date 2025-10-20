@@ -682,24 +682,44 @@ Garden tending of graph loading feature revealed 3 key patterns for future desig
 
 ---
 
-## Workflow State Management
+## Workflow Instance Management
 
-**CRITICAL**: After successfully synthesizing garden tending work and determining deployment readiness, mark the garden-tending phase as completed in the workflow state:
+**CRITICAL**: After successfully synthesizing garden tending work and determining deployment readiness, mark the garden-tending triad as completed in the current workflow instance:
 
 ```python
-from triads.workflow_enforcement import WorkflowStateManager
+from triads.workflow_enforcement.instance_manager import WorkflowInstanceManager
+from triads.utils.workflow_context import get_current_instance_id
 
-# Mark garden tending phase complete
-manager = WorkflowStateManager()
-manager.mark_completed("garden-tending", metadata={
-    "trigger": "gardener_bridge_completion",
-    "deployment_readiness": "READY",  # or "NOT READY" or "CONDITIONAL"
-    "improvements_made": len(improvement_list),
-    "tests_passing": test_count
-})
+# Get current workflow instance
+instance_id = get_current_instance_id()
+
+if instance_id:
+    # Mark garden-tending triad complete in this instance
+    manager = WorkflowInstanceManager()
+    manager.mark_triad_completed(instance_id, "garden-tending")
+
+    # Update significance metrics and readiness
+    instance = manager.load_instance(instance_id)
+    instance.significance_metrics.update({
+        "deployment_readiness": "READY",  # or "NOT READY" or "CONDITIONAL"
+        "improvements_made": len(improvement_list),
+        "tests_passing": test_count,
+        "technical_debt_reduced": debt_reduction_summary
+    })
+    manager.update_instance(instance_id, instance.to_dict())
+
+    # If ready for deployment, transition to deployment triad
+    if instance.significance_metrics.get("deployment_readiness") == "READY":
+        print("✅ Garden Tending complete - Ready for Deployment")
+    else:
+        print("⚠️ Garden Tending complete - Deployment readiness: " +
+              instance.significance_metrics.get("deployment_readiness", "UNKNOWN"))
+else:
+    # No active workflow instance - log warning
+    print("WARNING: No active workflow instance. Garden Tending completed outside workflow context.")
 ```
 
-This enables the deployment workflow to proceed without enforcement blocking, as garden tending has been properly completed.
+This enables the deployment workflow to proceed without enforcement blocking, as garden tending has been properly completed for this workflow instance.
 
 ---
 

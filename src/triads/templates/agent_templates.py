@@ -280,6 +280,44 @@ type_priority = {{
 ```
 
 ---
+
+## 🔄 Workflow Instance Management
+
+**CRITICAL**: After completing your work in the source triad, mark the triad as completed in the current workflow instance:
+
+```python
+from triads.workflow_enforcement.instance_manager import WorkflowInstanceManager
+from triads.utils.workflow_context import get_current_instance_id
+
+# Get current workflow instance (or create if none exists)
+instance_id = get_current_instance_id()
+
+if instance_id:
+    # Mark source triad complete in this instance
+    manager = WorkflowInstanceManager()
+    manager.mark_triad_completed(instance_id, "{source_triad}")
+
+    # Update significance metrics (customize based on your triad)
+    instance = manager.load_instance(instance_id)
+    instance.significance_metrics.update({{
+        "completion_trigger": "{source_triad}_bridge_completion",
+        # Add triad-specific metrics here
+    }})
+    manager.update_instance(instance_id, instance.to_dict())
+
+    print(f"✅ {{source_triad}} triad marked complete in workflow instance {{instance_id}}")
+else:
+    # No active workflow instance - log warning
+    print("WARNING: No active workflow instance. Work completed outside workflow context.")
+```
+
+**Why this matters**: This enables workflow enforcement to:
+- Track progress across workflow instances
+- Determine if Garden Tending is required before deployment
+- Show accurate workflow status at session start
+- Support multiple concurrent workflows per project
+
+---
 """
 
 CONSTITUTIONAL_PRINCIPLES_TEMPLATE = """# Constitutional Principles for {workflow_name}

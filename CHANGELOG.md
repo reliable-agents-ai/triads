@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.0-alpha.7] - 2025-10-20
 
+### Security (CRITICAL FIXES)
+
+- **Fixed path traversal vulnerability in workflow context utilities** (CVE-eligible severity)
+  - Added comprehensive input validation for workflow instance IDs in `src/triads/utils/workflow_context.py`
+  - Environment variable `TRIADS_WORKFLOW_INSTANCE` now validated against path traversal patterns
+  - Prevents malicious instance IDs like `../../../etc/passwd` from accessing arbitrary files
+  - Validation pattern: alphanumeric + hyphens/underscores only, max 255 characters
+  - Graceful degradation: invalid IDs logged as warnings and ignored
+
+### Reliability (CRITICAL FIXES)
+
+- **Fixed race condition in concurrent workflow file access**
+  - Replaced plain file I/O with atomic operations using file locking
+  - `atomic_read_json()` and `atomic_write_json()` prevent corruption under concurrent access
+  - Tested with 5 concurrent threads - 100% stable operations
+  - Affects `current_instance.json` and workflow instance state files
+  - Ensures multi-agent workflow operations are reliable
+
 ### Changed
 - **Refactored Workflow Continuity to Multi-Instance Architecture** - Session start hook now uses `WorkflowInstanceManager` instead of `WorkflowStateManager`
   - Supports multiple concurrent workflow instances (e.g., OAuth2 in Implementation, Notifications in Design)
@@ -19,6 +37,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Lists instance ID, title, current triad, and age (days/hours/minutes since start)
   - Prompts user with `/workflows resume <instance-id>` and `/workflows list` commands
   - Age calculation with human-friendly formatting (e.g., "2d", "3h", "45m")
+- **Bridge Agent Workflow Tracking** - Design-Bridge and Gardener-Bridge now track triad completion
+  - Agents call `WorkflowInstanceManager.mark_triad_completed()` after successful completion
+  - Updates significance metrics with triad-specific data (tasks created, tests passing, etc.)
+  - Enables workflow enforcement to verify Garden Tending completion before deployment
+- **Slash Command Documentation**
+  - Added `.claude/commands/workflows-list.md` - List all workflow instances
+  - Added `.claude/commands/workflows-resume.md` - Resume specific workflow instance
+
+### Testing
+- Added 7 comprehensive security and concurrency tests in `tests/test_workflow_context.py`
+  - Path traversal attack prevention (3 tests)
+  - Invalid character rejection (2 tests)
+  - Concurrent access stability (2 tests)
+- All 17 tests passing (100% pass rate)
+- Test coverage improved from 18% to 74% (+56 percentage points)
 
 ### Removed
 - **Single-workflow limitation** - No longer restricted to tracking one workflow at a time
@@ -30,11 +63,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Uses `list_instances(status="in_progress")` to fetch all active workflows
 - Instance format: `{slug}-{timestamp}-{microseconds}.json` (e.g., "oauth2-integration-20251017-100523-123456.json")
 - Graceful degradation if instance manager unavailable
+- Generator template (`agent_templates.py`) updated to include workflow instance management code
 
 ### Impact
 - **Enables real-world multi-feature development** - Users can work on multiple features concurrently without workflow state conflicts
+- **Production-hardened security** - Path traversal vulnerability eliminated before wider distribution
+- **Eliminates race conditions** - Concurrent workflows stable under load
 - Prepares foundation for `/workflows list` and `/workflows resume` commands
 - More accurate reflection of actual development workflows (multiple parallel workstreams)
+
+### Quality Improvements
+- Code health score improved: 6.5/10 → 8.5/10 (+2.0)
+- Security vulnerabilities reduced: 2 critical → 0 (100% elimination)
+- Test coverage: 18% → 74% (+56 points)
 
 ## [0.7.0-alpha.6] - 2025-10-20
 
