@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0-alpha.3] - 2025-10-20
+
+### Fixed
+- **Critical**: Updated `.claude-plugin/plugin.json` version (was missed in alpha.2)
+- This file is what Claude Code checks for installed plugin version
+- Without this fix, `/plugin` update would not recognize the new version
+
+**Note**: This is the actual cache fix. Alpha.2 missed updating plugin.json, causing version detection issues.
+
 ## [0.8.0-alpha.2] - 2025-10-20
 
 ### Fixed
