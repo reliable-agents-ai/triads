@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from triads.templates.agent_templates import AGENT_TEMPLATE_VERSION
+from triads.utils.file_operations import atomic_read_text, atomic_write_text
 
 from .exceptions import (
     AgentNotFoundError,
@@ -207,7 +208,7 @@ class UpgradeOrchestrator:
             Complex YAML parsing with PyYAML would be overkill and add dependencies.
         """
         try:
-            content = agent_path.read_text()
+            content = atomic_read_text(agent_path)
         except Exception as e:
             return "unknown"
 
@@ -262,10 +263,10 @@ class UpgradeOrchestrator:
         backup_name = f"{agent_path.stem}_{timestamp}.md.backup"
         backup_path = backup_dir / backup_name
 
-        # Copy content
+        # Copy content using centralized file operations
         try:
-            content = agent_path.read_text()
-            backup_path.write_text(content)
+            content = atomic_read_text(agent_path)
+            atomic_write_text(backup_path, content)
         except Exception as e:
             raise UpgradeIOError("backup_creation", str(agent_path), e) from e
 
@@ -364,16 +365,11 @@ class UpgradeOrchestrator:
                 print(f"    Backup preserved at: {backup_path}")
                 return False
 
-            # Gate 3: Atomic write (temp file → rename)
+            # Gate 3: Atomic write using centralized file operations
             # This ensures we never have a partially-written agent file
-            temp_path = candidate.agent_path.with_suffix('.tmp')
             try:
-                temp_path.write_text(new_content)
-                temp_path.replace(candidate.agent_path)  # Atomic on POSIX
+                atomic_write_text(candidate.agent_path, new_content)
             except Exception as e:
-                # Clean up temp file if it exists
-                if temp_path.exists():
-                    temp_path.unlink()
                 raise UpgradeIOError("atomic_write", str(candidate.agent_path), e) from e
 
             logger.info("Successfully upgraded agent: %s from %s to %s",
@@ -488,7 +484,7 @@ class UpgradeOrchestrator:
             >>> upgraded = orchestrator.generate_upgraded_content(candidate)
             >>> # upgraded now has latest template sections while preserving content
         """
-        current_content = candidate.agent_path.read_text()
+        current_content = atomic_read_text(candidate.agent_path)
 
         # Parse current agent into frontmatter + body
         frontmatter, body = self._parse_agent_file(current_content)
@@ -715,7 +711,7 @@ See agent template for full protocol.
 
         # Show diff if requested
         if show_diff_first:
-            current_content = candidate.agent_path.read_text()
+            current_content = atomic_read_text(candidate.agent_path)
             diff = self.show_diff(current_content, new_content, candidate.agent_name)
             print("\n📊 Proposed changes:")
             print(diff)
@@ -726,7 +722,7 @@ See agent template for full protocol.
 
             if response == 'd':
                 # Show diff again
-                current_content = candidate.agent_path.read_text()
+                current_content = atomic_read_text(candidate.agent_path)
                 diff = self.show_diff(current_content, new_content, candidate.agent_name)
                 print("\n📊 Proposed changes:")
                 print(diff)
