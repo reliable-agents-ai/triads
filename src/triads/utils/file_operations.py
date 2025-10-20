@@ -3,10 +3,11 @@
 This module provides unified utilities for:
 - Directory creation (mkdir -p equivalent)
 - Atomic JSON read/write with file locking
+- Atomic text read/write with file locking
 - Atomic file append with file locking
 - File locking context manager
 
-Used by state_manager.py and audit.py to prevent race conditions.
+Used by state_manager.py, audit.py, and upgrade orchestrator to prevent race conditions.
 """
 
 from __future__ import annotations
@@ -221,3 +222,109 @@ def atomic_append(
             f.write(line)
             f.flush()
             os.fsync(f.fileno())
+
+
+def atomic_read_text(
+    file_path: Path,
+    encoding: str = "utf-8",
+    lock: bool = True,
+) -> str:
+    """Read text file with optional file locking.
+
+    Args:
+        file_path: Path to text file
+        encoding: Text encoding (default: utf-8)
+        lock: If True, acquire shared lock during read (default: True)
+
+    Returns:
+        File contents as string
+
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        IOError: If read fails
+
+    Example:
+        content = atomic_read_text(
+            Path(".claude/agents/design/solution-architect.md")
+        )
+    """
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    try:
+        if lock:
+            # Read with shared lock
+            with open(file_path, "r", encoding=encoding) as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+                try:
+                    content = f.read()
+                finally:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        else:
+            # Read without lock
+            with open(file_path, "r", encoding=encoding) as f:
+                content = f.read()
+
+        return content
+
+    except Exception as e:
+        raise IOError(f"Failed to read {file_path}: {e}") from e
+
+
+def atomic_write_text(
+    file_path: Path,
+    content: str,
+    encoding: str = "utf-8",
+    lock: bool = True,
+) -> None:
+    """Write text file atomically with optional file locking.
+
+    Uses write-to-temp-then-rename pattern for crash resistance.
+
+    Args:
+        file_path: Destination file path
+        content: Text content to write
+        encoding: Text encoding (default: utf-8)
+        lock: If True, acquire exclusive lock during write (default: True)
+
+    Raises:
+        IOError: If write fails
+
+    Example:
+        atomic_write_text(
+            Path(".claude/agents/design/solution-architect.md"),
+            updated_agent_content
+        )
+    """
+    # Ensure directory exists
+    ensure_parent_dir(file_path)
+
+    # Generate unique temp filename (avoids collision in concurrent writes)
+    temp_file = file_path.with_suffix(f".tmp.{os.getpid()}.{int(time.time() * 1000000)}")
+
+    try:
+        if lock:
+            # Write with exclusive lock
+            with open(temp_file, "w", encoding=encoding) as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                try:
+                    f.write(content)
+                    f.flush()
+                    os.fsync(f.fileno())  # Ensure data written to disk
+                finally:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        else:
+            # Write without lock
+            with open(temp_file, "w", encoding=encoding) as f:
+                f.write(content)
+                f.flush()
+                os.fsync(f.fileno())
+
+        # Atomic rename (overwrites existing file)
+        temp_file.replace(file_path)
+
+    except Exception as e:
+        # Clean up temp file on failure
+        if temp_file.exists():
+            temp_file.unlink()
+        raise IOError(f"Failed to write {file_path}: {e}") from e
