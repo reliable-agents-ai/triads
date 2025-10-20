@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0-alpha.6] - 2025-10-20
+
+### Added
+- **Workflow Continuity System** - Session start hook now connects to existing workflow enforcement infrastructure
+  - Auto-detects in-progress work from `.claude/workflow_state.json`
+  - Prompts user to resume work in current phase or advance to next phase
+  - Shows completed phases and next phase in sequence
+  - Displays metadata (files changed, lines changed) when available
+  - Provides clear options: continue current phase, move forward, or start new work
+
+### Changed
+- **SessionStart Hook Enhanced** - Now loads workflow state and generates resumption prompts
+  - Added `load_workflow_state()` function to check for active workflows
+  - Added `get_next_phase()` to determine triad sequence progression
+  - Added `format_workflow_resumption()` to generate user-friendly prompts
+  - Workflow continuity section appears FIRST in session start context (before routing directives)
+
+### Fixed
+- **Core Design Flaw Resolved** - Workflow enforcement infrastructure now actually connected to user-facing hooks
+  - Previous implementation had WorkflowStateManager and enforcement but session_start didn't use it
+  - Users no longer need to manually remember what phase they're in
+  - System now proactively suggests workflow continuation
+  - Addresses fundamental issue where triads were opt-in instead of default workflow
+
+### Technical Details
+- Integrates with existing `WorkflowStateManager` (src/triads/workflow_enforcement/state_manager.py)
+- Compatible with existing bridge agents that call `mark_completed()`
+- Graceful degradation if workflow state unavailable (hooks don't fail)
+- Phase sequence: idea-validation → design → implementation → garden-tending → deployment
+
+### Impact
+- **Solves "users must prompt triads manually" problem**
+- Transforms triads from suggestive framework to enforced workflow
+- Maintains context across sessions via persistent state
+- Makes systematic work the default path (not Q&A)
+
 ## [0.7.0-alpha.5] - 2025-10-20
 
 ### Added

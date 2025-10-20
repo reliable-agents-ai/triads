@@ -400,11 +400,165 @@ def load_routing_directives():
     return None
 
 
+def load_workflow_state():
+    """
+    Load workflow state to check for in-progress work.
+
+    Returns:
+        dict or None: Workflow state if available
+    """
+    try:
+        from triads.workflow_enforcement.state_manager import WorkflowStateManager
+
+        manager = WorkflowStateManager()
+        state = manager.load_state()
+
+        # Only return state if it has meaningful content
+        if state and (state.get("current_phase") or state.get("completed_triads")):
+            return state
+    except Exception:
+        # If workflow enforcement not available or errors, return None
+        pass
+
+    return None
+
+
+def get_next_phase(current_phase):
+    """
+    Determine the next phase in the triad sequence.
+
+    Args:
+        current_phase: Current phase name
+
+    Returns:
+        str or None: Next phase name
+    """
+    phase_sequence = [
+        "idea-validation",
+        "design",
+        "implementation",
+        "garden-tending",
+        "deployment"
+    ]
+
+    try:
+        current_idx = phase_sequence.index(current_phase)
+        if current_idx < len(phase_sequence) - 1:
+            return phase_sequence[current_idx + 1]
+    except (ValueError, IndexError):
+        pass
+
+    return None
+
+
+def format_workflow_resumption(state):
+    """
+    Format workflow state as resumption prompt for user.
+
+    Args:
+        state: Workflow state dictionary
+
+    Returns:
+        str: Formatted resumption prompt
+    """
+    if not state:
+        return ""
+
+    current_phase = state.get("current_phase")
+    completed_triads = state.get("completed_triads", [])
+    last_transition = state.get("last_transition")
+    metadata = state.get("metadata", {})
+
+    # If no active phase, don't show resumption
+    if not current_phase:
+        return ""
+
+    output = []
+    output.append("=" * 80)
+    output.append("# 🔄 WORKFLOW CONTINUITY")
+    output.append("=" * 80)
+    output.append("")
+
+    # Check if current phase is completed
+    if current_phase in completed_triads:
+        # Phase complete - suggest next phase
+        next_phase = get_next_phase(current_phase)
+
+        output.append(f"✅ **{current_phase.replace('-', ' ').title()} Complete**")
+        output.append("")
+
+        if last_transition:
+            output.append(f"Completed: {last_transition}")
+            output.append("")
+
+        if next_phase:
+            output.append(f"**Ready for next phase: {next_phase.replace('-', ' ').title()}**")
+            output.append("")
+            output.append(f"To continue the workflow:")
+            output.append(f"```")
+            output.append(f"Start {next_phase}: [description of work]")
+            output.append(f"```")
+            output.append("")
+            output.append("Or start new work with a different triad.")
+        else:
+            output.append("**Workflow complete!**")
+            output.append("")
+            output.append("All phases done. Ready to start new work.")
+    else:
+        # Phase in progress - suggest resumption
+        output.append(f"📋 **Work in Progress: {current_phase.replace('-', ' ').title()}**")
+        output.append("")
+
+        if last_transition:
+            output.append(f"Started: {last_transition}")
+            output.append("")
+
+        # Show what's been completed so far
+        if completed_triads:
+            output.append("**Completed phases:**")
+            for phase in completed_triads:
+                output.append(f"  ✓ {phase.replace('-', ' ').title()}")
+            output.append("")
+
+        # Show metadata if available (files changed, etc)
+        if metadata:
+            if metadata.get("files_changed"):
+                output.append(f"**Modified files:** {metadata['files_changed']}")
+            if metadata.get("loc_changed"):
+                output.append(f"**Lines changed:** {metadata['loc_changed']}")
+            if metadata:
+                output.append("")
+
+        output.append(f"**Options:**")
+        output.append(f"1. Continue {current_phase}: Resume work in this phase")
+        output.append(f"2. Complete and move forward: Finish {current_phase} and proceed to next phase")
+        output.append(f"3. Start new work: Begin a different feature/task")
+        output.append("")
+
+        next_phase = get_next_phase(current_phase)
+        if next_phase:
+            output.append(f"**Next phase will be:** {next_phase.replace('-', ' ').title()}")
+            output.append("")
+
+    output.append("=" * 80)
+    output.append("")
+
+    return "\n".join(output)
+
+
 def main():
     """Generate routing + knowledge graph context for session."""
 
     # Build context output
     output = []
+
+    # === WORKFLOW CONTINUITY (FIRST - MOST IMPORTANT) ===
+
+    workflow_state = load_workflow_state()
+    if workflow_state:
+        resumption_prompt = format_workflow_resumption(workflow_state)
+        if resumption_prompt:
+            output.append(resumption_prompt)
 
     # === ROUTING DIRECTIVES ===
 
