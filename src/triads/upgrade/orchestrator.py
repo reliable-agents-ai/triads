@@ -723,11 +723,7 @@ See agent template for full protocol.
     ) -> bool:
         """Complete upgrade workflow for a single agent.
 
-        Orchestrates the full upgrade process:
-        1. Generate upgraded content
-        2. Show diff for review
-        3. Get user confirmation
-        4. Apply upgrade with safety gates
+        Simplified orchestration - delegates to helper methods.
 
         Args:
             candidate: Agent to upgrade
@@ -764,25 +760,9 @@ See agent template for full protocol.
             print("\n📊 Proposed changes:")
             print(diff)
 
-        # Confirm if needed
-        if require_confirmation and not self.force:
-            response = input("\n❓ Apply this upgrade? [y/N/d(iff)/s(kip)]: ").lower()
-
-            if response == 'd':
-                # Show diff again
-                current_content = atomic_read_text(candidate.agent_path)
-                diff = self.show_diff(current_content, new_content, candidate.agent_name)
-                print("\n📊 Proposed changes:")
-                print(diff)
-                response = input("❓ Apply upgrade? [y/N]: ").lower()
-
-            if response == 's':
-                print("⏭️  Skipped")
-                return False
-
-            if response != 'y':
-                print("❌ Cancelled")
-                return False
+        # Get user confirmation
+        if not self._confirm_upgrade(candidate, new_content, require_confirmation):
+            return False
 
         # Apply upgrade
         success = self.apply_upgrade(candidate, new_content)
@@ -791,6 +771,50 @@ See agent template for full protocol.
             print(f"✅ Upgraded {candidate.agent_name} to v{self.latest_version}")
 
         return success
+
+    def _confirm_upgrade(
+        self,
+        candidate: UpgradeCandidate,
+        new_content: str,
+        require_confirmation: bool
+    ) -> bool:
+        """Get user confirmation for upgrade.
+
+        Handles interactive confirmation with option to view diff.
+
+        Args:
+            candidate: Agent being upgraded
+            new_content: Proposed new content
+            require_confirmation: Whether to require confirmation
+
+        Returns:
+            True if user confirms (or confirmation not required), False otherwise
+        """
+        # Skip confirmation if not required or force flag set
+        if not require_confirmation or self.force:
+            return True
+
+        response = input("\n❓ Apply this upgrade? [y/N/d(iff)/s(kip)]: ").lower()
+
+        # Handle diff request
+        if response == 'd':
+            current_content = atomic_read_text(candidate.agent_path)
+            diff = self.show_diff(current_content, new_content, candidate.agent_name)
+            print("\n📊 Proposed changes:")
+            print(diff)
+            response = input("❓ Apply upgrade? [y/N]: ").lower()
+
+        # Handle skip
+        if response == 's':
+            print("⏭️  Skipped")
+            return False
+
+        # Handle cancel (anything other than 'y')
+        if response != 'y':
+            print("❌ Cancelled")
+            return False
+
+        return True
 
     def upgrade_all(
         self,
