@@ -10,6 +10,8 @@ All functions log errors to stderr and return gracefully rather than raising exc
 This ensures hooks never crash and never block tool execution.
 """
 
+from __future__ import annotations
+
 import json
 import sys
 import tempfile
