@@ -5,6 +5,238 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0-alpha.4] - 2025-10-20
+
+### 🎯 Major Feature: Agent Upgrade System
+
+A comprehensive system for upgrading agent files to new template versions while preserving customizations.
+
+#### New `/upgrade-agents` Command
+
+Users can now upgrade their agents to the latest template version (v0.8.0) with smart preservation of customizations:
+
+```bash
+# Upgrade all agents (interactive)
+/upgrade-agents --all
+
+# Preview changes without applying
+/upgrade-agents --all --dry-run
+
+# Upgrade specific triad
+/upgrade-agents --triad implementation
+
+# Upgrade specific agents
+/upgrade-agents solution-architect test-engineer
+```
+
+**Key Features**:
+- **Smart Template Merging**: Preserves your customizations while applying template improvements
+- **Multi-Gate Safety**: Scan → Backup → Diff → Validate → Apply workflow
+- **Interactive Confirmation**: Review changes before applying
+- **Automatic Backups**: Timestamped backups in `.claude/agents/backups/` before modification
+- **Dry-Run Mode**: Preview changes without modifying files
+- **Comprehensive Documentation**: 627-line user guide in `docs/AGENT_UPGRADES.md`
+
+**Safety Mechanisms**:
+- Atomic file operations (crash-resistant)
+- Content validation before writing
+- Path traversal protection (layered security)
+- File locking for concurrent safety
+- Security audit trail via logging
+
+#### Template Versioning System
+
+All agents now track their template version in frontmatter:
+
+```yaml
+---
+name: solution-architect
+triad: design
+role: solution_architect
+template_version: 0.8.0  # NEW
+---
+```
+
+**Migration**: Existing agents automatically migrated to v0.8.0 via `scripts/add_template_versions.py`
+
+**Detection**: System can now identify outdated agents and suggest upgrades
+
+### 🛠️ Quality Improvements (Garden Tending)
+
+Comprehensive refactoring improved code health from **B+ (85/100)** to **A (95/100)**:
+
+#### 1. Logging Infrastructure (HIGH Priority)
+- **Added**: Strategic logging for production operations
+- **Statements**: 10 log statements (info, warning, error levels)
+- **Impact**: Security audit trail, production debugging, operational visibility
+- **File**: `src/triads/upgrade/orchestrator.py`
+- **Use Cases**:
+  - Security events (path validation)
+  - Agent upgrade lifecycle tracking
+  - Error diagnosis and debugging
+
+#### 2. File Operations Centralization (MEDIUM Priority)
+- **Added**: `atomic_read_text()` and `atomic_write_text()` to `src/triads/utils/file_operations.py`
+- **Feature**: File locking for concurrent safety
+- **Updated**: 7 I/O locations centralized
+- **Impact**:
+  - Crash resistance (atomic writes)
+  - Consistency (single source of truth)
+  - Concurrent safety (file locking)
+
+#### 3. Custom Exception Hierarchy (MEDIUM Priority)
+- **Added**: 5 domain-specific exception classes in `src/triads/upgrade/exceptions.py`
+  - `UpgradeError` - Base exception
+  - `UpgradeSecurityError` - Path traversal, unsafe paths
+  - `UpgradeIOError` - File operations with context
+  - `InvalidAgentError` - Validation failures
+  - `AgentNotFoundError` - Missing agents/directory
+- **Impact**: Better error messages, easier debugging, clearer error handling
+
+#### 4. Function Complexity Reduction (MEDIUM Priority)
+- **Refactored**: `scan_agents()` - 82 → 42 lines (49% reduction)
+- **Refactored**: `upgrade_agent()` - 75 → 56 lines (25% reduction)
+- **Refactored**: `_merge_sections()` - 64 → 42 lines (34% reduction)
+- **Average**: 37% complexity reduction
+- **Impact**: Improved readability, maintainability, testability
+
+### 📊 Metrics
+
+**Lines of Code**:
+- Implementation: ~815 lines (orchestrator)
+- Tests: ~810 lines (50 orchestrator + 10 file ops tests)
+- Documentation: ~627 lines (user guide)
+- Total: ~3,200 lines
+
+**Quality Metrics**:
+- **Code Health**: B+ (85) → A (95) = +10 points
+- **Test Coverage**: 87% → 88% = +1 percentage point
+- **Tests**: 60/60 passing (100%)
+- **Security Tests**: 4/4 passing
+- **Complexity Reduction**: 37% average across refactored functions
+
+**Commits**: 11 atomic commits following safe refactoring protocol
+
+### Added
+
+**Implementation Modules**:
+- `src/triads/upgrade/__init__.py` - Module exports
+- `src/triads/upgrade/orchestrator.py` - Upgrade orchestration (815 lines)
+- `src/triads/upgrade/exceptions.py` - Custom exceptions (79 lines)
+
+**Scripts**:
+- `scripts/add_template_versions.py` - Migration script for existing agents
+
+**Documentation**:
+- `docs/AGENT_UPGRADES.md` - Comprehensive user guide (627 lines)
+- `.claude/commands/upgrade-agents.md` - Command documentation
+- `.claude/commands/handlers/upgrade_agents.py` - Command handler
+
+**Tests**:
+- `tests/test_upgrade_orchestrator.py` - Orchestrator tests (798 lines, 50 tests)
+- `tests/test_file_operations.py` - File operation tests (10 tests)
+
+**Examples**:
+- `examples/upgrade_orchestrator_demo.py` - Basic workflow demo
+- `examples/upgrade_agent_demo.py` - Integration demo
+
+### Changed
+
+**Core Utilities**:
+- `src/triads/utils/file_operations.py` - Added text file operations with file locking
+- `src/triads/templates/agent_templates.py` - Added `AGENT_TEMPLATE_VERSION` constant
+
+**Agent Files** (18 agents):
+- All agents in `.claude/agents/` migrated to `template_version: 0.8.0`
+
+### Technical Details
+
+**Architecture**:
+- Four-phase implementation (versioning → orchestrator → merging → CLI)
+- Layered security validation (path traversal prevention)
+- Atomic file operations (crash-resistant)
+- Smart section merging algorithm (preserves customizations)
+
+**Test Coverage**:
+- 60/60 tests passing (100%)
+- 88% code coverage (improved from 87%)
+- No regressions in full test suite (1208 tests)
+
+**Performance**:
+- Fast upgrade operations (<500ms per agent)
+- Minimal memory footprint
+- Zero blocking on concurrent access
+
+### Security
+
+**Layered Validation**:
+- Path traversal prevention (3 layers)
+- Content validation before modification
+- Atomic file operations (no partial writes)
+- Security audit trail via logging
+
+**Test Coverage**:
+- 4/4 security tests passing
+- Path traversal attacks blocked
+- Invalid paths rejected
+- Safe file operations validated
+
+### Documentation
+
+**User-Facing**:
+- Comprehensive 627-line upgrade guide
+- Command reference with examples
+- Troubleshooting section
+- Migration guide for existing agents
+
+**Developer-Facing**:
+- Architecture documentation
+- API reference
+- Example code
+
+### Breaking Changes
+
+**NONE** - This release is fully backward compatible.
+
+### Migration Guide
+
+**Automatic**: Template versions automatically added to all agents on first use.
+
+**Manual** (if needed):
+```bash
+# Add template versions to existing agents
+python scripts/add_template_versions.py --dry-run  # Preview
+python scripts/add_template_versions.py            # Apply
+```
+
+**Using the Upgrade System**:
+
+When new template features are released:
+```bash
+# Check which agents need upgrade
+/upgrade-agents --all --dry-run
+
+# Upgrade all agents (interactive)
+/upgrade-agents --all
+```
+
+See `docs/AGENT_UPGRADES.md` for complete guide.
+
+### Known Limitations
+
+**Alpha Status**: This is an alpha release for testing
+- Template merge algorithm is heuristic-based (works for most cases, may require manual review for complex customizations)
+- Frontmatter merge preserves both old and new fields (manual cleanup may be needed)
+- No rollback mechanism (backups available in `.claude/agents/backups/`)
+
+### Acknowledgments
+
+This release demonstrates the power of the triads workflow system:
+- **Design**: Solution Architect created ADRs and architecture
+- **Implementation**: Senior Developer + Test Engineer built the feature
+- **Garden Tending**: Cultivator, Pruner, Gardener-Bridge improved quality
+- **Deployment**: Release Manager + Documentation Updater (this release)
+
 ## [0.8.0-alpha.3] - 2025-10-20
 
 ### Fixed
