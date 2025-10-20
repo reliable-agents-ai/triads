@@ -15,6 +15,7 @@ Security features:
 """
 
 import difflib
+import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -22,6 +23,8 @@ from pathlib import Path
 from typing import List, Optional
 
 from triads.templates.agent_templates import AGENT_TEMPLATE_VERSION
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -134,10 +137,14 @@ class UpgradeOrchestrator:
         if triad_name:
             # Security: Validate triad name to prevent path traversal
             if not self._is_safe_path_component(triad_name):
+                logger.error("Invalid triad name (security): %s", triad_name)
                 raise ValueError(f"Invalid triad name: {triad_name}")
             pattern = f"{triad_name}/*.md"
         else:
             pattern = "**/*.md"
+
+        logger.info("Scanning agents with pattern: %s, filters: triad=%s, names=%s",
+                   pattern, triad_name, agent_names)
 
         # Find all matching agent files
         agent_files = sorted(self.agents_dir.glob(pattern))
@@ -145,6 +152,7 @@ class UpgradeOrchestrator:
         for agent_path in agent_files:
             # Security: Validate path is within agents directory
             if not self._is_safe_agent_path(agent_path):
+                logger.warning("Skipping unsafe agent path (security): %s", agent_path)
                 continue
 
             # Filter by agent_names if specified
@@ -330,16 +338,20 @@ class UpgradeOrchestrator:
             ...     print(f"✓ Upgraded {candidate.agent_name}")
         """
         if self.dry_run:
+            logger.info("Dry-run mode: Would upgrade %s", candidate.agent_path)
             print(f"[DRY-RUN] Would upgrade {candidate.agent_path}")
             return True
 
         try:
             # Gate 1: Create backup
             backup_path = self.backup_agent(candidate.agent_path)
+            logger.info("Created backup: %s for agent %s", backup_path.name, candidate.agent_name)
             print(f"  ✓ Backed up to {backup_path.name}")
 
             # Gate 2: Validate new content
             if not self._validate_agent_content(new_content):
+                logger.warning("Validation failed for agent %s, backup preserved at %s",
+                             candidate.agent_name, backup_path)
                 print(f"  ✗ Validation failed for {candidate.agent_name}")
                 print(f"    Backup preserved at: {backup_path}")
                 return False
@@ -356,10 +368,13 @@ class UpgradeOrchestrator:
                     temp_path.unlink()
                 raise IOError(f"Failed to write upgraded content: {e}") from e
 
+            logger.info("Successfully upgraded agent: %s from %s to %s",
+                       candidate.agent_name, candidate.current_version, self.latest_version)
             print(f"  ✓ Upgraded {candidate.agent_name}")
             return True
 
         except Exception as e:
+            logger.error("Error upgrading agent %s: %s", candidate.agent_name, e, exc_info=True)
             print(f"  ✗ Error upgrading {candidate.agent_name}: {e}")
             return False
 
@@ -686,6 +701,7 @@ See agent template for full protocol.
         try:
             new_content = self.generate_upgraded_content(candidate)
         except Exception as e:
+            logger.error("Error generating upgrade for %s: %s", candidate.agent_name, e, exc_info=True)
             print(f"❌ Error generating upgrade: {e}")
             return False
 
