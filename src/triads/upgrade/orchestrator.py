@@ -118,8 +118,7 @@ class UpgradeOrchestrator:
     ) -> List[UpgradeCandidate]:
         """Scan for agents needing upgrade.
 
-        Searches .claude/agents/ directory for agent files and checks their
-        template versions against the latest version.
+        Simplified orchestration - delegates to helper methods for clarity.
 
         Args:
             agent_names: Specific agent names to check (None = all agents)
@@ -140,59 +139,108 @@ class UpgradeOrchestrator:
             ...     agent_names=["senior-developer", "test-engineer"]
             ... )
         """
-        candidates = []
-
-        # Build glob pattern based on filters
-        if triad_name:
-            # Security: Validate triad name to prevent path traversal
-            if not self._is_safe_path_component(triad_name):
-                logger.error("Invalid triad name (security): %s", triad_name)
-                raise UpgradeSecurityError(triad_name, "Invalid triad name (path traversal attempt)")
-            pattern = f"{triad_name}/*.md"
-        else:
-            pattern = "**/*.md"
+        # Build search pattern (with security validation)
+        pattern = self._build_glob_pattern(triad_name)
 
         logger.info("Scanning agents with pattern: %s, filters: triad=%s, names=%s",
                    pattern, triad_name, agent_names)
 
-        # Find all matching agent files
-        agent_files = sorted(self.agents_dir.glob(pattern))
+        # Find matching agent files (with security checks and name filtering)
+        agent_files = self._find_matching_agents(pattern, agent_names)
 
-        for agent_path in agent_files:
+        # Create candidates from agent files
+        candidates = [self._create_upgrade_candidate(path) for path in agent_files]
+
+        return candidates
+
+    def _build_glob_pattern(self, triad_name: Optional[str]) -> str:
+        """Build glob pattern for agent scanning.
+
+        Args:
+            triad_name: Optional triad name filter
+
+        Returns:
+            Glob pattern string (e.g., "**/*.md" or "design/*.md")
+
+        Raises:
+            UpgradeSecurityError: If triad_name contains path traversal
+        """
+        if triad_name:
+            # Security: Validate triad name to prevent path traversal
+            if not self._is_safe_path_component(triad_name):
+                logger.error("Invalid triad name (security): %s", triad_name)
+                raise UpgradeSecurityError(
+                    triad_name,
+                    "Invalid triad name (path traversal attempt)"
+                )
+            return f"{triad_name}/*.md"
+        return "**/*.md"
+
+    def _find_matching_agents(
+        self,
+        pattern: str,
+        filter_names: Optional[List[str]]
+    ) -> List[Path]:
+        """Find agent files matching pattern and name filter.
+
+        Applies security checks and name filtering.
+
+        Args:
+            pattern: Glob pattern for file search
+            filter_names: Optional list of agent names to include
+
+        Returns:
+            List of matching agent file paths
+        """
+        agent_files = sorted(self.agents_dir.glob(pattern))
+        filtered = []
+
+        for path in agent_files:
             # Security: Validate path is within agents directory
-            if not self._is_safe_agent_path(agent_path):
-                logger.warning("Skipping unsafe agent path (security): %s", agent_path)
+            if not self._is_safe_agent_path(path):
+                logger.warning("Skipping unsafe agent path (security): %s", path)
                 continue
 
             # Filter by agent_names if specified
-            agent_name = agent_path.stem
-            if agent_names and agent_name not in agent_names:
+            agent_name = path.stem
+            if filter_names and agent_name not in filter_names:
                 continue
 
-            # Extract triad name from path
-            # Path structure: .claude/agents/{triad}/{agent}.md
-            try:
-                relative_path = agent_path.relative_to(self.agents_dir)
-                current_triad = relative_path.parent.name
-            except ValueError:
-                # Path not relative to agents_dir - skip
-                continue
+            filtered.append(path)
 
-            # Parse template version from frontmatter
-            current_version = self._parse_template_version(agent_path)
+        return filtered
 
-            # Create candidate
-            candidate = UpgradeCandidate(
-                agent_path=agent_path,
-                current_version=current_version,
-                latest_version=self.latest_version,
-                triad_name=current_triad,
-                agent_name=agent_name
-            )
+    def _create_upgrade_candidate(self, agent_path: Path) -> UpgradeCandidate:
+        """Create UpgradeCandidate from agent file path.
 
-            candidates.append(candidate)
+        Extracts metadata from file path and parses version.
 
-        return candidates
+        Args:
+            agent_path: Path to agent file
+
+        Returns:
+            UpgradeCandidate with current version parsed
+        """
+        # Extract triad name from path
+        # Path structure: .claude/agents/{triad}/{agent}.md
+        try:
+            relative_path = agent_path.relative_to(self.agents_dir)
+            triad_name = relative_path.parent.name
+        except ValueError:
+            # Path not relative to agents_dir - use "unknown"
+            triad_name = "unknown"
+
+        # Parse metadata
+        agent_name = agent_path.stem
+        current_version = self._parse_template_version(agent_path)
+
+        return UpgradeCandidate(
+            agent_path=agent_path,
+            current_version=current_version,
+            latest_version=self.latest_version,
+            triad_name=triad_name,
+            agent_name=agent_name
+        )
 
     def _parse_template_version(self, agent_path: Path) -> str:
         """Extract template_version from agent frontmatter.
