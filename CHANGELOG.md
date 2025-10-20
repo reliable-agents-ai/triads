@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0-alpha.7] - 2025-10-20
+
+### Changed
+- **Refactored Workflow Continuity to Multi-Instance Architecture** - Session start hook now uses `WorkflowInstanceManager` instead of `WorkflowStateManager`
+  - Supports multiple concurrent workflow instances (e.g., OAuth2 in Implementation, Notifications in Design)
+  - Displays workflow index showing ALL active workflows with instance IDs, titles, current phase, and age
+  - Each workflow tracked separately in `.claude/workflows/instances/{instance-id}.json`
+  - Backwards compatible with existing workflow enforcement infrastructure
+
+### Added
+- **Workflow Index Display** - Shows all active workflow instances at session start
+  - Lists instance ID, title, current triad, and age (days/hours/minutes since start)
+  - Prompts user with `/workflows resume <instance-id>` and `/workflows list` commands
+  - Age calculation with human-friendly formatting (e.g., "2d", "3h", "45m")
+
+### Removed
+- **Single-workflow limitation** - No longer restricted to tracking one workflow at a time
+- Removed unused `get_next_phase()` helper function (no longer needed for multi-instance architecture)
+
+### Technical Details
+- Integrates with existing `WorkflowInstanceManager` (src/triads/workflow_enforcement/instance_manager.py)
+- Functions refactored: `load_workflow_state()` → `load_active_workflows()`, `format_workflow_resumption()` → `format_workflow_index()`
+- Uses `list_instances(status="in_progress")` to fetch all active workflows
+- Instance format: `{slug}-{timestamp}-{microseconds}.json` (e.g., "oauth2-integration-20251017-100523-123456.json")
+- Graceful degradation if instance manager unavailable
+
+### Impact
+- **Enables real-world multi-feature development** - Users can work on multiple features concurrently without workflow state conflicts
+- Prepares foundation for `/workflows list` and `/workflows resume` commands
+- More accurate reflection of actual development workflows (multiple parallel workstreams)
+
 ## [0.7.0-alpha.6] - 2025-10-20
 
 ### Added
