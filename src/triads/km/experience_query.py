@@ -172,6 +172,7 @@ class ExperienceQueryEngine:
         tool_name: str,
         tool_input: dict[str, Any],
         cwd: str = ".",
+        max_results: int = 5,
     ) -> list[ProcessKnowledge]:
         """Query process knowledge relevant to impending tool use.
 
@@ -187,9 +188,11 @@ class ExperienceQueryEngine:
             tool_name: Name of tool about to be executed (e.g., "Write", "Edit")
             tool_input: Tool parameters (must include file_path for file tools)
             cwd: Current working directory (for resolving relative paths)
+            max_results: Maximum number of results to return (default: 5)
 
         Returns:
-            List of ProcessKnowledge objects, sorted by priority then relevance.
+            List of ProcessKnowledge objects, sorted by priority then relevance,
+            deduplicated by label, limited to max_results.
             Empty list if no relevant knowledge found.
 
         Example:
@@ -254,12 +257,21 @@ class ExperienceQueryEngine:
                 )
             )
 
-            # Convert to ProcessKnowledge objects
+            # Convert to ProcessKnowledge objects with deduplication
             knowledge_items = []
+            seen_labels = set()
+
             for node, triad_name, relevance in results:
                 item = self._node_to_process_knowledge(node, triad_name, relevance)
                 if item:
-                    knowledge_items.append(item)
+                    # Deduplicate by label (handle duplicate nodes)
+                    if item.label not in seen_labels:
+                        seen_labels.add(item.label)
+                        knowledge_items.append(item)
+
+                        # Stop if we've reached max_results
+                        if len(knowledge_items) >= max_results:
+                            break
 
             return knowledge_items
 

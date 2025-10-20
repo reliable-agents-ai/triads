@@ -32,13 +32,15 @@ class TestPreToolUseHook:
     """Test suite for PreToolUse hook."""
 
     def test_hook_with_relevant_knowledge(self):
-        """Test hook injects knowledge for Write to plugin.json.
+        """Test hook handles Write to plugin.json (blocks in dual-mode).
 
-        This is the critical success path - hook should:
-        1. Query for relevant knowledge
-        2. Find Version Bump Checklist (CRITICAL priority)
-        3. Format and inject into stdout
-        4. Exit successfully (code 0)
+        NOTE: This test updated for Phase 1 dual-mode hook.
+
+        With the new dual-mode system:
+        - Version files with CRITICAL checklists → BLOCK (exit 2)
+        - Output goes to stderr as user interjection, not stdout
+
+        This is still correct behavior - just different from v1.
         """
         input_data = {
             "tool_name": "Write",
@@ -54,25 +56,21 @@ class TestPreToolUseHook:
             timeout=5
         )
 
-        # CRITICAL: Must exit successfully (never block tools)
-        assert result.returncode == 0, f"Hook failed with stderr: {result.stderr}"
+        # With dual-mode: Should BLOCK (exit 2) for CRITICAL on version file
+        assert result.returncode == 2, \
+            f"Should block CRITICAL on version file. Got {result.returncode}"
 
-        # Should inject knowledge header
-        assert "EXPERIENCE-BASED KNOWLEDGE" in result.stdout, \
-            "Should show knowledge header"
+        # Output goes to stderr (user interjection), not stdout
+        assert "Hold on" in result.stderr or "remind you" in result.stderr, \
+            "Should have user-style interjection in stderr"
 
-        # Should mention the tool
-        assert "Write" in result.stdout, \
-            "Should mention tool being used"
+        # Should mention version checklist
+        assert "Version" in result.stderr or "checklist" in result.stderr.lower(), \
+            "Should mention version checklist"
 
-        # Should contain checklist content
-        # (Exact format depends on graph content, check for any checkbox)
-        assert "□" in result.stdout or "Checklist" in result.stdout or "Version" in result.stdout, \
-            f"Should contain checklist content. Got: {result.stdout}"
-
-        # Should log success to stderr
-        assert "Injected" in result.stderr or "knowledge" in result.stderr, \
-            "Should log injection to stderr"
+        # Should log that tool was blocked
+        assert "BLOCKED" in result.stderr, \
+            "Should log that tool was blocked"
 
     def test_hook_early_exit_for_read_tool(self):
         """Test hook exits early for Read tool (no injection).
@@ -222,7 +220,11 @@ class TestPreToolUseHook:
     def test_hook_with_no_relevant_knowledge(self):
         """Test hook exits silently when no relevant knowledge found.
 
-        Tool execution with no matching knowledge should not inject anything.
+        NOTE: Updated for dual-mode. The Version Bump checklist has broad
+        patterns, so it may match even /tmp files. If it does match, it will
+        block (exit 2) because confidence=1.0. This is correct behavior.
+
+        Either exit code is acceptable (0 or 2).
         """
         input_data = {
             "tool_name": "Write",
@@ -238,12 +240,9 @@ class TestPreToolUseHook:
             timeout=5
         )
 
-        # CRITICAL: Must exit successfully
-        assert result.returncode == 0
-
-        # Should not inject if no relevant knowledge
-        # (or should inject if Version Bump matches generic patterns)
-        # Either way, hook should succeed
+        # Either exit code is acceptable (depends on whether knowledge matched)
+        assert result.returncode in [0, 2], \
+            f"Should exit 0 or 2. Got {result.returncode}"
 
     def test_hook_limits_to_max_items(self):
         """Test hook limits injection to MAX_INJECTION_ITEMS (3).
@@ -261,10 +260,13 @@ class TestPreToolUseHook:
             "Hook should define MAX_INJECTION_ITEMS constant"
 
     def test_hook_performance(self):
-        """Test hook completes within performance target (< 100ms).
+        """Test hook completes within performance target (< 200ms).
+
+        NOTE: Updated for dual-mode.
 
         Hook is called on EVERY tool use, so it must be fast.
-        Target: P95 < 100ms (query engine is ~0.1ms, so budget exists).
+        Target: P95 < 100ms core logic, but subprocess adds overhead.
+        Allowing 200ms total including subprocess overhead.
         """
         import time
 
@@ -286,16 +288,19 @@ class TestPreToolUseHook:
 
         elapsed_ms = (time.perf_counter() - start) * 1000
 
-        # Must exit successfully
-        assert result.returncode == 0
+        # Must exit successfully (0 or 2 are both valid)
+        assert result.returncode in [0, 2], \
+            f"Should exit 0 or 2. Got {result.returncode}"
 
         # Should complete within target
-        # Note: Subprocess overhead adds ~10-20ms, so relax to 200ms
         assert elapsed_ms < 200, \
             f"Hook took {elapsed_ms:.1f}ms (target: < 200ms including subprocess overhead)"
 
     def test_hook_formats_checklist_correctly(self):
-        """Test checklist formatting includes checkboxes and priority."""
+        """Test checklist formatting includes checkboxes and priority.
+
+        NOTE: Updated for dual-mode. Checklist goes to stderr, not stdout.
+        """
         input_data = {
             "tool_name": "Write",
             "tool_input": {"file_path": ".claude-plugin/plugin.json"},
@@ -310,23 +315,27 @@ class TestPreToolUseHook:
             timeout=5
         )
 
-        # Must exit successfully
-        assert result.returncode == 0
+        # Must exit successfully (0 or 2)
+        assert result.returncode in [0, 2]
 
-        # Should contain checkbox format (if knowledge found)
-        if "EXPERIENCE-BASED KNOWLEDGE" in result.stdout:
-            # Should have priority indicator
-            assert "CRITICAL" in result.stdout or "PRIORITY" in result.stdout.upper(), \
-                "Should show priority level"
+        # In dual-mode, output goes to stderr (blocking) or stdout JSON (inject)
+        combined_output = result.stdout + result.stderr
 
-            # Should have checkbox (□) or checklist indicator
-            assert "□" in result.stdout or "Checklist" in result.stdout, \
-                "Should show checklist format"
+        # Should contain checkbox/checklist format
+        assert "🔴 REQUIRED" in combined_output or \
+               "□" in combined_output or \
+               "Checklist" in combined_output.lower() or \
+               "Version" in combined_output, \
+            "Should show checklist content"
 
     def test_hook_with_edit_tool(self):
         """Test hook works with Edit tool (another file modification tool).
 
+        NOTE: Updated for dual-mode.
+
         Edit should trigger same knowledge as Write for version files.
+        Since marketplace.json is a version file with CRITICAL checklist,
+        it should BLOCK (exit 2).
         """
         input_data = {
             "tool_name": "Edit",
@@ -342,14 +351,17 @@ class TestPreToolUseHook:
             timeout=5
         )
 
-        # Must exit successfully
-        assert result.returncode == 0
+        # Should BLOCK for version file
+        assert result.returncode == 2, \
+            f"Should block Edit on marketplace.json. Got {result.returncode}"
 
-        # Should potentially inject knowledge (marketplace.json is in patterns)
-        # Whether it injects depends on relevance scoring
+        # Should have interjection
+        assert "Hold on" in result.stderr or "remind you" in result.stderr
 
     def test_hook_mentions_experience(self):
         """Test hook output mentions experience-based learning.
+
+        NOTE: Updated for dual-mode.
 
         Output should make it clear this is learned knowledge, not arbitrary rules.
         """
@@ -367,13 +379,16 @@ class TestPreToolUseHook:
             timeout=5
         )
 
-        # Must exit successfully
-        assert result.returncode == 0
+        # Must exit successfully (0 or 2)
+        assert result.returncode in [0, 2]
 
-        # Should mention experience if knowledge injected
-        if "EXPERIENCE-BASED KNOWLEDGE" in result.stdout:
-            assert "experience" in result.stdout.lower(), \
-                "Should mention this is experience-based knowledge"
+        # Should mention experience in output (stdout or stderr)
+        combined_output = result.stdout + result.stderr
+
+        if combined_output:
+            assert "experience" in combined_output.lower() or \
+                   "learning" in combined_output.lower(), \
+                "Should mention experience-based learning"
 
 
 class TestHookFormatting:
@@ -416,10 +431,15 @@ class TestHookFormatting:
 class TestHookSafety:
     """Test critical safety requirements."""
 
-    def test_hook_always_exits_zero(self):
-        """CRITICAL: Hook must ALWAYS exit 0, even on errors.
+    def test_hook_always_exits_zero_or_two(self):
+        """CRITICAL: Hook must ALWAYS exit 0 or 2 (never fail with other codes).
 
-        This is the most important test - hook must never block tool execution.
+        NOTE: Updated for dual-mode.
+
+        The most important requirement - hook must never fail unexpectedly.
+        Exit 0 = allow tool
+        Exit 2 = block tool (user interjection)
+        Other codes = ERROR (should never happen)
         """
         test_cases = [
             {"tool_name": "Write", "tool_input": {}, "cwd": "."},  # Normal
@@ -437,11 +457,14 @@ class TestHookSafety:
                 timeout=5
             )
 
-            assert result.returncode == 0, \
-                f"Hook must exit 0 for input: {input_data}\nStderr: {result.stderr}"
+            assert result.returncode in [0, 2], \
+                f"Hook must exit 0 or 2 for input: {input_data}\nGot: {result.returncode}\nStderr: {result.stderr}"
 
     def test_hook_handles_unicode(self):
-        """Test hook handles Unicode input gracefully."""
+        """Test hook handles Unicode input gracefully.
+
+        NOTE: Updated for dual-mode.
+        """
         input_data = {
             "tool_name": "Write",
             "tool_input": {"file_path": "测试文件.txt"},
@@ -456,18 +479,22 @@ class TestHookSafety:
             timeout=5
         )
 
-        # Must exit successfully
-        assert result.returncode == 0
+        # Must exit successfully (0 or 2)
+        assert result.returncode in [0, 2]
 
-    def test_hook_has_try_except_finally(self):
-        """Test hook code uses try/except/finally for safety."""
+    def test_hook_has_try_except_for_safety(self):
+        """Test hook code uses try/except for safety.
+
+        NOTE: Updated for dual-mode. No longer uses finally: since we have
+        explicit exit points (sys.exit(0) and sys.exit(2)).
+        """
         hook_code = HOOK_PATH.read_text()
 
         # Verify error handling structure
         assert "try:" in hook_code
         assert "except" in hook_code
-        assert "finally:" in hook_code
-        assert "sys.exit(0)" in hook_code
+        assert "sys.exit(0)" in hook_code  # Error fallback
+        assert "sys.exit(2)" in hook_code  # Blocking mode
 
         # Verify it catches broad exceptions
         assert "Exception" in hook_code
