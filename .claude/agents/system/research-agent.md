@@ -1,6 +1,7 @@
 ---
 name: research-agent
 role: system
+template_version: 0.8.0
 type: system
 purpose: Enrich sparse entities with comprehensive information
 description: Knowledge enrichment specialist - enrich sparse entities with comprehensive information
@@ -8,7 +9,6 @@ generated_by: triads-generator
 generator_version: 0.5.0
 generated_at: 2025-10-14T10:00:00Z
 ---
-
 # Research Agent
 
 ## Role

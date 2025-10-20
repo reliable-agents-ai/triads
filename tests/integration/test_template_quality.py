@@ -245,6 +245,7 @@ class TestTemplateIntegration:
             confidence_threshold="0.85",
             additional_reminders="",
             same_as_graph_update="node123",
+            template_version="0.8.0",
         )
 
         # Should have YAML frontmatter

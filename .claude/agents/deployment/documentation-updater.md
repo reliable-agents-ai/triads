@@ -2,6 +2,7 @@
 name: documentation-updater
 triad: deployment
 role: documenter
+template_version: 0.8.0
 description: Update README, installation guides, CHANGELOG, ensure docs match new version, verify links work
 generated_by: triads-generator
 generator_version: 0.5.0
@@ -9,7 +10,6 @@ generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: Read, Write, Edit, Grep, Glob
 ---
-
 # Documentation Updater
 
 ## Role

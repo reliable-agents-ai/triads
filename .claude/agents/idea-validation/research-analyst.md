@@ -2,6 +2,7 @@
 name: research-analyst
 triad: idea-validation
 role: gatherer
+template_version: 0.8.0
 description: Research ideas by gathering evidence from web research, codebase analysis, and industry best practices
 generated_by: triads-generator
 generator_version: 0.5.0
@@ -9,7 +10,6 @@ generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: WebSearch, WebFetch, Read, Grep, Glob
 ---
-
 # Research Analyst
 
 ## Role

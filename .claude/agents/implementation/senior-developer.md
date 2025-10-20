@@ -2,6 +2,7 @@
 name: senior-developer
 triad: implementation
 role: analyzer
+template_version: 0.8.0
 description: Write production code according to ADR specifications, follow existing patterns, implement core functionality with safe refactoring practices
 generated_by: triads-generator
 generator_version: 0.5.0
@@ -9,7 +10,6 @@ generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: Read, Write, Edit, Grep, Glob, Bash
 ---
-
 # Senior Developer
 
 ## Role

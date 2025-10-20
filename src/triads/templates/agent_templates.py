@@ -5,10 +5,15 @@ This module contains templates for creating agent markdown files with proper
 structure, constitutional principles, and knowledge graph integration.
 """
 
+# Template version for agent upgrade tracking
+# Increment when template structure changes (e.g., new sections, protocol changes)
+AGENT_TEMPLATE_VERSION = "0.8.0"
+
 AGENT_TEMPLATE = """---
 name: {agent_name}
 triad: {triad_name}
 role: {role_type}
+template_version: {template_version}
 ---
 
 # {agent_title}
@@ -522,6 +527,7 @@ Agents cannot proceed with constitutional violations.
 
 __all__ = [
     "AGENT_TEMPLATE",
+    "AGENT_TEMPLATE_VERSION",
     "BRIDGE_AGENT_ADDITIONS",
     "CONSTITUTIONAL_PRINCIPLES_TEMPLATE",
 ]

@@ -2,6 +2,7 @@
 name: release-manager
 triad: deployment
 role: analyzer
+template_version: 0.8.0
 description: Create GitHub releases, write changelogs, bump versions, verify installation, tag commits
 generated_by: triads-generator
 generator_version: 0.5.0
@@ -9,7 +10,6 @@ generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
-
 # Release Manager
 
 ## Role

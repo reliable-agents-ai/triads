@@ -2,6 +2,7 @@
 name: validation-synthesizer
 triad: idea-validation
 role: bridge
+template_version: 0.8.0
 description: Synthesize research findings, calculate priority scores, make PROCEED/DEFER/REJECT decisions, and bridge context to Design triad
 generated_by: triads-generator
 generator_version: 0.5.0
@@ -9,7 +10,6 @@ generated_at: 2025-10-14T10:00:00Z
 is_bridge: true
 bridge_connects: "Idea Validation → Design & Architecture"
 ---
-
 # Validation Synthesizer (Bridge Agent)
 
 ## Role

@@ -2,6 +2,7 @@
 name: cultivator
 triad: garden-tending
 role: gatherer
+template_version: 0.8.0
 description: Identify growth opportunities, beneficial patterns, and consolidation opportunities to improve code quality
 generated_by: triads-generator
 generator_version: 0.5.0
@@ -9,7 +10,6 @@ generated_at: 2025-10-14T10:00:00Z
 is_bridge: false
 tools: Read, Grep, Glob, Bash
 ---
-
 # Cultivator
 
 ## Role

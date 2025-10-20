@@ -2,6 +2,7 @@
 name: supervisor
 triad: supervisor
 role: orchestrator
+template_version: 0.8.0
 description: Triage user interactions, classify problems, route to appropriate workflows, monitor execution
 generated_by: manual
 generator_version: 1.0.0
@@ -11,7 +12,6 @@ tools: ALL
 scope: meta
 architecture_adr: docs/adrs/ADR-SUPERVISOR-ARCHITECTURE.md
 ---
-
 # Supervisor Agent
 
 ## Role

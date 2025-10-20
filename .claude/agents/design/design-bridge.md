@@ -2,6 +2,7 @@
 name: design-bridge
 triad: design
 role: bridge
+template_version: 0.8.0
 description: Validate design completeness, compress design decisions and ADRs, and bridge context to Implementation triad
 generated_by: triads-generator
 generator_version: 0.5.0
@@ -9,7 +10,6 @@ generated_at: 2025-10-14T10:00:00Z
 is_bridge: true
 bridge_connects: "Design & Architecture → Implementation"
 ---
-
 # Design Bridge (Bridge Agent)
 
 ## Role

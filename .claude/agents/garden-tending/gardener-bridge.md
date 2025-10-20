@@ -2,6 +2,7 @@
 name: gardener-bridge
 triad: garden-tending
 role: bridge
+template_version: 0.8.0
 description: Unique dual-output bridge - forward quality-checked code to Deployment AND feed improvement patterns back to Design for continuous learning
 generated_by: triads-generator
 generator_version: 0.5.0
@@ -9,7 +10,6 @@ generated_at: 2025-10-14T10:00:00Z
 is_bridge: true
 bridge_connects: "Garden Tending → Deployment & Release (forward) + Design & Architecture (feedback)"
 ---
-
 # Gardener Bridge (Unique Dual-Output Bridge Agent)
 
 ## Role
