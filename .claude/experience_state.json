@@ -1152,6 +1152,342 @@
       "tool_name": "Write",
       "injected_at": "2025-10-19T21:06:32.639769+00:00",
       "confidence": 0.9
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-19T21:17:10.243492+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221206",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-19T21:17:10.245054+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221356",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-19T21:17:10.246283+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-19T21:17:21.312855+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221206",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-19T21:17:21.314143+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221356",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-19T21:17:21.315022+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Bash",
+      "injected_at": "2025-10-19T21:17:26.586038+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Bash",
+      "injected_at": "2025-10-19T21:20:58.884754+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Bash",
+      "injected_at": "2025-10-19T21:21:30.565782+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Bash",
+      "injected_at": "2025-10-19T21:21:51.105245+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Bash",
+      "injected_at": "2025-10-19T21:21:57.568890+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "ExitPlanMode",
+      "injected_at": "2025-10-19T22:36:20.075951+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "AskUserQuestion",
+      "injected_at": "2025-10-19T22:38:30.071024+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Write",
+      "injected_at": "2025-10-19T22:39:43.635743+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221206",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Write",
+      "injected_at": "2025-10-19T22:39:43.637626+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221356",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Write",
+      "injected_at": "2025-10-19T22:39:43.638514+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:46:56.237704+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221206",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:46:56.239134+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221356",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:46:56.240026+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:47:35.546129+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221206",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:47:35.547598+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221356",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:47:35.548703+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Bash",
+      "injected_at": "2025-10-20T07:47:50.208329+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "TodoWrite",
+      "injected_at": "2025-10-20T07:53:26.319948+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Bash",
+      "injected_at": "2025-10-20T07:53:26.569890+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "TodoWrite",
+      "injected_at": "2025-10-20T07:53:44.152103+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:53:58.253604+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221206",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:53:58.255036+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221356",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:53:58.256004+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:53:58.415967+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221206",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:53:58.417364+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221356",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:53:58.418304+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:53:58.610942+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221206",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:53:58.612715+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221356",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:53:58.613707+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "TodoWrite",
+      "injected_at": "2025-10-20T07:54:12.395521+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:54:12.545394+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221206",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:54:12.546906+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_user_correction_20251019_221356",
+      "triad": "default",
+      "label": "Remember: X\", \"why didn't you Y\", etc",
+      "tool_name": "Edit",
+      "injected_at": "2025-10-20T07:54:12.547861+00:00",
+      "confidence": 0.95
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "TodoWrite",
+      "injected_at": "2025-10-20T07:54:20.260600+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "Bash",
+      "injected_at": "2025-10-20T07:54:20.398595+00:00",
+      "confidence": 1.0
+    },
+    {
+      "lesson_id": "process_version_bump_checklist_2025-10-17",
+      "triad": "deployment",
+      "label": "Version Bump File Checklist",
+      "tool_name": "TodoWrite",
+      "injected_at": "2025-10-20T07:54:27.592556+00:00",
+      "confidence": 1.0
     }
   ],
   "outcomes": []

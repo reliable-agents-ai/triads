@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0-alpha.4] - 2025-10-20
+
+### Fixed
+- **Critical Hook Import Error** - Fixed `ModuleNotFoundError` in `on_stop.py` hook
+  - Simplified import logic to always use `triads.*` imports after adding `src/` to sys.path
+  - Removed broken try/except fallback that was preventing imports from working
+  - Fixed path calculation for plugin mode to correctly add `plugin_root/src` to sys.path
+  - Applied fix to both plugin and source repository hooks
+  - Hook now works correctly in both plugin and development modes
+
+### Changed
+- Updated version synchronization across all files (pyproject.toml, plugin.json, marketplace.json)
+
 ## [0.7.0-alpha.3] - 2025-10-19
 
 ### Changed

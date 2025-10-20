@@ -34,35 +34,23 @@ from pathlib import Path
 # Add paths for KM imports - plugin-aware
 plugin_root = os.environ.get('CLAUDE_PLUGIN_ROOT')
 if plugin_root:
-    # Plugin mode: KM modules in plugin
-    sys.path.insert(0, str(Path(plugin_root)))
+    # Plugin mode: KM modules in plugin src/
+    sys.path.insert(0, str(Path(plugin_root) / "src"))
 else:
     # Development mode: KM modules in src/triads
     repo_root = Path(__file__).parent.parent
     sys.path.insert(0, str(repo_root / "src"))
 
-try:
-    # Try plugin location first
-    from km.auto_invocation import process_and_queue_invocations  # noqa: E402
-    from km.confidence import (  # noqa: E402
-        calculate_initial_confidence,
-        assign_status,
-        validate_confidence_value,
-    )
-    from km.detection import detect_km_issues, update_km_queue  # noqa: E402
-    from km.formatting import format_km_notification, write_km_status_file  # noqa: E402
-    from triads.hooks.safe_io import safe_load_json_file, safe_save_json_file  # noqa: E402
-except ImportError:
-    # Fall back to development location
-    from triads.km.auto_invocation import process_and_queue_invocations  # noqa: E402
-    from triads.km.confidence import (  # noqa: E402
-        calculate_initial_confidence,
-        assign_status,
-        validate_confidence_value,
-    )
-    from triads.km.detection import detect_km_issues, update_km_queue  # noqa: E402
-    from triads.km.formatting import format_km_notification, write_km_status_file  # noqa: E402
-    from triads.hooks.safe_io import safe_load_json_file, safe_save_json_file  # noqa: E402
+# Import from triads package (works in both plugin and dev mode)
+from triads.km.auto_invocation import process_and_queue_invocations  # noqa: E402
+from triads.km.confidence import (  # noqa: E402
+    calculate_initial_confidence,
+    assign_status,
+    validate_confidence_value,
+)
+from triads.km.detection import detect_km_issues, update_km_queue  # noqa: E402
+from triads.km.formatting import format_km_notification, write_km_status_file  # noqa: E402
+from triads.hooks.safe_io import safe_load_json_file, safe_save_json_file  # noqa: E402
 
 # ============================================================================
 # Graph Update Extraction
