@@ -13,10 +13,12 @@ Phase 3: Integration with Supervisor routing logic
 
 from typing import Optional
 
+from triads.workflow_matching import config
+
 
 def classify_with_llm(
     user_message: str,
-    confidence_threshold: float = 0.7
+    confidence_threshold: float = config.CONFIDENCE_THRESHOLD
 ) -> Optional[str]:
     """Use LLM to classify workflow type when keyword matching fails.
 
@@ -28,7 +30,7 @@ def classify_with_llm(
     Args:
         user_message: User's request text
         confidence_threshold: Minimum confidence for LLM classification
-                             (default: 0.7 per ADR-013)
+                             (default: config.CONFIDENCE_THRESHOLD per ADR-013)
 
     Returns:
         Workflow type if LLM confident, None otherwise

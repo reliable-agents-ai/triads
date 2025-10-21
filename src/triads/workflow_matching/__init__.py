@@ -28,6 +28,9 @@ from .headless_classifier import (
     WORKFLOW_DEFINITIONS,
 )
 
+# Configuration constants (centralized per P1 refactoring)
+from . import config
+
 # Legacy keyword matching (deprecated - kept for backwards compatibility)
 from .matcher import WorkflowMatcher, MatchResult
 from .keywords import WORKFLOW_KEYWORDS, get_keywords, get_all_workflow_types
@@ -38,6 +41,8 @@ __all__ = [
     "classify_workflow_headless",
     "HeadlessClassificationResult",
     "WORKFLOW_DEFINITIONS",
+    # Configuration (centralized constants)
+    "config",
     # Legacy keyword matching (deprecated)
     "WorkflowMatcher",
     "MatchResult",

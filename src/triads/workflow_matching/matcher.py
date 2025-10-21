@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Set
 import re
 
+from triads.workflow_matching import config
+
 
 @dataclass
 class MatchResult:
@@ -21,8 +23,9 @@ class MatchResult:
                       or None if no confident match found
         confidence: Confidence score between 0.0 and 1.0
         matched_keywords: List of keywords that matched from the library
-        should_suggest_generation: True if confidence <0.7 or no match found,
-                                  indicating user should be offered workflow generation
+        should_suggest_generation: True if confidence < config.CONFIDENCE_THRESHOLD
+                                  or no match found, indicating user should be
+                                  offered workflow generation
     """
     workflow_type: Optional[str]
     confidence: float
@@ -49,7 +52,7 @@ class WorkflowMatcher:
     5. Return best match if confidence >= threshold
 
     Performance: <100ms per match (ADR-013 requirement)
-    Confidence threshold: 0.7 (ADR-013)
+    Confidence threshold: config.CONFIDENCE_THRESHOLD (ADR-013)
 
     Example:
         >>> matcher = WorkflowMatcher({"bug-fix": {"bug", "error", "crash"}})
@@ -106,21 +109,23 @@ class WorkflowMatcher:
                 num_matched = len(matched_kw)
                 coverage = num_matched / len(keywords)
 
-                # Absolute match component (caps at 4 matches = 1.0)
-                # Each match worth 0.25 base score
-                absolute_component = min(num_matched / 4, 1.0) * 0.7
+                # Absolute match component (caps at MAX_MATCHES_FOR_PERFECT = 1.0)
+                # Each match worth (1 / MAX_MATCHES_FOR_PERFECT) base score
+                absolute_component = min(
+                    num_matched / config.MAX_MATCHES_FOR_PERFECT, 1.0
+                ) * config.ABSOLUTE_WEIGHT
 
                 # Coverage component (less weight to avoid penalizing large keyword sets)
-                coverage_component = coverage * 0.3
+                coverage_component = coverage * config.COVERAGE_WEIGHT
 
                 # Combined score
                 score = min(absolute_component + coverage_component, 1.0)
 
                 # Boost if multiple keywords match (stronger signal)
-                if num_matched >= 3:
-                    score = min(score * 1.15, 1.0)
-                elif num_matched >= 2:
-                    score = min(score * 1.1, 1.0)
+                if num_matched >= config.BOOST_THRESHOLD_HIGH:
+                    score = min(score * config.BOOST_MULTI_MATCH_HIGH, 1.0)
+                elif num_matched >= config.BOOST_THRESHOLD_MED:
+                    score = min(score * config.BOOST_MULTI_MATCH_MED, 1.0)
 
                 scores[workflow_type] = score
                 matched[workflow_type] = list(matched_kw)
@@ -137,13 +142,13 @@ class WorkflowMatcher:
         best_workflow = max(scores, key=scores.get)
         best_score = scores[best_workflow]
 
-        # ADR-013: Confidence threshold of 0.7
-        # Low confidence (<0.7) suggests generation
+        # ADR-013: Confidence threshold check
+        # Low confidence (< CONFIDENCE_THRESHOLD) suggests generation
         return MatchResult(
             workflow_type=best_workflow,
             confidence=best_score,
             matched_keywords=matched[best_workflow],
-            should_suggest_generation=(best_score < 0.7)
+            should_suggest_generation=(best_score < config.CONFIDENCE_THRESHOLD)
         )
 
     def _normalize_message(self, message: str) -> str:

@@ -44,7 +44,9 @@ class TestModuleImports:
         """Test module defines __all__ for explicit exports."""
         import triads.workflow_matching as wm
         assert hasattr(wm, "__all__")
-        assert len(wm.__all__) == 6
+        # After P1 refactoring: added config module, plus headless classifier exports
+        # Total: 10 exports (was 6 legacy, now includes config + headless)
+        assert len(wm.__all__) == 10
 
 
 class TestEndToEndWorkflowMatching:

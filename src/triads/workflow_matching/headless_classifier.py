@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from typing import Optional
 import logging
 
+from triads.workflow_matching import config
+
 logger = logging.getLogger(__name__)
 
 
@@ -116,12 +118,12 @@ Rules:
     return prompt
 
 
-def _call_claude_api(prompt: str, timeout: int = 30) -> str:
+def _call_claude_api(prompt: str, timeout: int = config.HEADLESS_TIMEOUT_SEC) -> str:
     """Call Claude via headless mode (subprocess).
 
     Args:
         prompt: Classification prompt
-        timeout: Command timeout in seconds (default: 30s)
+        timeout: Command timeout in seconds (default: config.HEADLESS_TIMEOUT_SEC)
 
     Returns:
         JSON classification response
