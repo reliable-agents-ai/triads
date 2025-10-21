@@ -1,0 +1,106 @@
+# Feature Development Workflow
+# Workflow for adding new features, functionality, and capabilities
+
+name: feature-dev
+description: >
+  Complete workflow for developing new features from idea validation through
+  implementation and deployment. Ensures features are well-designed, properly
+  implemented, and production-ready.
+
+# Keywords used by headless classifier for matching
+keywords:
+  - add
+  - new
+  - feature
+  - implement
+  - create
+  - build
+  - develop
+  - enhancement
+  - capability
+  - functionality
+  - want to
+  - need to
+
+# Triad sequence (atomic units composed into workflow)
+triad_sequence:
+  - name: idea-validation
+    description: Validate feature idea and assess feasibility
+    agents:
+      - community-researcher
+      - research-analyst
+      - validation-synthesizer
+    deliverables:
+      - Market/user demand analysis
+      - Technical feasibility assessment
+      - Priority score (PROCEED/DEFER/REJECT)
+
+  - name: design
+    description: Design architecture and create ADRs
+    agents:
+      - validation-synthesizer
+      - solution-architect
+      - design-bridge
+    deliverables:
+      - Architecture decision records (ADRs)
+      - Technical design document
+      - Implementation plan
+
+  - name: implementation
+    description: Build and test the feature
+    agents:
+      - design-bridge
+      - senior-developer
+      - test-engineer
+    deliverables:
+      - Feature implementation
+      - Comprehensive test coverage (>85%)
+      - Documentation
+
+  - name: garden-tending
+    description: Quality assurance and refinement
+    agents:
+      - cultivator
+      - pruner
+      - gardener-bridge
+    deliverables:
+      - Code quality improvements
+      - Performance optimization
+      - Technical debt cleanup
+
+  - name: deployment
+    description: Release and documentation
+    agents:
+      - gardener-bridge
+      - release-manager
+      - documentation-updater
+    deliverables:
+      - Production release
+      - Updated documentation
+      - Changelog entry
+
+# Entry conditions (when to suggest this workflow)
+entry_conditions:
+  - User proposes new feature or capability
+  - Enhancement request from users
+  - Strategic product roadmap item
+  - Competitive feature gap identified
+
+# Success criteria
+success_criteria:
+  - Feature meets user requirements
+  - All tests pass (>85% coverage)
+  - Documentation complete
+  - Performance acceptable
+  - Successfully deployed to production
+
+# Estimated duration
+estimated_duration: 1-4 weeks
+
+# Workflow metadata
+metadata:
+  version: "1.0"
+  created: "2025-10-21"
+  last_updated: "2025-10-21"
+  priority: medium
+  category: development

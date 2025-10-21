@@ -1,0 +1,80 @@
+# Bug Fix Workflow
+# Workflow for fixing bugs, errors, crashes, and broken functionality
+
+name: bug-fix
+description: >
+  Workflow for diagnosing and fixing bugs, errors, crashes, and broken functionality.
+  Includes investigation, implementation of fix, and verification.
+
+# Keywords used by headless classifier for matching
+keywords:
+  - bug
+  - error
+  - crash
+  - broken
+  - fix
+  - failure
+  - defect
+  - issue
+  - not working
+  - fails
+
+# Triad sequence (atomic units composed into workflow)
+triad_sequence:
+  - name: investigation
+    description: Investigate root cause of the bug
+    agents:
+      - research-analyst
+      - community-researcher
+      - validation-synthesizer
+    deliverables:
+      - Root cause analysis
+      - Reproduction steps
+      - Impact assessment
+
+  - name: implementation
+    description: Implement the bug fix
+    agents:
+      - design-bridge
+      - senior-developer
+      - test-engineer
+    deliverables:
+      - Bug fix implementation
+      - Test coverage for fix
+      - Regression tests
+
+  - name: garden-tending
+    description: Code quality review and cleanup
+    agents:
+      - cultivator
+      - pruner
+      - gardener-bridge
+    deliverables:
+      - Code quality improvements
+      - Technical debt reduction
+      - Documentation updates
+
+# Entry conditions (when to suggest this workflow)
+entry_conditions:
+  - User mentions bug, error, crash, or broken functionality
+  - System is exhibiting unexpected behavior
+  - Tests are failing
+  - Production incident reported
+
+# Success criteria
+success_criteria:
+  - Bug is reproducibly fixed
+  - Tests pass (including new regression tests)
+  - No new bugs introduced
+  - Code quality maintained or improved
+
+# Estimated duration
+estimated_duration: 2-8 hours
+
+# Workflow metadata
+metadata:
+  version: "1.0"
+  created: "2025-10-21"
+  last_updated: "2025-10-21"
+  priority: high
+  category: maintenance

@@ -1,0 +1,81 @@
+# Investigation Workflow
+# Workflow for investigating issues, understanding behavior, and root cause analysis
+
+name: investigation
+description: >
+  Workflow for systematic investigation of issues, understanding system behavior,
+  analyzing root causes, and exploring solution options. Focuses on gathering
+  information and building understanding before taking action.
+
+# Keywords used by headless classifier for matching
+keywords:
+  - why
+  - how
+  - investigate
+  - understand
+  - analyze
+  - explore
+  - root cause
+  - diagnosis
+  - examine
+  - research
+  - study
+  - trace
+  - figure out
+  - find out
+  - what's causing
+
+# Triad sequence (atomic units composed into workflow)
+triad_sequence:
+  - name: investigation
+    description: Gather data and analyze the situation
+    agents:
+      - research-analyst
+      - community-researcher
+      - validation-synthesizer
+    deliverables:
+      - Data collection and analysis
+      - Timeline of events
+      - Hypothesis formulation
+      - Similar cases research
+
+  - name: design
+    description: Develop understanding and solution options
+    agents:
+      - validation-synthesizer
+      - solution-architect
+      - design-bridge
+    deliverables:
+      - Root cause analysis
+      - System behavior documentation
+      - Solution options evaluation
+      - Recommendation (with ADR if needed)
+
+# Entry conditions (when to suggest this workflow)
+entry_conditions:
+  - Need to understand system behavior
+  - Unclear root cause of issue
+  - Exploring solution alternatives
+  - Research needed before decision
+  - Learning how something works
+  - Incident post-mortem
+
+# Success criteria
+success_criteria:
+  - Root cause identified (if applicable)
+  - System behavior understood
+  - Clear documentation created
+  - Solution options evaluated
+  - Path forward recommended
+  - Knowledge captured for future
+
+# Estimated duration
+estimated_duration: 1-5 days
+
+# Workflow metadata
+metadata:
+  version: "1.0"
+  created: "2025-10-21"
+  last_updated: "2025-10-21"
+  priority: high
+  category: research

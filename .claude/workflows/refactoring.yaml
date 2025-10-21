@@ -1,0 +1,90 @@
+# Refactoring Workflow
+# Workflow for improving code quality, reducing technical debt, and code cleanup
+
+name: refactoring
+description: >
+  Workflow for systematic code refactoring and technical debt reduction.
+  Focuses on improving maintainability, readability, and code quality
+  without changing external behavior.
+
+# Keywords used by headless classifier for matching
+keywords:
+  - refactor
+  - cleanup
+  - clean up
+  - technical debt
+  - debt
+  - improve
+  - maintainability
+  - quality
+  - simplify
+  - restructure
+  - duplicate
+  - complexity
+  - messy
+  - legacy
+
+# Triad sequence (atomic units composed into workflow)
+triad_sequence:
+  - name: garden-tending
+    description: Identify refactoring opportunities and prioritize
+    agents:
+      - cultivator
+      - pruner
+      - gardener-bridge
+    deliverables:
+      - Code quality assessment
+      - Technical debt inventory
+      - Refactoring priority list
+      - Safety analysis (test coverage)
+
+  - name: implementation
+    description: Execute refactoring with tests
+    agents:
+      - gardener-bridge
+      - senior-developer
+      - test-engineer
+    deliverables:
+      - Refactored code
+      - Maintained/improved test coverage
+      - Verification that behavior unchanged
+
+  - name: garden-tending
+    description: Final quality verification
+    agents:
+      - cultivator
+      - pruner
+      - gardener-bridge
+    deliverables:
+      - Quality metrics improvement confirmation
+      - Documentation updates
+      - Knowledge capture for future refactoring
+
+# Entry conditions (when to suggest this workflow)
+entry_conditions:
+  - Code is difficult to maintain or understand
+  - High code complexity metrics
+  - Significant code duplication
+  - Technical debt accumulation
+  - Preparing codebase for new features
+  - Post-release cleanup
+
+# Success criteria
+success_criteria:
+  - Code quality metrics improved
+  - Technical debt reduced
+  - All tests still passing
+  - No behavior changes (unless intended)
+  - Code is more maintainable
+  - Documentation updated
+
+# Estimated duration
+estimated_duration: 3 days - 2 weeks
+
+# Workflow metadata
+metadata:
+  version: "1.0"
+  created: "2025-10-21"
+  last_updated: "2025-10-21"
+  priority: medium
+  category: maintenance

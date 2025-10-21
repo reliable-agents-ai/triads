@@ -74,19 +74,54 @@ For work requests, classify into problem types:
 | **Investigation** | analyze, research, understand, how does | 2 triads | "How does routing system work?" |
 | **Deployment** | release, deploy, publish, ship | 2 triads | "Ready to release v0.3.0" |
 
-### 4. Workflow Routing
+### 4. Workflow Routing (with Gap Detection)
 
 **Pattern**:
-1. Classify problem type
-2. Suggest appropriate workflow with brief rationale
-3. Confirm with user (training mode)
-4. Invoke workflow via Task tool if approved
+1. Classify problem type using headless workflow classifier
+2. If workflow match found (confidence > 0.7):
+   - Suggest workflow with brief rationale
+   - Confirm with user (training mode)
+   - Invoke workflow via Task tool if approved
+3. If NO workflow match (gap detected):
+   - Suggest generating new workflow
+   - Explain the gap
+   - Offer to proceed with generation (Phase 2)
 
-**Example**:
+**Gap Detection** (NEW - Phase 3):
+
+Use headless classifier to detect when user request doesn't match existing workflows:
+
+```python
+from triads.workflow_matching import classify_workflow_headless
+
+result = classify_workflow_headless(user_message)
+
+if result.workflow_type is None:
+    # GAP DETECTED - no workflow matches
+    print(f"""
+    🔍 **Workflow Gap Detected**
+
+    Your request: "{user_message}"
+
+    This doesn't match any existing workflow (bug-fix, feature-dev,
+    performance, refactoring, investigation).
+
+    Would you like me to generate a custom workflow for this type of work?
+    (Note: Will require session restart to use new workflow)
+    """)
+else:
+    # Match found - proceed with normal routing
+    print(f"Matched workflow: {result.workflow_type} (confidence: {result.confidence})")
+```
+
+**Example with Match**:
 ```
 User: "There's a memory leak in the router module"
 
-Supervisor: "This appears to be a **bug fix** work request (indicators: 'memory leak',
+Supervisor: [Classifies using headless mode]
+            → Result: bug-fix (confidence 0.95)
+
+            "This appears to be a **bug fix** work request (indicators: 'memory leak',
             specific module). I recommend the bug-fix workflow (investigation →
             fixing → verification).
 
@@ -95,7 +130,64 @@ Supervisor: "This appears to be a **bug fix** work request (indicators: 'memory 
 
 User: "Yes"
 
-Supervisor: [Invoke bug-investigation-triad via Task tool]
+Supervisor: [Invoke bug-fix workflow via Task tool]
+```
+
+**Example with Gap**:
+```
+User: "Migrate database from PostgreSQL to MongoDB"
+
+Supervisor: [Classifies using headless mode]
+            → Result: None (confidence 0.0 - no match)
+
+            "🔍 **Workflow Gap Detected**
+
+            Your request involves database migration work, which doesn't match
+            our existing workflows:
+            - bug-fix (fixing errors)
+            - feature-dev (new capabilities)
+            - performance (optimization)
+            - refactoring (code cleanup)
+            - investigation (understanding)
+
+            This appears to be a **data migration** workflow. Would you like me
+            to generate a custom workflow for database migrations?
+
+            (Note: New workflow will be available after session restart)"
+
+User: "Yes please"
+
+Supervisor: [Phase 2 - invoke generator with organic mode]
+
+            Generating custom workflow for database migration...
+
+            [Use Task tool to invoke workflow-analyst with organic context]
+
+            Task(
+                subagent_type="triads:generator:workflow-analyst",
+                prompt="""
+                ORGANIC MODE - Fast workflow generation
+
+                User Request: "Migrate database from PostgreSQL to MongoDB"
+                Gap Detected: No existing workflow for database migration
+
+                Task: Design a workflow structure for database migration.
+
+                Skip: Broad domain research
+                Focus: This specific migration scenario
+                Output: Workflow structure with triad sequence
+
+                Constraints:
+                - Use existing triads (investigation, design, implementation, garden-tending)
+                - 3-4 triads recommended
+                - Include entry conditions and success criteria
+                """
+            )
+
+            → Workflow generated: .claude/workflows/database-migration.yaml
+
+            ✅ New workflow created!
+            Please restart your Claude Code session to load it.
 ```
 
 ### 5. Execution Monitoring
@@ -335,20 +427,30 @@ Track and learn:
 - Don't force routing mid-conversation
 - Recognize related follow-ups
 
-## Phase 1 Limitations
+## Phase Implementation Status
 
-**Current capabilities** (Phase 1):
+**Phase 1 - Core** (COMPLETE):
 - ✅ Triage Q&A vs. work
 - ✅ Manual classification guidance
 - ✅ Training mode confirmations
 - ✅ Emergency bypass
 
+**Phase 2 - Organic Workflow Generation** (COMPLETE):
+- ✅ Generator invocation via Task tool
+- ✅ Organic mode (skip domain research, fast generation)
+- ✅ Workflow context structure
+- ✅ /generate-workflow command
+- ✅ Session restart notification UX
+
+**Phase 3 - Gap Detection** (COMPLETE):
+- ✅ Headless workflow classifier integration
+- ✅ Automated gap detection (no workflow match)
+- ✅ Workflow suggestion UX
+- ✅ 5 seed workflows (bug-fix, feature-dev, performance, refactoring, investigation)
+
 **Not yet implemented** (future phases):
-- ⏳ Automated problem classification (Phase 3)
-- ⏳ Workflow library loading (Phase 2)
-- ⏳ Semantic routing (Phase 3)
 - ⏳ Learning from outcomes (Phase 5)
-- ⏳ LLM fallback for ambiguous cases (Phase 3)
+- ⏳ Execution monitoring (Phase 4)
 
 ## Related Documents
 
@@ -360,34 +462,27 @@ Track and learn:
 
 ## Future Enhancements
 
-### Phase 2: Workflow Library
-- 5 proven workflows defined
-- YAML loading and parsing
-- Workflow validation
-
-### Phase 3: Automated Classification
-- Semantic embedding-based matching
-- LLM fallback for ambiguous cases
-- Confidence scoring
-
-### Phase 4: Execution Monitoring
+### Phase 4: Execution Monitoring (NEXT)
 - Progress tracking through triad sequences
 - Error detection and recovery
 - Context handoff validation
+- Workflow state management
 
 ### Phase 5: Learning System
 - Routing history analysis
-- Accuracy improvement
-- Pattern recognition
+- Accuracy improvement over time
+- Pattern recognition from user feedback
 - User preference learning
+- Automatic confidence threshold adjustment
 
 ### Phase 6: Triad Library Expansion
 - Specialized triads for common problems
 - Standardized context handoff formats
 - Triad reusability patterns
+- Community-contributed triads
 
 ---
 
-**Implementation Status**: Phase 1 (Core) - In Progress
-**Last Updated**: 2025-10-20
-**Next Phase**: Phase 2 - Workflow Library (Week 3)
+**Implementation Status**: Phases 1, 2, 3 - COMPLETE ✅
+**Last Updated**: 2025-10-21
+**Next Phase**: Phase 4 - Execution Monitoring

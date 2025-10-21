@@ -1,0 +1,97 @@
+# Performance Optimization Workflow
+# Workflow for optimizing performance, speed, memory usage, and efficiency
+
+name: performance
+description: >
+  Workflow for identifying performance bottlenecks and implementing optimizations.
+  Includes profiling, optimization, and verification of improvements.
+
+# Keywords used by headless classifier for matching
+keywords:
+  - slow
+  - performance
+  - optimize
+  - speed
+  - latency
+  - memory
+  - cpu
+  - bottleneck
+  - timeout
+  - lag
+  - efficiency
+  - profile
+  - cache
+  - throughput
+
+# Triad sequence (atomic units composed into workflow)
+triad_sequence:
+  - name: investigation
+    description: Profile and identify performance bottlenecks
+    agents:
+      - research-analyst
+      - community-researcher
+      - validation-synthesizer
+    deliverables:
+      - Performance profile and metrics
+      - Bottleneck identification
+      - Optimization opportunities
+
+  - name: design
+    description: Design optimization approach
+    agents:
+      - validation-synthesizer
+      - solution-architect
+      - design-bridge
+    deliverables:
+      - Optimization strategy (ADR)
+      - Performance targets
+      - Implementation plan
+
+  - name: implementation
+    description: Implement optimizations
+    agents:
+      - design-bridge
+      - senior-developer
+      - test-engineer
+    deliverables:
+      - Optimization implementation
+      - Performance tests
+      - Benchmarking results
+
+  - name: garden-tending
+    description: Validate and refine optimizations
+    agents:
+      - cultivator
+      - pruner
+      - gardener-bridge
+    deliverables:
+      - Code quality verification
+      - Regression testing
+      - Documentation updates
+
+# Entry conditions (when to suggest this workflow)
+entry_conditions:
+  - System is slow or unresponsive
+  - Performance metrics below targets
+  - User complaints about speed
+  - Resource usage too high (CPU/memory)
+  - Timeouts occurring
+
+# Success criteria
+success_criteria:
+  - Performance targets met
+  - No functionality regressions
+  - Resource usage within acceptable limits
+  - Benchmarks show measurable improvement
+  - Code quality maintained
+
+# Estimated duration
+estimated_duration: 1-3 weeks
+
+# Workflow metadata
+metadata:
+  version: "1.0"
+  created: "2025-10-21"
+  last_updated: "2025-10-21"
+  priority: high
+  category: optimization
