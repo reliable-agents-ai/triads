@@ -530,12 +530,12 @@ class TestSecurityDefenseInDepth:
         from triads.workflow_enforcement import (
             audit,
             bypass,
-            enforcement,
+            enforcement_new,
             state_manager,
-            validator,
+            validator_new,
         )
 
-        modules = [audit, bypass, enforcement, state_manager, validator]
+        modules = [audit, bypass, enforcement_new, state_manager, validator_new]
 
         for module in modules:
             source = module.__file__
@@ -550,9 +550,10 @@ class TestSecurityDefenseInDepth:
     def test_subprocess_only_with_hardcoded_commands(self):
         """Test subprocess calls use hardcoded commands."""
         # Verify git commands are hardcoded, not user-provided
-        from triads.workflow_enforcement import validator
+        # Git commands are now in git_utils module
+        from triads.workflow_enforcement import git_utils
 
-        source = validator.__file__
+        source = git_utils.__file__
         with open(source) as f:
             content = f.read()
 

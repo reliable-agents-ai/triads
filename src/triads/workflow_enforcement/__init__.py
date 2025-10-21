@@ -63,18 +63,10 @@ from triads.workflow_enforcement.metrics.base import MetricsProvider, MetricsRes
 from triads.workflow_enforcement.metrics.code_metrics import CodeMetricsProvider
 from triads.workflow_enforcement.git_utils import GitRunner, GitCommandError
 
-# Legacy exports (deprecated)
+# Legacy exports (still supported)
 from triads.workflow_enforcement.audit import AuditLogger
 from triads.workflow_enforcement.bypass import EmergencyBypass, check_bypass
-from triads.workflow_enforcement.enforcement import (
-    BlockingEnforcement as LegacyBlockingEnforcement,
-    validate_deployment,
-)
 from triads.workflow_enforcement.state_manager import WorkflowStateManager
-from triads.workflow_enforcement.validator import WorkflowValidator as LegacyWorkflowValidator
-
-# Maintain backward compatibility
-BlockingEnforcement = LegacyBlockingEnforcement
 
 __all__ = [
     # Primary exports (v0.7+)
@@ -93,13 +85,9 @@ __all__ = [
     "CodeMetricsProvider",
     "GitRunner",
     "GitCommandError",
-    # Legacy exports (deprecated)
+    # Legacy exports (still supported - for audit, bypass, state)
     "AuditLogger",
-    "BlockingEnforcement",
-    "LegacyBlockingEnforcement",
-    "LegacyWorkflowValidator",
     "EmergencyBypass",
     "WorkflowStateManager",
     "check_bypass",
-    "validate_deployment",
 ]
