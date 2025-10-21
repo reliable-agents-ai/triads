@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Optional
 import logging
 
+from triads.utils.command_runner import CommandRunner
 from triads.workflow_matching import config
 
 logger = logging.getLogger(__name__)
@@ -134,9 +135,8 @@ def _call_claude_api(prompt: str, timeout: int = config.HEADLESS_TIMEOUT_SEC) ->
     """
     try:
         # Call claude -p with no tools for faster execution
-        result = subprocess.run(
+        result = CommandRunner.run_claude(
             [
-                "claude",
                 "-p",
                 prompt,
                 "--allowedTools",
@@ -144,10 +144,7 @@ def _call_claude_api(prompt: str, timeout: int = config.HEADLESS_TIMEOUT_SEC) ->
                 "--output-format",
                 "json",
             ],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=True,
+            timeout=timeout
         )
 
         # Parse outer JSON response
@@ -159,8 +156,9 @@ def _call_claude_api(prompt: str, timeout: int = config.HEADLESS_TIMEOUT_SEC) ->
 
         return response["result"]
 
-    except subprocess.TimeoutExpired:
-        raise TimeoutError(f"Claude command exceeded {timeout}s timeout")
+    except TimeoutError:
+        # CommandRunner already raises TimeoutError with formatted message
+        raise
     except subprocess.CalledProcessError as e:
         raise Exception(f"Claude command failed: {e.stderr}")
     except FileNotFoundError:

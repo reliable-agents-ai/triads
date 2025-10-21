@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from triads.utils.command_runner import CommandRunner
 from triads.utils.file_operations import atomic_read_json, atomic_write_json
 from triads.workflow_enforcement.instance_manager import WorkflowInstanceManager
 
@@ -215,15 +216,13 @@ def auto_create_instance_if_needed(
     if not title:
         # Try to infer from git branch or current directory
         try:
-            import subprocess
-            result = subprocess.run(
-                ["git", "branch", "--show-current"],
+            result = CommandRunner.run_git(
+                ["branch", "--show-current"],
                 cwd=cwd,
-                capture_output=True,
-                text=True,
-                timeout=2
+                timeout=2,
+                check=False  # Don't raise on error
             )
-            if result.returncode == 0:
+            if result.success:
                 branch = result.stdout.strip()
                 if branch and branch not in ["main", "master", "develop"]:
                     title = f"Work on {branch}"
@@ -236,15 +235,13 @@ def auto_create_instance_if_needed(
     # Get user from git config if not provided
     if not user:
         try:
-            import subprocess
-            result = subprocess.run(
-                ["git", "config", "user.email"],
+            result = CommandRunner.run_git(
+                ["config", "user.email"],
                 cwd=cwd,
-                capture_output=True,
-                text=True,
-                timeout=2
+                timeout=2,
+                check=False  # Don't raise on error
             )
-            if result.returncode == 0:
+            if result.success:
                 user = result.stdout.strip()
         except Exception:
             pass

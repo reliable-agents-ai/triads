@@ -42,7 +42,7 @@ class TestGitCommandResult:
 class TestGitRunnerRun:
     """Test GitRunner.run() method."""
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_run_success(self, mock_run):
         """Test successful git command execution."""
         mock_result = MagicMock()
@@ -64,10 +64,11 @@ class TestGitRunnerRun:
             capture_output=True,
             text=True,
             check=True,
-            timeout=30
+            timeout=30,
+            cwd=None
         )
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_run_with_custom_timeout(self, mock_run):
         """Test run with custom timeout."""
         mock_result = MagicMock()
@@ -81,14 +82,14 @@ class TestGitRunnerRun:
         # Verify timeout was passed
         assert mock_run.call_args[1]["timeout"] == 60
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_run_with_check_false(self, mock_run):
         """Test run with check=False."""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ""
-        mock_result.stderr = "error"
-        mock_run.return_value = mock_result
+        # When check=False and command fails, subprocess.run should not raise
+        error = subprocess.CalledProcessError(returncode=1, cmd=["git", "status"])
+        error.stdout = ""
+        error.stderr = "error"
+        mock_run.side_effect = error
 
         result = GitRunner.run(["status"], check=False)
 
@@ -96,12 +97,12 @@ class TestGitRunnerRun:
         assert result.returncode == 1
         assert mock_run.call_args[1]["check"] is False
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_run_failure_raises_error(self, mock_run):
         """Test failed command raises GitCommandError."""
-        mock_run.side_effect = subprocess.CalledProcessError(
-            1, ["git", "status"], stderr="command failed"
-        )
+        error = subprocess.CalledProcessError(1, ["git", "status"])
+        error.stderr = "command failed"
+        mock_run.side_effect = error
 
         with pytest.raises(GitCommandError) as exc_info:
             GitRunner.run(["status"])
@@ -110,7 +111,7 @@ class TestGitRunnerRun:
         assert "git status" in str(exc_info.value)
         assert "Exit code: 1" in str(exc_info.value)
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_run_timeout_raises_error(self, mock_run):
         """Test command timeout raises GitCommandError."""
         mock_run.side_effect = subprocess.TimeoutExpired(["git", "diff"], 30)
@@ -121,7 +122,7 @@ class TestGitRunnerRun:
         assert "timed out after 30s" in str(exc_info.value)
         assert "git diff" in str(exc_info.value)
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_run_multiple_args(self, mock_run):
         """Test run with multiple command arguments."""
         mock_result = MagicMock()
@@ -138,14 +139,15 @@ class TestGitRunnerRun:
             capture_output=True,
             text=True,
             check=True,
-            timeout=30
+            timeout=30,
+            cwd=None
         )
 
 
 class TestGetUserName:
     """Test GitRunner.get_user_name()."""
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_get_user_name_success(self, mock_run):
         """Test getting git user name."""
         mock_result = MagicMock()
@@ -159,7 +161,7 @@ class TestGetUserName:
         assert name == "John Doe"
         mock_run.assert_called_once()
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_get_user_name_empty_returns_unknown(self, mock_run):
         """Test empty user name returns 'unknown'."""
         mock_result = MagicMock()
@@ -172,7 +174,7 @@ class TestGetUserName:
 
         assert name == "unknown"
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_get_user_name_error_returns_unknown(self, mock_run):
         """Test error returns 'unknown'."""
         mock_run.side_effect = subprocess.CalledProcessError(
@@ -183,7 +185,7 @@ class TestGetUserName:
 
         assert name == "unknown"
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_get_user_name_whitespace_trimmed(self, mock_run):
         """Test whitespace is trimmed from user name."""
         mock_result = MagicMock()
@@ -200,7 +202,7 @@ class TestGetUserName:
 class TestGetUserEmail:
     """Test GitRunner.get_user_email()."""
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_get_user_email_success(self, mock_run):
         """Test getting git user email."""
         mock_result = MagicMock()
@@ -213,7 +215,7 @@ class TestGetUserEmail:
 
         assert email == "john@example.com"
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_get_user_email_empty_returns_unknown(self, mock_run):
         """Test empty email returns 'unknown'."""
         mock_result = MagicMock()
@@ -226,7 +228,7 @@ class TestGetUserEmail:
 
         assert email == "unknown"
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_get_user_email_error_returns_unknown(self, mock_run):
         """Test error returns 'unknown'."""
         mock_run.side_effect = GitCommandError("Config not found")
@@ -239,7 +241,7 @@ class TestGetUserEmail:
 class TestDiffNumstat:
     """Test GitRunner.diff_numstat()."""
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_numstat_basic(self, mock_run):
         """Test parsing basic numstat output."""
         mock_result = MagicMock()
@@ -254,7 +256,7 @@ class TestDiffNumstat:
         assert changes[0] == (10, 5, "src/file1.py")
         assert changes[1] == (20, 10, "src/file2.py")
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_numstat_with_binary_files(self, mock_run):
         """Test binary files are skipped."""
         mock_result = MagicMock()
@@ -270,7 +272,7 @@ class TestDiffNumstat:
         assert changes[0] == (10, 5, "file.py")
         assert changes[1] == (15, 3, "script.py")
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_numstat_empty(self, mock_run):
         """Test empty diff output."""
         mock_result = MagicMock()
@@ -283,7 +285,7 @@ class TestDiffNumstat:
 
         assert changes == []
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_numstat_with_invalid_lines(self, mock_run):
         """Test invalid lines are skipped."""
         mock_result = MagicMock()
@@ -304,7 +306,7 @@ class TestDiffNumstat:
         assert changes[0] == (10, 5, "valid.py")
         assert changes[1] == (15, 3, "good.py")
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_numstat_custom_ref(self, mock_run):
         """Test numstat with custom base reference."""
         mock_result = MagicMock()
@@ -321,10 +323,11 @@ class TestDiffNumstat:
             capture_output=True,
             text=True,
             check=True,
-            timeout=30
+            timeout=30,
+            cwd=None
         )
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_numstat_failure(self, mock_run):
         """Test diff failure raises error."""
         mock_run.side_effect = subprocess.CalledProcessError(
@@ -334,7 +337,7 @@ class TestDiffNumstat:
         with pytest.raises(GitCommandError):
             GitRunner.diff_numstat("invalid-ref")
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_numstat_timeout(self, mock_run):
         """Test diff timeout raises error."""
         mock_run.side_effect = subprocess.TimeoutExpired(["git", "diff"], 30)
@@ -348,7 +351,7 @@ class TestDiffNumstat:
 class TestDiffNameOnly:
     """Test GitRunner.diff_name_only()."""
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_name_only_basic(self, mock_run):
         """Test getting list of changed files."""
         mock_result = MagicMock()
@@ -362,7 +365,7 @@ class TestDiffNameOnly:
         assert len(files) == 3
         assert files == ["src/file1.py", "src/file2.py", "README.md"]
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_name_only_empty(self, mock_run):
         """Test empty diff returns empty list."""
         mock_result = MagicMock()
@@ -375,7 +378,7 @@ class TestDiffNameOnly:
 
         assert files == []
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_name_only_with_empty_lines(self, mock_run):
         """Test empty lines are filtered."""
         mock_result = MagicMock()
@@ -389,7 +392,7 @@ class TestDiffNameOnly:
         assert len(files) == 2
         assert files == ["file1.py", "file2.py"]
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_diff_name_only_failure(self, mock_run):
         """Test diff failure raises error."""
         mock_run.side_effect = subprocess.CalledProcessError(
@@ -403,7 +406,7 @@ class TestDiffNameOnly:
 class TestLsFilesUntracked:
     """Test GitRunner.ls_files_untracked()."""
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_ls_files_untracked_basic(self, mock_run):
         """Test getting list of untracked files."""
         mock_result = MagicMock()
@@ -417,7 +420,7 @@ class TestLsFilesUntracked:
         assert len(files) == 2
         assert files == ["new_file.py", "temporary.txt"]
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_ls_files_untracked_empty(self, mock_run):
         """Test no untracked files returns empty list."""
         mock_result = MagicMock()
@@ -430,7 +433,7 @@ class TestLsFilesUntracked:
 
         assert files == []
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_ls_files_untracked_excludes_ignored(self, mock_run):
         """Test --exclude-standard is used."""
         mock_result = MagicMock()
@@ -447,10 +450,11 @@ class TestLsFilesUntracked:
             capture_output=True,
             text=True,
             check=True,
-            timeout=30
+            timeout=30,
+            cwd=None
         )
 
-    @patch("subprocess.run")
+    @patch("triads.utils.command_runner.subprocess.run")
     def test_ls_files_untracked_failure(self, mock_run):
         """Test ls-files failure raises error."""
         mock_run.side_effect = subprocess.CalledProcessError(

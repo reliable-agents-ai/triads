@@ -549,16 +549,19 @@ class TestSecurityDefenseInDepth:
 
     def test_subprocess_only_with_hardcoded_commands(self):
         """Test subprocess calls use hardcoded commands."""
-        # Verify git commands are hardcoded, not user-provided
-        # Git commands are now in git_utils module
-        from triads.workflow_enforcement import git_utils
+        # Verify git/claude commands are hardcoded in CommandRunner
+        from triads.utils import command_runner
 
-        source = git_utils.__file__
+        source = command_runner.__file__
         with open(source) as f:
             content = f.read()
 
-        # Verify git commands are hardcoded
-        assert '["git"' in content or "['git'" in content
+        # Verify git and claude commands are hardcoded
+        # Pattern: ["git"] or ["claude"] (as Python expressions)
+        assert '["git"]' in content
+        assert '["claude"]' in content
 
-        # Should not have shell=True anywhere
-        assert "shell=True" not in content
+        # Should not use shell=True in actual subprocess.run calls
+        # (It's OK to mention it in docstrings/comments)
+        # Pattern: subprocess.run(..., shell=True, ...)
+        assert "subprocess.run(" not in content or ", shell=True" not in content

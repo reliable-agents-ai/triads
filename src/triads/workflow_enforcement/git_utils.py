@@ -7,29 +7,22 @@ Consolidates duplicate git command execution patterns from:
 
 All git operations now use GitRunner for consistent error handling,
 timeouts, and result parsing.
+
+NOTE: GitRunner now delegates to CommandRunner for subprocess execution.
+This provides consistent timeout, error handling, and security across
+all subprocess operations in the codebase.
 """
 
 from __future__ import annotations
 
 import subprocess
-from dataclasses import dataclass
 from typing import Optional
 
+from triads.utils.command_runner import CommandRunner, CommandResult
 
-@dataclass
-class GitCommandResult:
-    """Result of git command execution.
-    
-    Attributes:
-        success: Whether command succeeded (returncode == 0)
-        stdout: Standard output from command
-        stderr: Standard error from command
-        returncode: Process exit code
-    """
-    success: bool
-    stdout: str
-    stderr: str
-    returncode: int
+
+# Backward compatibility alias
+GitCommandResult = CommandResult
 
 
 class GitCommandError(Exception):
@@ -71,18 +64,20 @@ class GitRunner:
         check: bool = True
     ) -> GitCommandResult:
         """Run git command with error handling.
-        
+
+        Delegates to CommandRunner for consistent subprocess execution.
+
         Args:
             args: Git command arguments (without 'git' prefix)
             timeout: Command timeout in seconds (default: 30)
             check: Raise exception on non-zero exit (default: True)
-        
+
         Returns:
             GitCommandResult with command output
-        
+
         Raises:
             GitCommandError: If command fails or times out
-        
+
         Example:
             result = GitRunner.run(["diff", "--numstat", "HEAD~1"])
             for line in result.stdout.split('\\n'):
@@ -90,34 +85,22 @@ class GitRunner:
                 pass
         """
         timeout = timeout or cls.DEFAULT_TIMEOUT
-        
+
         try:
-            result = subprocess.run(
-                ["git"] + args,
-                capture_output=True,
-                text=True,
-                check=check,
-                timeout=timeout
-            )
-            
-            return GitCommandResult(
-                success=result.returncode == 0,
-                stdout=result.stdout,
-                stderr=result.stderr,
-                returncode=result.returncode
-            )
-        
+            # Delegate to CommandRunner for consistent subprocess execution
+            return CommandRunner.run_git(args, timeout=timeout, check=check)
+
         except subprocess.CalledProcessError as e:
             raise GitCommandError(
                 f"Git command failed: git {' '.join(args)}\n"
                 f"Exit code: {e.returncode}\n"
                 f"Error: {e.stderr}"
             ) from e
-        
-        except subprocess.TimeoutExpired:
+
+        except TimeoutError as e:
             raise GitCommandError(
                 f"Git command timed out after {timeout}s: git {' '.join(args)}"
-            )
+            ) from e
     
     @classmethod
     def get_user_name(cls) -> str:
