@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
 
-from triads.km.backup_manager import BackupManager
+from triads.tools.knowledge.backup import BackupManager
 
 import logging
 

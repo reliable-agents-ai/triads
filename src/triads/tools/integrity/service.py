@@ -8,8 +8,7 @@ IntegrityChecker and BackupRepository.
 from pathlib import Path
 from typing import List
 
-from triads.km.integrity_checker import IntegrityChecker
-
+from .checker import IntegrityChecker
 from .domain import RepairResult, ValidationResult
 from .repository import AbstractBackupRepository
 
