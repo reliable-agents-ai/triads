@@ -22,10 +22,10 @@ from typing import Optional
 from triads.tools.workflow.domain import WorkflowInstance, WorkflowDeviation
 from triads.tools.workflow.validation import WorkflowValidator, ValidationResult
 
-# Import dependencies that will be moved in Phase 5
-from triads.workflow_enforcement.schema_loader import WorkflowSchemaLoader, WorkflowSchema
+# Import schema and discovery from tools/workflow (moved in Phase 5)
+from triads.tools.workflow.schema import WorkflowSchemaLoader, WorkflowSchema
+from triads.tools.workflow.discovery import TriadDiscovery
 from triads.workflow_enforcement.instance_manager import WorkflowInstanceManager
-from triads.workflow_enforcement.triad_discovery import TriadDiscovery
 from triads.workflow_enforcement.metrics import MetricsProvider
 
 

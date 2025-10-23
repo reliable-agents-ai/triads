@@ -21,10 +21,9 @@ from typing import Optional
 # Import domain models from tools/workflow/domain
 from triads.tools.workflow.domain import WorkflowInstance
 
-# Import schema and discovery - these will be moved in Phase 5
-# For now, import from old location
-from triads.workflow_enforcement.schema_loader import WorkflowSchema, WorkflowRule
-from triads.workflow_enforcement.triad_discovery import TriadDiscovery
+# Import schema and discovery from tools/workflow (moved in Phase 5)
+from triads.tools.workflow.schema import WorkflowSchema, WorkflowRule, WorkflowSchemaLoader
+from triads.tools.workflow.discovery import TriadDiscovery
 from triads.workflow_enforcement.metrics import MetricsResult
 
 

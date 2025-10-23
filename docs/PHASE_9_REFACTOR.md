@@ -117,7 +117,100 @@ All original functionality preserved:
 
 ---
 
-## Phase 2: IntegrityChecker (NOT STARTED)
+## Phase 2: Workflow Enforcement Refactoring (COMPLETE)
+
+### What Was Refactored
+
+Moved core workflow enforcement modules from `src/triads/workflow_enforcement/` into proper DDD architecture under `src/triads/tools/workflow/`.
+
+### Modules Moved (Phases 5-7)
+
+#### Phase 5a: schema_loader.py → schema.py
+
+**`src/triads/tools/workflow/schema.py`** (457 lines)
+- Classes: `WorkflowSchemaLoader`, `WorkflowSchema`, `TriadDefinition`, `WorkflowRule`, `EnforcementConfig`
+- Exception: `SchemaValidationError`
+- Purpose: Load and validate workflow.json schemas (generic, domain-agnostic)
+- Features: Schema validation, triad queries, enforcement mode resolution
+
+#### Phase 5b: triad_discovery.py → discovery.py
+
+**`src/triads/tools/workflow/discovery.py`** (193 lines)
+- Classes: `TriadDiscovery`, `TriadInfo`
+- Exception: `TriadDiscoveryError`
+- Purpose: Dynamically discover triads by scanning .claude/agents/
+- Features: Directory scanning, caching, safe error handling
+
+#### Phase 6: Instance Manager and State Manager
+
+**Status**: Logic already integrated into `FileSystemWorkflowRepository` (Phase 1-4)
+- `instance_manager.py` - Write operations (create, update, complete instances)
+- `state_manager.py` - Legacy state management
+- These remain in old location for now (still used by enforcement_new.py)
+
+#### Phase 7: Backward Compatibility
+
+**`src/triads/workflow_enforcement/__init__.py`** - Updated with:
+- Deprecation warnings (v0.10.0, removal in v0.11.0)
+- Re-exports from new locations for moved modules
+- Migration guide in docstring
+
+### Import Migration Guide
+
+| Old Location | New Location | Status |
+|--------------|--------------|--------|
+| `workflow_enforcement.schema_loader.WorkflowSchemaLoader` | `tools.workflow.schema.WorkflowSchemaLoader` | ✅ Moved |
+| `workflow_enforcement.schema_loader.WorkflowSchema` | `tools.workflow.schema.WorkflowSchema` | ✅ Moved |
+| `workflow_enforcement.triad_discovery.TriadDiscovery` | `tools.workflow.discovery.TriadDiscovery` | ✅ Moved |
+| `workflow_enforcement.validator_new.WorkflowValidator` | `tools.workflow.validation.WorkflowValidator` | ✅ Moved (Phase 1-4) |
+| `workflow_enforcement.audit.AuditLogger` | `tools.workflow.audit.AuditLogger` | ✅ Moved (Phase 1-4) |
+| `workflow_enforcement.bypass.EmergencyBypass` | `tools.workflow.bypass.EmergencyBypass` | ✅ Moved (Phase 1-4) |
+| `workflow_enforcement.git_utils.GitRunner` | `tools.workflow.git_utils.GitRunner` | ✅ Moved (Phase 1-4) |
+| `workflow_enforcement.instance_manager.WorkflowInstanceManager` | (still in old location) | 🔄 Pending |
+| `workflow_enforcement.enforcement_new.WorkflowEnforcer` | (still in old location) | 🔄 Pending |
+
+### Test Results
+
+```
+1598 passed, 4 skipped, 16 warnings in 78.97s
+```
+
+**Zero regressions** ✅
+
+### Architecture
+
+**tools/workflow/** follows 4-layer DDD pattern:
+```
+tools/workflow/
+├── domain.py          - WorkflowInstance, TriadCompletion, WorkflowDeviation
+├── repository.py      - FileSystemWorkflowRepository, InMemoryWorkflowRepository
+├── service.py         - WorkflowService (orchestration)
+├── entrypoint.py      - MCP tools (list_workflows, get_workflow)
+├── validation.py      - WorkflowValidator, ValidationResult
+├── enforcement.py     - WorkflowEnforcer, EnforcementResult (uses old modules)
+├── audit.py           - AuditLogger
+├── bypass.py          - EmergencyBypass
+├── git_utils.py       - GitRunner
+├── schema.py          - WorkflowSchemaLoader (moved Phase 5)
+├── discovery.py       - TriadDiscovery (moved Phase 5)
+├── formatters.py      - Output formatting
+└── bootstrap.py       - Dependency injection
+```
+
+### Preserved Features
+
+All original functionality preserved:
+- ✅ Schema-driven, generic workflow enforcement
+- ✅ Security validations (path traversal, input sanitization)
+- ✅ Atomic file operations with locking
+- ✅ Deviation tracking and audit logging
+- ✅ Emergency bypass with justification
+- ✅ Git-based metrics calculation
+- ✅ Graceful error handling
+
+---
+
+## Phase 3: IntegrityChecker (NOT STARTED)
 
 ### Plan
 
@@ -128,7 +221,7 @@ Refactor `src/triads/km/integrity_checker.py` into `src/triads/tools/integrity/`
 
 ---
 
-## Phase 3: Other km/ Modules (NOT STARTED)
+## Phase 4: Other km/ Modules (NOT STARTED)
 
 ### Remaining Modules to Refactor
 
@@ -161,5 +254,5 @@ Existing code continues to work with deprecation warnings pointing to new locati
 
 ---
 
-**Last Updated**: 2025-10-23
+**Last Updated**: 2025-10-23 (Phase 2 Workflow Enforcement complete)
 **Completed By**: senior-developer agent
