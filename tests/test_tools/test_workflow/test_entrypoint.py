@@ -7,6 +7,19 @@ from triads.tools.workflow.entrypoint import WorkflowTools
 from triads.tools.shared import ToolResult
 
 
+@pytest.fixture(autouse=True)
+def use_in_memory_repository():
+    """Force all tests to use InMemoryWorkflowRepository."""
+    with patch("triads.tools.workflow.entrypoint.bootstrap_workflow_service") as mock:
+        from triads.tools.workflow.repository import InMemoryWorkflowRepository
+        from triads.tools.workflow.service import WorkflowService
+
+        repository = InMemoryWorkflowRepository()
+        service = WorkflowService(repository)
+        mock.return_value = service
+        yield
+
+
 class TestListWorkflows:
     """Tests for list_workflows MCP tool."""
 
