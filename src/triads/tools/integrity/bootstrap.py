@@ -9,6 +9,11 @@ from pathlib import Path
 from .repository import FileSystemBackupRepository
 from .service import IntegrityService
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 def bootstrap_integrity_service(graphs_dir: Path | str | None = None) -> IntegrityService:
     """

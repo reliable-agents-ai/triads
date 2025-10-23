@@ -28,6 +28,11 @@ from triads.tools.workflow.discovery import TriadDiscovery
 from triads.workflow_enforcement.instance_manager import WorkflowInstanceManager
 from triads.workflow_enforcement.metrics import MetricsProvider
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 @dataclass
 class EnforcementResult:

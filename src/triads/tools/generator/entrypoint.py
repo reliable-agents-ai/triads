@@ -8,6 +8,11 @@ CRITICAL: This tool returns MCP Resources (agent .md files), not text!
 from triads.tools.shared import ToolResult
 from triads.tools.generator.bootstrap import bootstrap_generator_service
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class GeneratorTools:
     """MCP tool entrypoints for generator operations.

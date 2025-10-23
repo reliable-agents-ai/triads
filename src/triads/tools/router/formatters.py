@@ -5,6 +5,11 @@ Converts domain models to human-readable text formats for MCP tools.
 
 from triads.tools.router.domain import RoutingDecision, RouterState
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 def format_routing_decision(decision: RoutingDecision) -> str:
     """Format routing decision as human-readable text.

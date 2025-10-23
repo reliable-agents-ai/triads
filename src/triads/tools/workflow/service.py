@@ -8,6 +8,11 @@ from typing import List, Optional
 from triads.tools.workflow.domain import WorkflowInstance
 from triads.tools.workflow.repository import AbstractWorkflowRepository
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class WorkflowService:
     """Service for workflow operations.

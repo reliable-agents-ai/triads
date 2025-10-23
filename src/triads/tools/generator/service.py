@@ -8,6 +8,11 @@ from typing import List
 from triads.tools.generator.domain import AgentDefinition
 from triads.tools.generator.repository import AbstractGeneratorRepository
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class GeneratorService:
     """Service for generator operations.

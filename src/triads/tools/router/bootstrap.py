@@ -4,6 +4,7 @@ Provides factory functions for creating service instances with
 appropriate repositories.
 """
 
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -12,6 +13,8 @@ from triads.tools.router.repository import (
     InMemoryRouterRepository,
 )
 from triads.tools.router.service import RouterService
+
+logger = logging.getLogger(__name__)
 
 
 def bootstrap_router_service(

@@ -7,6 +7,11 @@ from triads.tools.shared import ToolResult
 from triads.tools.router.bootstrap import bootstrap_router_service
 from triads.tools.router.formatters import format_routing_decision, format_router_state
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class RouterTools:
     """MCP tool entrypoints for router operations.

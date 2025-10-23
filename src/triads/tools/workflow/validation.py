@@ -26,6 +26,11 @@ from triads.tools.workflow.schema import WorkflowSchema, WorkflowRule, WorkflowS
 from triads.tools.workflow.discovery import TriadDiscovery
 from triads.workflow_enforcement.metrics import MetricsResult
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 @dataclass
 class ValidationResult:

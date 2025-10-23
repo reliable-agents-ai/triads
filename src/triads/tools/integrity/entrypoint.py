@@ -7,6 +7,7 @@ Provides 3 MCP-compliant tools for graph validation and repair:
 - repair_graph: Repair a corrupted graph
 """
 
+import logging
 from pathlib import Path
 
 from triads.tools.shared import ToolResult
@@ -17,6 +18,8 @@ from .formatters import (
     format_repair_result,
     format_validation_result,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class IntegrityTools:

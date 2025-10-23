@@ -6,6 +6,11 @@ Defines core data structures for agent generation operations.
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 @dataclass
 class AgentDefinition:

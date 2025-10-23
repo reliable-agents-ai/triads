@@ -13,6 +13,11 @@ from triads.km.integrity_checker import IntegrityChecker
 from .domain import RepairResult, ValidationResult
 from .repository import AbstractBackupRepository
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class IntegrityService:
     """

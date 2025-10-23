@@ -7,6 +7,11 @@ from typing import List
 
 from triads.tools.workflow.domain import WorkflowInstance
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 def format_workflow_list(instances: List[WorkflowInstance]) -> str:
     """Format workflow instance list as human-readable text.

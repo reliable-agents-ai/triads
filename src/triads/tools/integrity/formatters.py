@@ -8,6 +8,11 @@ from typing import List
 
 from .domain import RepairResult, ValidationResult
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 def format_validation_result(result: ValidationResult) -> str:
     """

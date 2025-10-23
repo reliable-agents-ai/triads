@@ -8,6 +8,11 @@ from typing import List
 
 from triads.tools.generator.domain import AgentDefinition
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class GeneratorRepositoryError(Exception):
     """Base exception for generator repository errors."""

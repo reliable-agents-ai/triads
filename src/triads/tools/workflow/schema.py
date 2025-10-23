@@ -18,6 +18,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class SchemaValidationError(Exception):
     """Raised when workflow schema validation fails."""

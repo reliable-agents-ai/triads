@@ -6,6 +6,11 @@ Defines core data structures for routing operations.
 from dataclasses import dataclass, field
 from typing import Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 @dataclass
 class RoutingDecision:

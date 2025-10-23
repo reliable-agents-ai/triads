@@ -6,6 +6,11 @@ Provides functions to format service results as human-readable text.
 from triads.tools.knowledge.service import QueryResult, StatusResult
 from triads.tools.knowledge.domain import Node, KnowledgeGraph
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 def format_query_result(result: QueryResult) -> str:
     """Format QueryResult as human-readable text.

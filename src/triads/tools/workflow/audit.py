@@ -16,6 +16,11 @@ from typing import Any
 
 from triads.utils.file_operations import atomic_append
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 # Configuration
 AUDIT_LOG_FILE = Path(".claude/workflow_audit.log")

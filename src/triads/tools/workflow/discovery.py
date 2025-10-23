@@ -13,6 +13,11 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class TriadDiscoveryError(Exception):
     """Raised when triad discovery fails."""

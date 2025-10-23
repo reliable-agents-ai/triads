@@ -3,6 +3,8 @@
 Provides 5 MCP-compliant tools for accessing knowledge graphs.
 """
 
+import logging
+import time
 from typing import Optional
 
 from triads.tools.shared import ToolResult
@@ -13,6 +15,8 @@ from triads.tools.knowledge.formatters import (
     format_node_details,
     format_triad_list,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeTools:
@@ -39,17 +43,43 @@ class KnowledgeTools:
             >>> result = KnowledgeTools.query_graph("design", "OAuth", min_confidence=0.85)
             >>> print(result.content[0]["text"])
         """
+        start_time = time.time()
+        logger.info(
+            "Tool invoked: query_graph",
+            extra={"triad": triad, "query": query, "min_confidence": min_confidence}
+        )
+
         service = bootstrap_knowledge_service()
 
         try:
             result = service.query_graph(triad, query, min_confidence)
             formatted = format_query_result(result)
 
+            duration_ms = (time.time() - start_time) * 1000
+            logger.info(
+                "Tool success: query_graph",
+                extra={
+                    "triad": triad,
+                    "results": result.total,
+                    "duration_ms": duration_ms
+                }
+            )
+
             return ToolResult(
                 success=True, content=[{"type": "text", "text": formatted}]
             )
 
         except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(
+                "Tool failed: query_graph",
+                extra={
+                    "triad": triad,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "duration_ms": duration_ms
+                }
+            )
             return ToolResult(success=False, content=[], error=str(e))
 
     @staticmethod

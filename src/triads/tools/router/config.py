@@ -10,6 +10,11 @@ Per P1 refactoring: Extracting magic numbers for maintainability.
 Moved from triads.workflow_matching.config as part of Phase 9 DDD refactoring.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 # ============================================================================
 # Confidence Thresholds (ADR-013)
 # ============================================================================

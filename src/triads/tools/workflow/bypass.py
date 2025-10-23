@@ -15,6 +15,11 @@ from typing import Any
 
 from triads.tools.workflow.audit import AuditLogger
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 # Security: Characters that could enable shell injection
 DANGEROUS_CHARS = ["$", "`", "\\", ";", "|", "&", ">", "<", "(", ")", "{", "}"]

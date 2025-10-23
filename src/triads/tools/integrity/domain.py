@@ -9,6 +9,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 @dataclass(frozen=True)
 class ValidationResult:

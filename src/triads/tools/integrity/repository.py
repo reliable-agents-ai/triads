@@ -12,6 +12,11 @@ from typing import List
 
 from triads.km.backup_manager import BackupManager
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class AbstractBackupRepository(ABC):
     """

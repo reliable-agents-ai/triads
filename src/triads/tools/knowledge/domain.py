@@ -5,8 +5,11 @@ Provides Node, Edge, and KnowledgeGraph domain models with business logic.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -128,21 +131,41 @@ class KnowledgeGraph:
             >>> if not is_valid:
             ...     print(f"Validation error: {error}")
         """
+        logger.debug(
+            "Validating graph structure",
+            extra={"triad": self.triad, "nodes": len(self.nodes), "edges": len(self.edges)}
+        )
+
         # Build set of node IDs for fast lookup
         node_ids = {node.id for node in self.nodes}
 
         # Check each edge
         for edge in self.edges:
             if edge.source not in node_ids:
-                return (
-                    False,
-                    f"Edge source '{edge.source}' does not exist in graph nodes",
+                error_msg = f"Edge source '{edge.source}' does not exist in graph nodes"
+                logger.warning(
+                    "Graph validation failed: invalid edge source",
+                    extra={
+                        "triad": self.triad,
+                        "edge_source": edge.source,
+                        "edge_target": edge.target,
+                        "relationship": edge.relationship
+                    }
                 )
+                return (False, error_msg)
 
             if edge.target not in node_ids:
-                return (
-                    False,
-                    f"Edge target '{edge.target}' does not exist in graph nodes",
+                error_msg = f"Edge target '{edge.target}' does not exist in graph nodes"
+                logger.warning(
+                    "Graph validation failed: invalid edge target",
+                    extra={
+                        "triad": self.triad,
+                        "edge_source": edge.source,
+                        "edge_target": edge.target,
+                        "relationship": edge.relationship
+                    }
                 )
+                return (False, error_msg)
 
+        logger.debug("Graph validation passed", extra={"triad": self.triad})
         return (True, None)

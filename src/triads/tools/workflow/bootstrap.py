@@ -4,6 +4,7 @@ Provides factory functions for creating service instances with
 appropriate repositories.
 """
 
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -12,6 +13,8 @@ from triads.tools.workflow.repository import (
     InMemoryWorkflowRepository,
 )
 from triads.tools.workflow.service import WorkflowService
+
+logger = logging.getLogger(__name__)
 
 
 def bootstrap_workflow_service(

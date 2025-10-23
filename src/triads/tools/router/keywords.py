@@ -20,6 +20,11 @@ Moved from triads.workflow_matching.keywords as part of Phase 9 DDD refactoring.
 
 from typing import Dict, Set
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 # Keyword library for 5 seed workflows (ADR-017)
 WORKFLOW_KEYWORDS: Dict[str, Set[str]] = {

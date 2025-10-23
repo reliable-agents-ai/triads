@@ -8,6 +8,11 @@ from pathlib import Path
 from triads.tools.knowledge.repository import FileSystemGraphRepository
 from triads.tools.knowledge.service import KnowledgeService
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 def bootstrap_knowledge_service(graphs_dir: Path | None = None) -> KnowledgeService:
     """Create KnowledgeService with production dependencies.

@@ -20,6 +20,11 @@ from typing import Optional
 
 from triads.utils.command_runner import CommandRunner, CommandResult
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 # Backward compatibility alias
 GitCommandResult = CommandResult

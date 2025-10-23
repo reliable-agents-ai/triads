@@ -6,6 +6,11 @@ Provides business logic for routing and state management operations.
 from triads.tools.router.domain import RoutingDecision, RouterState
 from triads.tools.router.repository import AbstractRouterRepository
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class RouterService:
     """Service for router operations.

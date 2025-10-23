@@ -9,6 +9,11 @@ from triads.tools.shared import ToolResult
 from triads.tools.workflow.bootstrap import bootstrap_workflow_service
 from triads.tools.workflow.formatters import format_workflow_list, format_workflow_details
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 class WorkflowTools:
     """MCP tool entrypoints for workflow operations.

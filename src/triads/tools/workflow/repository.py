@@ -4,6 +4,7 @@ Abstracts access to workflow instance functionality.
 """
 
 import json
+import logging
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -16,6 +17,8 @@ from triads.tools.workflow.domain import (
     WorkflowDeviation,
 )
 from triads.utils.file_operations import atomic_read_json
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowRepositoryError(Exception):

@@ -5,11 +5,14 @@ Provides business logic for MCP tools.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Optional
 
 from triads.tools.knowledge.domain import Node, KnowledgeGraph
 from triads.tools.knowledge.repository import AbstractGraphRepository
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -81,8 +84,26 @@ class KnowledgeService:
             >>> for node in result.nodes:
             ...     print(f"{node.label}: {node.confidence}")
         """
+        logger.info(
+            "Querying graph",
+            extra={
+                "triad": triad,
+                "query": query,
+                "min_confidence": min_confidence
+            }
+        )
+
         graph = self.graph_repo.get(triad)
         nodes = graph.search(query, min_confidence)
+
+        logger.info(
+            "Query complete",
+            extra={
+                "triad": triad,
+                "results_count": len(nodes)
+            }
+        )
+
         return QueryResult(nodes=nodes, total=len(nodes))
 
     def get_graph_status(self, triad: Optional[str] = None) -> StatusResult:
@@ -109,13 +130,26 @@ class KnowledgeService:
             >>> # Get status for single graph
             >>> result = service.get_graph_status(triad="design")
         """
+        logger.info(
+            "Getting graph status",
+            extra={"triad": triad or "all"}
+        )
+
         if triad:
             # Single graph
             graph = self.graph_repo.get(triad)
+            logger.debug(
+                "Retrieved single graph status",
+                extra={"triad": triad, "nodes": len(graph.nodes), "edges": len(graph.edges)}
+            )
             return StatusResult(graphs=[graph])
         else:
             # All graphs
             graphs = self.graph_repo.list_all()
+            logger.debug(
+                "Retrieved all graphs status",
+                extra={"graph_count": len(graphs)}
+            )
             return StatusResult(graphs=graphs)
 
     def show_node(self, node_id: str, triad: Optional[str] = None) -> Optional[Node]:
@@ -138,12 +172,26 @@ class KnowledgeService:
             >>> # Search all graphs
             >>> node = service.show_node("oauth_decision")
         """
+        logger.info(
+            "Showing node details",
+            extra={"node_id": node_id, "triad": triad or "all"}
+        )
+
         if triad:
             # Search specific graph
             graph = self.graph_repo.get(triad)
             for node in graph.nodes:
                 if node.id == node_id:
+                    logger.debug(
+                        "Node found in specified triad",
+                        extra={"node_id": node_id, "triad": triad}
+                    )
                     return node
+
+            logger.warning(
+                "Node not found in specified triad",
+                extra={"node_id": node_id, "triad": triad}
+            )
             return None
         else:
             # Search all graphs
@@ -151,7 +199,16 @@ class KnowledgeService:
             for graph in graphs:
                 for node in graph.nodes:
                     if node.id == node_id:
+                        logger.debug(
+                            "Node found",
+                            extra={"node_id": node_id, "triad": graph.triad}
+                        )
                         return node
+
+            logger.warning(
+                "Node not found in any triad",
+                extra={"node_id": node_id, "triads_searched": len(graphs)}
+            )
             return None
 
     def list_triads(self) -> list[dict]:
@@ -165,7 +222,15 @@ class KnowledgeService:
             >>> for triad in triads:
             ...     print(f"{triad['name']}: {triad['node_count']} nodes")
         """
+        logger.info("Listing all triads")
+
         graphs = self.graph_repo.list_all()
+
+        logger.debug(
+            "Triads listed",
+            extra={"triad_count": len(graphs)}
+        )
+
         return [
             {"name": graph.triad, "node_count": len(graph.nodes)} for graph in graphs
         ]
