@@ -44,7 +44,8 @@ class TestAtomicWrites:
 
         RED: Should FAIL - Currently uses plain json.dump()
         """
-        with patch('triads.km.graph_access.loader.atomic_write_json') as mock_atomic:
+        # Mock at the actual import location (refactored to repository module)
+        with patch('triads.tools.knowledge.repository.atomic_write_json') as mock_atomic:
             loader = GraphLoader(graphs_dir=tmp_path)
             graph_data = {"nodes": [], "edges": []}
 
@@ -61,7 +62,8 @@ class TestAtomicWrites:
 
         RED: Should FAIL - No locking parameter passed
         """
-        with patch('triads.km.graph_access.loader.atomic_write_json') as mock_atomic:
+        # Mock at the actual import location (refactored to repository module)
+        with patch('triads.tools.knowledge.repository.atomic_write_json') as mock_atomic:
             loader = GraphLoader(graphs_dir=tmp_path)
             graph_data = {"nodes": [], "edges": []}
 
@@ -183,7 +185,8 @@ class TestAtomicWriteConfiguration:
 
         RED: Should FAIL - Need to verify indent parameter
         """
-        with patch('triads.km.graph_access.loader.atomic_write_json') as mock_atomic:
+        # Mock at the actual import location (refactored to repository module)
+        with patch('triads.tools.knowledge.repository.atomic_write_json') as mock_atomic:
             loader = GraphLoader(graphs_dir=tmp_path)
             graph_data = {"nodes": [], "edges": []}
 
@@ -200,7 +203,8 @@ class TestAtomicWriteConfiguration:
         """
         loader = GraphLoader(graphs_dir=tmp_path)
 
-        with patch('triads.km.graph_access.loader.atomic_write_json', side_effect=OSError("Write failed")):
+        # Mock at the actual import location (refactored to repository module)
+        with patch('triads.tools.knowledge.repository.atomic_write_json', side_effect=OSError("Write failed")):
             result = loader.save_graph("test", {"nodes": [], "edges": []})
 
         assert result is False
