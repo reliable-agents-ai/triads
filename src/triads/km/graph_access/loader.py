@@ -25,6 +25,9 @@ import re
 from pathlib import Path
 from typing import Any
 
+from triads.km.schema_validator import ValidationError, validate_graph
+from triads.utils.file_operations import atomic_write_json
+
 # Initialize module logger
 logger = logging.getLogger(__name__)
 
@@ -97,14 +100,16 @@ class GraphLoader:
         node, triad = loader.get_node('auth_decision')  # Find node
     """
 
-    def __init__(self, graphs_dir: Path | None = None) -> None:
+    def __init__(self, graphs_dir: Path | None = None, max_backups: int = 5) -> None:
         """Initialize loader with optional custom graphs directory.
 
         Args:
             graphs_dir: Path to graphs directory. Defaults to .claude/graphs/
+            max_backups: Maximum number of backups to keep per graph (default: 5)
         """
         self._cache: dict[str, dict[str, Any]] = {}
         self._graphs_dir = graphs_dir or Path(".claude/graphs")
+        self._max_backups = max_backups
 
     def list_triads(self) -> list[str]:
         """Return sorted list of available triad names from *_graph.json files.
@@ -133,27 +138,36 @@ class GraphLoader:
 
         return sorted(triads)
 
-    def load_graph(self, triad: str) -> dict[str, Any] | None:
+    def load_graph(self, triad: str, auto_restore: bool = False) -> dict[str, Any] | None:
         """Load single graph with caching. Return None if not found.
 
         Security:
             - Validates triad name (no path traversal)
             - Safe JSON parsing with error handling
+            - Optional auto-restore from backup on corruption
 
         Args:
             triad: Triad name (e.g., 'design', 'implementation')
+            auto_restore: If True, automatically restore from backup on corruption
 
         Returns:
             Graph data dictionary, or None if not found or invalid
 
         Raises:
             InvalidTriadNameError: If triad name contains invalid characters
+            Exception: If auto_restore=True but no backup exists
 
         Example:
             graph = loader.load_graph('design')
             if graph:
                 nodes = graph.get('nodes', [])
+
+            # With auto-restore
+            graph = loader.load_graph('design', auto_restore=True)
         """
+        # Import BackupManager here to avoid circular imports
+        from triads.km.backup_manager import BackupManager
+
         # Security: Validate triad name
         if not self._is_valid_triad_name(triad):
             raise InvalidTriadNameError(triad)
@@ -166,21 +180,7 @@ class GraphLoader:
         graph_file = self._graphs_dir / f"{triad}_graph.json"
 
         # Security: Verify resolved path is still under graphs directory
-        try:
-            resolved = graph_file.resolve()
-            graphs_resolved = self._graphs_dir.resolve()
-            if not str(resolved).startswith(str(graphs_resolved)):
-                # Path traversal attempt detected
-                logger.warning(
-                    "Path traversal attempt blocked",
-                    extra={"triad": triad, "requested_path": str(graph_file)}
-                )
-                return None
-        except (OSError, RuntimeError) as e:
-            logger.warning(
-                f"Failed to resolve graph path: {type(e).__name__}",
-                extra={"triad": triad, "error": str(e)}
-            )
+        if not self._validate_graph_path(graph_file, triad, "load"):
             return None
 
         # Load and parse JSON
@@ -209,6 +209,30 @@ class GraphLoader:
                 f"Failed to load graph: {type(e).__name__}",
                 extra={"triad": triad, "error": str(e), "file": str(graph_file)}
             )
+
+            # Try auto-restore if requested
+            if auto_restore:
+                backup_mgr = BackupManager(graphs_dir=self._graphs_dir)
+                backups = backup_mgr.list_backups(triad)
+
+                if not backups:
+                    raise Exception(
+                        f"Corrupted graph file with no backup available: {graph_file.name}"
+                    )
+
+                logger.info(
+                    "Attempting auto-restore from backup",
+                    extra={"triad": triad, "backup": backups[0]}
+                )
+
+                if backup_mgr.restore_latest(triad):
+                    # Clear cache and retry load
+                    if triad in self._cache:
+                        del self._cache[triad]
+                    # Recursive call without auto_restore to prevent infinite loop
+                    return self.load_graph(triad, auto_restore=False)
+                else:
+                    raise Exception(f"Failed to restore from backup: {triad}")
 
             # P0: USER-VISIBLE ERROR MESSAGES (v0.8.0-alpha.7)
             # Print to stderr for immediate user feedback with actionable fix steps
@@ -262,6 +286,104 @@ class GraphLoader:
             if graph:
                 graphs[triad] = graph
         return graphs
+
+    def save_graph(self, triad: str, graph_data: dict[str, Any], max_backups: int | None = None) -> bool:
+        """Save graph data using atomic file operations with locking.
+
+        Uses atomic_write_json to prevent corruption from concurrent writes
+        and crashes during write operations. Creates backup before write.
+
+        Security:
+            - Validates triad name (no path traversal)
+            - Uses atomic writes with file locking
+            - Auto-backup before writes
+            - Auto-restore on failure
+
+        Args:
+            triad: Triad name (e.g., 'design', 'implementation')
+            graph_data: Graph data dictionary to save
+
+        Returns:
+            True on success, False on failure
+
+        Raises:
+            InvalidTriadNameError: If triad name contains invalid characters
+
+        Example:
+            graph_data = {"nodes": [], "edges": []}
+            success = loader.save_graph('design', graph_data)
+            if success:
+                print("Graph saved successfully")
+        """
+        # Import BackupManager here to avoid circular imports
+        from triads.km.backup_manager import BackupManager
+
+        # Security: Validate triad name
+        if not self._is_valid_triad_name(triad):
+            raise InvalidTriadNameError(triad)
+
+        # Construct safe path
+        graph_file = self._graphs_dir / f"{triad}_graph.json"
+
+        # Security: Verify resolved path is still under graphs directory
+        if not self._validate_graph_path(graph_file, triad, "save"):
+            return False
+
+        # Validate graph schema before saving
+        try:
+            validate_graph(graph_data)
+        except ValidationError as e:
+            logger.error(
+                f"Graph validation failed: {e.message}",
+                extra={
+                    "triad": triad,
+                    "field": e.field,
+                    "error": e.message,
+                },
+            )
+            return False
+
+        # Create backup before write (if file exists)
+        # Use parameter if provided, else load from config, else use instance default
+        if max_backups is not None:
+            effective_max = max_backups
+        else:
+            effective_max = BackupManager.load_config(self._graphs_dir)
+
+        backup_mgr = BackupManager(graphs_dir=self._graphs_dir, max_backups=effective_max)
+        backup_created = backup_mgr.create_backup(triad)
+
+        # Save using atomic write with file locking
+        try:
+            atomic_write_json(graph_file, graph_data, lock=True, indent=2)
+            # Update cache with new data
+            self._cache[triad] = graph_data
+
+            # Prune old backups after successful write
+            if backup_created:
+                backup_mgr.prune_backups(triad, keep=effective_max)
+
+            return True
+
+        except (OSError, IOError) as e:
+            logger.error(
+                f"Failed to save graph: {type(e).__name__}",
+                extra={
+                    "triad": triad,
+                    "error": str(e),
+                    "file": str(graph_file),
+                },
+            )
+
+            # Try to restore from backup on failure
+            if backup_created:
+                logger.info(
+                    "Attempting to restore from backup after write failure",
+                    extra={"triad": triad}
+                )
+                backup_mgr.restore_latest(triad)
+
+            return False
 
     def get_node(
         self, node_id: str, triad: str | None = None
@@ -343,6 +465,44 @@ class GraphLoader:
             raise AmbiguousNodeError(node_id, triads)
 
         return found_nodes[0]
+
+    def _validate_graph_path(
+        self, graph_file: Path, triad: str, operation: str
+    ) -> bool:
+        """Validate graph file path to prevent path traversal attacks.
+
+        Security: Ensures resolved path stays within graphs directory.
+
+        Args:
+            graph_file: Path to validate
+            triad: Triad name for logging context
+            operation: Operation name for logging ("load" or "save")
+
+        Returns:
+            True if path is valid and safe, False otherwise
+        """
+        try:
+            resolved = graph_file.resolve()
+            graphs_resolved = self._graphs_dir.resolve()
+            if not str(resolved).startswith(str(graphs_resolved)):
+                # Path traversal attempt detected
+                logger.warning(
+                    f"Path traversal attempt blocked during {operation}",
+                    extra={
+                        "triad": triad,
+                        "requested_path": str(graph_file),
+                        "operation": operation,
+                    },
+                )
+                return False
+        except (OSError, RuntimeError) as e:
+            logger.warning(
+                f"Failed to resolve graph path during {operation}: {type(e).__name__}",
+                extra={"triad": triad, "error": str(e), "operation": operation},
+            )
+            return False
+
+        return True
 
     def _is_valid_triad_name(self, triad: str) -> bool:
         """Validate triad name contains only safe characters.
