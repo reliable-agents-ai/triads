@@ -55,12 +55,17 @@ class TestDualModeDecisionLogic:
             "cwd": str(REPO_ROOT)
         }
 
+        # Create clean environment without TRIADS_NO_BLOCK
+        env = subprocess.os.environ.copy()
+        env.pop("TRIADS_NO_BLOCK", None)  # Remove if exists
+
         result = subprocess.run(
             ["python3", str(HOOK_PATH)],
             input=json.dumps(input_data),
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            env=env
         )
 
         # Should BLOCK (exit 2)
@@ -87,12 +92,17 @@ class TestDualModeDecisionLogic:
             "cwd": str(REPO_ROOT)
         }
 
+        # Create clean environment without TRIADS_NO_BLOCK
+        env = subprocess.os.environ.copy()
+        env.pop("TRIADS_NO_BLOCK", None)
+
         result = subprocess.run(
             ["python3", str(HOOK_PATH)],
             input=json.dumps(input_data),
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            env=env
         )
 
         # Should BLOCK (marketplace.json is in VERSION_FILE_PATTERNS)
@@ -110,12 +120,17 @@ class TestDualModeDecisionLogic:
             "cwd": str(REPO_ROOT)
         }
 
+        # Create clean environment without TRIADS_NO_BLOCK
+        env = subprocess.os.environ.copy()
+        env.pop("TRIADS_NO_BLOCK", None)
+
         result = subprocess.run(
             ["python3", str(HOOK_PATH)],
             input=json.dumps(input_data),
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            env=env
         )
 
         # Should BLOCK
@@ -138,12 +153,17 @@ class TestDualModeDecisionLogic:
             "cwd": str(REPO_ROOT)
         }
 
+        # Create clean environment without TRIADS_NO_BLOCK
+        env = subprocess.os.environ.copy()
+        env.pop("TRIADS_NO_BLOCK", None)
+
         result = subprocess.run(
             ["python3", str(HOOK_PATH)],
             input=json.dumps(input_data),
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            env=env
         )
 
         # Should BLOCK (confidence=1.0 >= 0.95)
