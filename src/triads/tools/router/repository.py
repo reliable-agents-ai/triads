@@ -3,11 +3,15 @@
 Abstracts access to routing and state management functionality.
 """
 
+import logging
 import uuid
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Optional
 
 from triads.tools.router.domain import RoutingDecision, RouterState
+
+logger = logging.getLogger(__name__)
 
 
 class RouterRepositoryError(Exception):
@@ -150,3 +154,106 @@ class InMemoryRouterRepository(AbstractRouterRepository):
             state: RouterState to save
         """
         self._state = state
+
+
+class FileSystemRouterRepository(AbstractRouterRepository):
+    """File system-based router repository.
+
+    Provides routing and state management using the actual TriadRouter
+    and RouterStateManager implementations. This is the production repository.
+
+    Architecture:
+    - Uses triads.router.router.TriadRouter for routing logic
+    - Uses triads.router.state_manager.RouterStateManager for state persistence
+    - Maps between domain models (tools.router.domain) and router models
+    """
+
+    def __init__(
+        self,
+        config_path: Optional[Path] = None,
+        state_path: Optional[Path] = None
+    ):
+        """Initialize file system repository.
+
+        Args:
+            config_path: Path to router config.json (default: ~/.claude/router/config.json)
+            state_path: Path to router state file (default: ~/.claude/router_state.json)
+        """
+        # Import here to avoid circular dependencies
+        from triads.router.router import TriadRouter
+        from triads.router.state_manager import RouterStateManager
+
+        # Initialize router components
+        self.router = TriadRouter(config_path=config_path, state_path=state_path)
+        self.state_manager = RouterStateManager(state_path=state_path)
+
+    def route_prompt(self, prompt: str) -> RoutingDecision:
+        """Route prompt using TriadRouter.
+
+        Args:
+            prompt: User's input prompt
+
+        Returns:
+            RoutingDecision with triad, confidence, method
+
+        Raises:
+            RouterRepositoryError: If routing fails or prompt is empty
+        """
+        if not prompt or not prompt.strip():
+            raise RouterRepositoryError("Prompt cannot be empty")
+
+        try:
+            # Call TriadRouter.route() which returns dict
+            result = self.router.route(prompt)
+
+            # Map router result to domain RoutingDecision
+            # Router returns: {triad, confidence, method, reasoning, ...}
+            return RoutingDecision(
+                triad=result["triad"],
+                confidence=result["confidence"],
+                method=result["method"],
+                reasoning=result.get("reasoning")
+            )
+
+        except Exception as e:
+            logger.error(f"Routing failed: {e}")
+            raise RouterRepositoryError(f"Routing failed: {e}") from e
+
+    def load_state(self) -> RouterState:
+        """Load router state from file system.
+
+        Returns:
+            RouterState with current triad and session information
+        """
+        # Load state using RouterStateManager
+        state = self.state_manager.load()
+
+        # Map router.state_manager.RouterState to tools.router.domain.RouterState
+        return RouterState(
+            current_triad=state.active_triad,
+            session_id=state.session_id,
+            turn_count=state.turn_count,
+            conversation_start=state.conversation_start,
+            last_activity=state.last_activity
+        )
+
+    def save_state(self, state: RouterState) -> None:
+        """Save router state to file system.
+
+        Args:
+            state: RouterState to persist
+        """
+        # Import here to avoid circular dependencies
+        from triads.router.state_manager import RouterState as RouterStateImpl
+
+        # Map tools.router.domain.RouterState to router.state_manager.RouterState
+        impl_state = RouterStateImpl(
+            session_id=state.session_id,
+            active_triad=state.current_triad,
+            conversation_start=state.conversation_start,
+            turn_count=state.turn_count,
+            last_activity=state.last_activity
+        )
+
+        # Save using RouterStateManager
+        self.state_manager.save(impl_state)

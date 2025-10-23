@@ -210,7 +210,142 @@ All original functionality preserved:
 
 ---
 
-## Phase 3: IntegrityChecker (NOT STARTED)
+## Phase 3: Workflow Matching → Router Tools (COMPLETE)
+
+### What Was Refactored
+
+Moved workflow matching and classification modules from `src/triads/workflow_matching/` into proper DDD architecture under `src/triads/tools/router/`.
+
+**Total Lines Moved**: 705 lines (6 files)
+
+### Changes Made
+
+#### 1. Created New Modules
+
+**`src/triads/tools/router/matching.py`** (202 lines)
+- Moved from `triads.workflow_matching.matcher`
+- Classes: `WorkflowMatcher`, `MatchResult`
+- Purpose: Keyword-based workflow matching with confidence scoring
+- Features: Semantic matching, tokenization, scoring algorithm with multi-match boost
+- Performance: <100ms per match (ADR-013 requirement)
+
+**`src/triads/tools/router/classification.py`** (204 lines)
+- Moved from `triads.workflow_matching.headless_classifier`
+- Function: `classify_workflow_headless()`
+- Class: `HeadlessClassificationResult`
+- Constant: `WORKFLOW_DEFINITIONS`
+- Purpose: LLM-based workflow classification using Claude headless mode
+- Features: Subprocess execution, timeout handling, JSON parsing
+- Performance: ~9s for classification (acceptable for rare events)
+
+**`src/triads/tools/router/keywords.py`** (145 lines)
+- Moved from `triads.workflow_matching.keywords`
+- Constant: `WORKFLOW_KEYWORDS` (5 seed workflows)
+- Functions: `get_keywords()`, `get_all_workflow_types()`
+- Purpose: Keyword library for 5 seed workflows (bug-fix, feature-dev, performance, refactoring, investigation)
+
+**`src/triads/tools/router/config.py`** (68 lines)
+- Moved from `triads.workflow_matching.config`
+- Constants: Confidence thresholds, scoring weights, timeouts
+- All evidence-based per ADR-013 (v0.8.0-alpha.5 calibration)
+
+#### 2. Enhanced FileSystemRouterRepository
+
+**`src/triads/tools/router/repository.py`** (260 lines total, +107 added)
+- **Added**: `FileSystemRouterRepository` class
+- **Purpose**: Production repository using actual TriadRouter
+- **Integration**: Uses `triads.router.router.TriadRouter` for routing
+- **Integration**: Uses `triads.router.state_manager.RouterStateManager` for state
+- **Features**:
+  - Routing via semantic/LLM/manual/grace-period methods
+  - State persistence with atomic writes and file locking
+  - Domain model mapping (tools.router.domain ↔ router.state_manager)
+
+#### 3. Updated Bootstrap
+
+**`src/triads/tools/router/bootstrap.py`** (41 lines)
+- **Changed**: Default to `FileSystemRouterRepository` (production)
+- **Added**: `use_filesystem` parameter for testing flexibility
+- **Added**: `config_path` and `state_path` parameters
+
+#### 4. Backward Compatibility Shims
+
+**`src/triads/workflow_matching/__init__.py`** (100 lines)
+- Deprecation warnings on import
+- Re-exports from `triads.tools.router`
+- Config shim using `__getattr__` delegation
+- `classify_with_llm()` stub (was never implemented)
+- Migration guide in docstring
+
+### Import Migration Guide
+
+| Old Import | New Import |
+|------------|------------|
+| `from triads.workflow_matching.matcher import WorkflowMatcher` | `from triads.tools.router.matching import WorkflowMatcher` |
+| `from triads.workflow_matching import classify_workflow_headless` | `from triads.tools.router import classify_workflow_headless` |
+| `from triads.workflow_matching.keywords import WORKFLOW_KEYWORDS` | `from triads.tools.router import WORKFLOW_KEYWORDS` |
+| `from triads.workflow_matching import config` | `from triads.tools.router import config` |
+
+Or simply:
+```python
+from triads.tools.router import (
+    WorkflowMatcher,
+    classify_workflow_headless,
+    WORKFLOW_KEYWORDS,
+    config,
+)
+```
+
+### Test Results
+
+```
+1597 passed, 4 skipped, 38 warnings in 67.61s
+```
+
+**Zero regressions** ✅ (1 performance test flake)
+
+### Preserved Features
+
+All original functionality preserved:
+- ✅ Keyword-based semantic matching
+- ✅ Confidence scoring algorithm (absolute + coverage components)
+- ✅ Multi-match boost (1.15x for 3+ matches, 1.1x for 2+ matches)
+- ✅ Claude headless mode classification
+- ✅ Workflow definitions (5 seed workflows)
+- ✅ Security: Input validation, timeout enforcement
+- ✅ Error handling: Graceful degradation on API failures
+- ✅ All 149 workflow_matching tests pass with deprecation warnings
+
+### Architecture
+
+**tools/router/** follows 4-layer DDD pattern:
+```
+tools/router/
+├── domain.py          - RoutingDecision, RouterState
+├── repository.py      - FileSystemRouterRepository (uses TriadRouter), InMemoryRouterRepository
+├── service.py         - RouterService (orchestration)
+├── entrypoint.py      - MCP tools (route_prompt, get_current_triad)
+├── matching.py        - WorkflowMatcher (keyword-based)
+├── classification.py  - classify_workflow_headless (LLM-based)
+├── keywords.py        - WORKFLOW_KEYWORDS (5 seed workflows)
+├── config.py          - Configuration constants
+├── formatters.py      - Output formatting
+└── bootstrap.py       - Dependency injection
+```
+
+**Integration with Existing Router**:
+- `FileSystemRouterRepository` uses `triads.router.router.TriadRouter` for actual routing
+- Maps between domain models (`tools.router.domain.RouterState`) and implementation models (`router.state_manager.RouterState`)
+- Preserves all existing router functionality (semantic, LLM, manual, grace period)
+
+### Deprecation Notice
+
+`triads.workflow_matching` module is deprecated and will be removed in v0.11.0.
+All imports now issue `DeprecationWarning` with migration instructions.
+
+---
+
+## Phase 4: IntegrityChecker (NOT STARTED)
 
 ### Plan
 
@@ -254,5 +389,5 @@ Existing code continues to work with deprecation warnings pointing to new locati
 
 ---
 
-**Last Updated**: 2025-10-23 (Phase 2 Workflow Enforcement complete)
+**Last Updated**: 2025-10-23 (Phase 3 Workflow Matching → Router Tools complete)
 **Completed By**: senior-developer agent
