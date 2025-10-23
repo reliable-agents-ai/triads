@@ -64,9 +64,9 @@ def validate_graph_structure(graph_data: Any) -> bool:
     if "nodes" not in graph_data:
         raise ValidationError("Graph must have 'nodes' key", field="nodes")
 
-    # Must have 'edges' key
-    if "edges" not in graph_data:
-        raise ValidationError("Graph must have 'edges' key", field="edges")
+    # Must have 'edges' or 'links' key (NetworkX uses 'links')
+    if "edges" not in graph_data and "links" not in graph_data:
+        raise ValidationError("Graph must have 'edges' or 'links' key", field="edges")
 
     # Nodes must be a list
     if not isinstance(graph_data["nodes"], list):
@@ -75,11 +75,12 @@ def validate_graph_structure(graph_data: Any) -> bool:
             field="nodes",
         )
 
-    # Edges must be a list
-    if not isinstance(graph_data["edges"], list):
+    # Edges/links must be a list
+    edges_key = "edges" if "edges" in graph_data else "links"
+    if not isinstance(graph_data[edges_key], list):
         raise ValidationError(
-            f"Edges must be a list, got {type(graph_data['edges']).__name__}",
-            field="edges",
+            f"Edges must be a list, got {type(graph_data[edges_key]).__name__}",
+            field=edges_key,
         )
 
     return True
@@ -126,8 +127,8 @@ def validate_node(node: dict[str, Any], index: int) -> bool:
             field=f"nodes[{index}].type",
         )
 
-    # Type must be valid
-    if node["type"] not in VALID_NODE_TYPES:
+    # Type must be valid (case-insensitive)
+    if node["type"].lower() not in VALID_NODE_TYPES:
         raise ValidationError(
             f"Node at index {index} (id: {node.get('id')}) has invalid type '{node['type']}'. "
             f"Valid types: {', '.join(sorted(VALID_NODE_TYPES))}",
@@ -224,15 +225,16 @@ def validate_graph(graph_data: Any) -> bool:
         validate_node(node, i)
         node_ids.add(node["id"])
 
-    # Validate each edge
-    for i, edge in enumerate(graph_data["edges"]):
+    # Validate each edge (handle both 'edges' and 'links' keys)
+    edges_key = "edges" if "edges" in graph_data else "links"
+    for i, edge in enumerate(graph_data[edges_key]):
         validate_edge(edge, i, node_ids)
 
     logger.debug(
         "Graph validation successful",
         extra={
             "nodes_count": len(graph_data["nodes"]),
-            "edges_count": len(graph_data["edges"]),
+            "edges_count": len(graph_data[edges_key]),
         },
     )
 
