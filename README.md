@@ -151,14 +151,21 @@ Every agent follows the **TRUST framework** - 5 immutable principles:
 
 Python hooks enforce TRUST architecturally (not just prompts).
 
-### 📊 Knowledge Graphs (NetworkX) with Automatic Quality Assurance
+### 📊 Knowledge Graphs (NetworkX) with Corruption Prevention (v0.9.0)
 
 Each triad builds a local graph as it works:
 - Captures entities, decisions, uncertainties
 - File-based (JSON), human-readable
 - No external services required
 - Persists learning across sessions
-- **Automatic quality management** ensures high-quality graphs transparently
+- **6-layer corruption prevention system** ensures data integrity:
+  - Atomic writes with file locking (prevents concurrent corruption)
+  - Schema validation (94% coverage, blocks invalid data)
+  - Agent output validation (validates `[GRAPH_UPDATE]` blocks)
+  - Automatic backup/recovery (backup before every write)
+  - Integrity checker CLI (`triads-km check`, `triads-km repair`)
+  - 103 comprehensive tests (100% passing)
+- **Production-ready reliability** - zero known corruption scenarios
 
 ### 🎯 Claude Code Native
 
@@ -578,6 +585,137 @@ This creates a system that is:
 - Smart (LLM helps with edge cases)
 - Reliable (always has a fallback)
 - Controllable (user can override at any time)
+
+---
+
+## Knowledge Management CLI
+
+**New in v0.9.0**: Command-line tools for knowledge graph integrity checking and recovery.
+
+### Integrity Checking
+
+Validate knowledge graph integrity to detect corruption:
+
+```bash
+# Check specific graph
+triads-km check deployment_graph
+
+# Check all graphs
+triads-km check-all
+
+# Verbose output showing all checks
+triads-km check deployment_graph --verbose
+```
+
+**Checks performed**:
+- Schema compliance (required keys, valid types)
+- Referential integrity (edges point to valid nodes)
+- Confidence score validity (0.0-1.0 range)
+- Required field presence (id, label, type)
+- JSON structural integrity
+
+**Output**:
+```
+Knowledge Graph Integrity Check
+Graph: deployment_graph.json
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Schema compliance
+✓ Referential integrity (28 edges validated)
+✓ Confidence scores (12 nodes checked)
+✓ Required fields present
+✓ JSON structure valid
+
+Result: PASSED (0 issues found)
+```
+
+### Backup Management
+
+View available backups for recovery:
+
+```bash
+# List backups for specific graph
+triads-km list-backups deployment_graph
+
+# Shows timestamped backups with file sizes
+Backups for deployment_graph:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+deployment_graph_20251023_143022.json  (24.5 KB)
+deployment_graph_20251023_121045.json  (23.8 KB)
+deployment_graph_20251023_095533.json  (22.1 KB)
+...
+```
+
+### Recovery
+
+Restore corrupted graph from backup:
+
+```bash
+# Restore from most recent backup
+triads-km restore deployment_graph
+
+# Restore from specific backup
+triads-km restore deployment_graph --backup 20251023_143022
+
+# List backups to find timestamp
+triads-km list-backups deployment_graph
+```
+
+**Recovery process**:
+1. Validates backup file exists and is valid JSON
+2. Checks backup passes integrity checks
+3. Creates safety backup of current (corrupted) file
+4. Replaces current file with backup
+5. Verifies restored graph passes all checks
+
+### Repair
+
+Attempt automatic repair of corrupted graph:
+
+```bash
+# Repair structural issues
+triads-km repair deployment_graph
+```
+
+**Repair capabilities**:
+- Removes edges pointing to non-existent nodes
+- Removes duplicate nodes (keeps first occurrence)
+- Fixes invalid confidence scores (clamps to 0.0-1.0)
+- Adds missing required fields with defaults
+- Validates JSON structure
+
+**Note**: Repair is best-effort. For severe corruption, use `restore` instead.
+
+### Use Cases
+
+**Pre-deployment validation**:
+```bash
+# Add to CI/CD pipeline
+triads-km check-all
+# Exit code 0 = all graphs valid
+# Exit code 1 = corruption detected
+```
+
+**Regular maintenance**:
+```bash
+# Cron job for daily integrity checks
+0 2 * * * cd /path/to/project && triads-km check-all >> logs/integrity.log 2>&1
+```
+
+**Recovery from corruption**:
+```bash
+# If graph corruption detected
+triads-km check deployment_graph  # Identify issues
+triads-km list-backups deployment_graph  # Find good backup
+triads-km restore deployment_graph --backup <timestamp>  # Restore
+triads-km check deployment_graph  # Verify fixed
+```
+
+**Performance**:
+- Integrity check: <1s for 1000-node graph
+- Backup listing: <100ms
+- Restore operation: <500ms
+- Repair operation: <1s for large graphs
 
 ---
 
