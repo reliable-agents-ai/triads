@@ -112,6 +112,11 @@ def test_get_status_empty_directory(temp_graphs_dir, monkeypatch):
     empty_dir = temp_graphs_dir / "empty"
     empty_dir.mkdir()
 
+    # Reset singleton to force new instance creation
+    import triads.km.graph_access.commands as commands_module
+    monkeypatch.setattr(commands_module, "_loader", None)
+    monkeypatch.setattr(commands_module, "_searcher", None)
+
     original_init = graph_access.GraphLoader.__init__
 
     def patched_init(self, graphs_dir=None):
@@ -199,6 +204,11 @@ def test_show_node_ambiguous(temp_graphs_dir, monkeypatch):
 
     (temp_graphs_dir / "design_graph.json").write_text(json.dumps(graph1))
     (temp_graphs_dir / "implementation_graph.json").write_text(json.dumps(graph2))
+
+    # Reset singleton to force new instance creation
+    import triads.km.graph_access.commands as commands_module
+    monkeypatch.setattr(commands_module, "_loader", None)
+    monkeypatch.setattr(commands_module, "_searcher", None)
 
     original_init = graph_access.GraphLoader.__init__
 
