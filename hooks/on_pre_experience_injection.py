@@ -759,8 +759,20 @@ def main():
             claude_dir = Path(cwd) / ".claude"
             engine = ExperienceQueryEngine(graphs_dir=claude_dir / "graphs")
         except Exception as e:
-            print(f"Warning: Could not initialize query engine: {e}", file=sys.stderr)
-            sys.exit(0)
+            # P0: CATCH-22 PREVENTION (v0.8.0-alpha.7)
+            # Hook errors must NEVER block user operations
+            print(
+                f"\n⚠️  Experience Hook Error (non-blocking):\n"
+                f"   Could not initialize query engine: {e}\n"
+                f"\n"
+                f"   This is likely due to corrupted knowledge graphs.\n"
+                f"   Hook will not inject context, but your operation will proceed.\n"
+                f"\n"
+                f"   To fix: Check .claude/graphs/ for corrupted JSON files.\n"
+                f"   See error messages above for specific file details.\n",
+                file=sys.stderr
+            )
+            sys.exit(0)  # EXIT 0: Never block on hook errors
 
         # Query for relevant knowledge
         try:
@@ -770,8 +782,20 @@ def main():
                 cwd=cwd
             )
         except Exception as e:
-            print(f"Warning: Query failed: {e}", file=sys.stderr)
-            sys.exit(0)
+            # P0: CATCH-22 PREVENTION (v0.8.0-alpha.7)
+            # Hook errors must NEVER block user operations
+            print(
+                f"\n⚠️  Experience Hook Error (non-blocking):\n"
+                f"   Knowledge query failed: {e}\n"
+                f"\n"
+                f"   This is likely due to corrupted knowledge graphs.\n"
+                f"   Hook will not inject context, but your operation will proceed.\n"
+                f"\n"
+                f"   To fix: Check .claude/graphs/ for corrupted JSON files.\n"
+                f"   See error messages above for specific file details.\n",
+                file=sys.stderr
+            )
+            sys.exit(0)  # EXIT 0: Never block on hook errors
 
         # No relevant knowledge? Exit silently
         if not relevant_knowledge:

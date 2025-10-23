@@ -209,6 +209,39 @@ class GraphLoader:
                 f"Failed to load graph: {type(e).__name__}",
                 extra={"triad": triad, "error": str(e), "file": str(graph_file)}
             )
+
+            # P0: USER-VISIBLE ERROR MESSAGES (v0.8.0-alpha.7)
+            # Print to stderr for immediate user feedback with actionable fix steps
+            import sys
+
+            if isinstance(e, json.JSONDecodeError):
+                print(
+                    f"\n⚠️  Corrupted Knowledge Graph Detected:\n"
+                    f"   File: {graph_file.name}\n"
+                    f"   Error: {e.msg} at line {e.lineno}, column {e.colno}\n"
+                    f"\n"
+                    f"   EMERGENCY BYPASS (if hook is blocking fixes):\n"
+                    f"   export TRIADS_NO_BLOCK=1\n"
+                    f"   # Then restart Claude Code\n"
+                    f"\n"
+                    f"   To fix the corrupted graph:\n"
+                    f"   1. Validate JSON: python3 -m json.tool {graph_file}\n"
+                    f"   2. Or delete to regenerate: rm {graph_file}\n"
+                    f"\n"
+                    f"   Hook will continue with other valid graphs.\n",
+                    file=sys.stderr
+                )
+            elif isinstance(e, (OSError, UnicodeDecodeError)):
+                print(
+                    f"\n⚠️  Failed to Read Knowledge Graph:\n"
+                    f"   File: {graph_file.name}\n"
+                    f"   Error: {type(e).__name__}: {str(e)}\n"
+                    f"\n"
+                    f"   Check file permissions and encoding.\n"
+                    f"   Hook will continue with other valid graphs.\n",
+                    file=sys.stderr
+                )
+
             return None
 
     def load_all_graphs(self) -> dict[str, dict[str, Any]]:
