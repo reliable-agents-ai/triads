@@ -290,7 +290,7 @@ Use the Task tool to invoke **{next_agent}**:
 
 subagent_type: "{next_agent}"
 description: "Handoff from {agent_name}"
-prompt: """
+prompt: \"\"\"
 **Handoff from {agent_name}**
 
 I have completed my work on [brief description of what you did].
@@ -319,7 +319,7 @@ I have completed my work on [brief description of what you did].
 **My updates**: [List node IDs or labels I added]
 
 Please proceed with {next_agent_role}.
-"""
+\"\"\"
 ```
 
 **3. Do NOT Proceed Without Handoff**

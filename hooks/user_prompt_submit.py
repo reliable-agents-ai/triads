@@ -64,6 +64,7 @@ def detect_work_request(user_message: str) -> dict:
         'how does', 'how do', 'how to',
         'explain', 'tell me about', 'tell me how',
         'can you explain', 'could you explain',
+        'can you', 'could you', 'would you',
         'describe', 'why is', 'why does',
         'when should', 'where is', 'where does',
         'who is', 'which is'
@@ -392,7 +393,7 @@ def format_supervisor_instructions() -> str:
     lines.append("")
     lines.append("## RULES OF ENGAGEMENT")
     lines.append("")
-    lines.append("**ROE 1: TRIAGE PROTOCOL**")
+    lines.append("**ROE 1: TRIAGE PROTOCOL** (Triage every message)")
     lines.append("- CLASSIFY every user message as Q&A OR work request")
     lines.append("")
     lines.append("**Q&A Indicators (NOT work requests)**:")
@@ -400,6 +401,7 @@ def format_supervisor_instructions() -> str:
     lines.append("- how does, how do, how to")
     lines.append("- explain, tell me about, describe")
     lines.append("- can you explain, could you explain")
+    lines.append("- can you, could you, would you")
     lines.append("- why is, why does")
     lines.append("- when should, where is, who is, which is")
     lines.append("")
@@ -421,7 +423,7 @@ def format_supervisor_instructions() -> str:
     lines.append("- Provide concise, accurate responses")
     lines.append("")
     lines.append("**ROE 3: TRIAD ATOMICITY (NON-NEGOTIABLE)**")
-    lines.append("- Triads are ATOMIC units")
+    lines.append("- Triads are ATOMIC units - NEVER decompose them")
     lines.append("- YOU SHALL NOT decompose triads")
     lines.append("- YOU SHALL NOT extract individual agents")
     lines.append("- Triads MUST complete internally before handoff")
