@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from triads.router import (
+from triads.tools.router import (
     NotificationBuilder,
     RouterCLI,
     RouterConfig,
@@ -98,9 +98,9 @@ class TestRouterIntegration:
 
         # Patch RouterEmbedder and SemanticRouter to avoid file dependencies
         with patch(
-            "triads.router.router.RouterEmbedder"
+            "triads.tools.router.router.RouterEmbedder"
         ) as mock_embedder_class, patch(
-            "triads.router.router.SemanticRouter"
+            "triads.tools.router.router.SemanticRouter"
         ) as mock_semantic_router_class:
             mock_embedder = MagicMock()
             mock_embedder_class.return_value = mock_embedder
@@ -134,8 +134,8 @@ class TestRouterIntegration:
         """Test grace period prevents re-routing."""
         monkeypatch.setenv("HOME", str(mock_triad_routes.parent.parent))
 
-        with patch("triads.router.router.RouterEmbedder") as mock_embedder_class, patch(
-            "triads.router.router.SemanticRouter"
+        with patch("triads.tools.router.router.RouterEmbedder") as mock_embedder_class, patch(
+            "triads.tools.router.router.SemanticRouter"
         ) as mock_semantic_router_class:
             mock_embedder = MagicMock()
             mock_embedder_class.return_value = mock_embedder
@@ -169,8 +169,8 @@ class TestRouterIntegration:
         # Ensure no API key
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
-        with patch("triads.router.router.RouterEmbedder") as mock_embedder_class, patch(
-            "triads.router.router.SemanticRouter"
+        with patch("triads.tools.router.router.RouterEmbedder") as mock_embedder_class, patch(
+            "triads.tools.router.router.SemanticRouter"
         ) as mock_semantic_router_class:
             mock_embedder = MagicMock()
             mock_embedder_class.return_value = mock_embedder
@@ -403,11 +403,11 @@ class TestRouterCLI:
     def test_status_no_active_triad(self, temp_state_path, mock_config):
         """Test status with no active triad."""
         with patch(
-            "triads.router.cli.RouterStateManager"
+            "triads.tools.router.cli.RouterStateManager"
         ) as mock_state_manager_class, patch(
-            "triads.router.cli.RouterConfig"
+            "triads.tools.router.cli.RouterConfig"
         ) as mock_config_class, patch(
-            "triads.router.cli.TelemetryLogger"
+            "triads.tools.router.cli.TelemetryLogger"
         ):
             mock_state_manager = MagicMock()
             mock_state = MagicMock()
@@ -428,11 +428,11 @@ class TestRouterCLI:
     def test_switch_triad_valid(self, temp_state_path, mock_config):
         """Test switching to valid triad."""
         with patch(
-            "triads.router.cli.RouterStateManager"
+            "triads.tools.router.cli.RouterStateManager"
         ) as mock_state_manager_class, patch(
-            "triads.router.cli.RouterConfig"
+            "triads.tools.router.cli.RouterConfig"
         ) as mock_config_class, patch(
-            "triads.router.cli.TelemetryLogger"
+            "triads.tools.router.cli.TelemetryLogger"
         ):
             mock_state_manager = MagicMock()
             mock_state = MagicMock()
@@ -451,9 +451,9 @@ class TestRouterCLI:
     def test_switch_triad_invalid(self, temp_state_path, mock_config):
         """Test switching to invalid triad."""
         with patch(
-            "triads.router.cli.RouterConfig"
+            "triads.tools.router.cli.RouterConfig"
         ) as mock_config_class, patch(
-            "triads.router.cli.TelemetryLogger"
+            "triads.tools.router.cli.TelemetryLogger"
         ):
             mock_config_inst = MagicMock()
             mock_config_inst.telemetry_enabled = False
@@ -467,11 +467,11 @@ class TestRouterCLI:
     def test_reset(self, temp_state_path, mock_config):
         """Test state reset."""
         with patch(
-            "triads.router.cli.RouterStateManager"
+            "triads.tools.router.cli.RouterStateManager"
         ) as mock_state_manager_class, patch(
-            "triads.router.cli.RouterConfig"
+            "triads.tools.router.cli.RouterConfig"
         ) as mock_config_class, patch(
-            "triads.router.cli.TelemetryLogger"
+            "triads.tools.router.cli.TelemetryLogger"
         ):
             mock_state_manager = MagicMock()
             mock_state_manager_class.return_value = mock_state_manager
@@ -489,9 +489,9 @@ class TestRouterCLI:
     def test_training_mode_on(self, temp_state_path, mock_config):
         """Test enabling training mode."""
         with patch(
-            "triads.router.cli.RouterConfig"
+            "triads.tools.router.cli.RouterConfig"
         ) as mock_config_class, patch(
-            "triads.router.cli.TelemetryLogger"
+            "triads.tools.router.cli.TelemetryLogger"
         ):
             mock_config_inst = MagicMock()
             mock_config_inst.training_mode = False
@@ -506,9 +506,9 @@ class TestRouterCLI:
     def test_training_mode_off(self, temp_state_path, mock_config):
         """Test disabling training mode."""
         with patch(
-            "triads.router.cli.RouterConfig"
+            "triads.tools.router.cli.RouterConfig"
         ) as mock_config_class, patch(
-            "triads.router.cli.TelemetryLogger"
+            "triads.tools.router.cli.TelemetryLogger"
         ):
             mock_config_inst = MagicMock()
             mock_config_inst.training_mode = True
@@ -523,9 +523,9 @@ class TestRouterCLI:
     def test_training_mode_invalid(self, temp_state_path, mock_config):
         """Test invalid training mode argument."""
         with patch(
-            "triads.router.cli.RouterConfig"
+            "triads.tools.router.cli.RouterConfig"
         ) as mock_config_class, patch(
-            "triads.router.cli.TelemetryLogger"
+            "triads.tools.router.cli.TelemetryLogger"
         ):
             mock_config_inst = MagicMock()
             mock_config_inst.telemetry_enabled = False
@@ -539,9 +539,9 @@ class TestRouterCLI:
     def test_stats_no_data(self, temp_state_path, mock_config):
         """Test stats with no telemetry data."""
         with patch(
-            "triads.router.cli.RouterConfig"
+            "triads.tools.router.cli.RouterConfig"
         ) as mock_config_class, patch(
-            "triads.router.cli.TelemetryLogger"
+            "triads.tools.router.cli.TelemetryLogger"
         ):
             mock_config_inst = MagicMock()
             mock_config_inst.telemetry_enabled = False

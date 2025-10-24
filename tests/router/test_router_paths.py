@@ -2,7 +2,7 @@
 from pathlib import Path
 import tempfile
 
-from triads.router.router_paths import RouterPaths, DEFAULT_PATHS
+from triads.tools.router._router_paths import RouterPaths, DEFAULT_PATHS
 
 
 class TestRouterPaths:

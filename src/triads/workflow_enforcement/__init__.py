@@ -13,6 +13,8 @@ DEPRECATION NOTICE (v0.10.0):
     - triads.tools.workflow.audit (AuditLogger)
     - triads.tools.workflow.bypass (EmergencyBypass)
     - triads.tools.workflow.git_utils (GitRunner)
+    - triads.tools.workflow.metrics (MetricsProvider, MetricsResult, CodeMetricsProvider)
+    - triads.tools.workflow.repository (AbstractWorkflowRepository, FileSystemWorkflowRepository)
 
 Migration Guide:
     OLD: from triads.workflow_enforcement.validator_new import WorkflowValidator
@@ -38,19 +40,67 @@ warnings.warn(
 )
 
 # Re-export from new locations (moved to tools/workflow in v0.10.0)
-from triads.tools.workflow.validation import WorkflowValidator, ValidationResult
-from triads.tools.workflow.schema import WorkflowSchemaLoader, WorkflowSchema
-from triads.tools.workflow.discovery import TriadDiscovery, TriadInfo
-from triads.tools.workflow.audit import AuditLogger
-from triads.tools.workflow.bypass import EmergencyBypass, check_bypass
-from triads.tools.workflow.git_utils import GitRunner, GitCommandError
-
-# Still in old location (enforcement_new uses old modules)
-from triads.workflow_enforcement.enforcement_new import WorkflowEnforcer, EnforcementResult
-from triads.workflow_enforcement.instance_manager import WorkflowInstanceManager, WorkflowInstance
-from triads.workflow_enforcement.state_manager import WorkflowStateManager
-from triads.workflow_enforcement.metrics.base import MetricsProvider, MetricsResult
-from triads.workflow_enforcement.metrics.code_metrics import CodeMetricsProvider
+# Import these lazily to avoid circular imports
+def __getattr__(name):
+    """Lazy import to avoid circular imports."""
+    if name == "WorkflowValidator":
+        from triads.tools.workflow.validation import WorkflowValidator
+        return WorkflowValidator
+    elif name == "ValidationResult":
+        from triads.tools.workflow.validation import ValidationResult
+        return ValidationResult
+    elif name == "WorkflowSchemaLoader":
+        from triads.tools.workflow.schema import WorkflowSchemaLoader
+        return WorkflowSchemaLoader
+    elif name == "WorkflowSchema":
+        from triads.tools.workflow.schema import WorkflowSchema
+        return WorkflowSchema
+    elif name == "TriadDiscovery":
+        from triads.tools.workflow.discovery import TriadDiscovery
+        return TriadDiscovery
+    elif name == "TriadInfo":
+        from triads.tools.workflow.discovery import TriadInfo
+        return TriadInfo
+    elif name == "AuditLogger":
+        from triads.tools.workflow.audit import AuditLogger
+        return AuditLogger
+    elif name == "EmergencyBypass":
+        from triads.tools.workflow.bypass import EmergencyBypass
+        return EmergencyBypass
+    elif name == "check_bypass":
+        from triads.tools.workflow.bypass import check_bypass
+        return check_bypass
+    elif name == "GitRunner":
+        from triads.tools.workflow.git_utils import GitRunner
+        return GitRunner
+    elif name == "GitCommandError":
+        from triads.tools.workflow.git_utils import GitCommandError
+        return GitCommandError
+    elif name == "WorkflowEnforcer":
+        from triads.tools.workflow.enforcement import WorkflowEnforcer
+        return WorkflowEnforcer
+    elif name == "EnforcementResult":
+        from triads.tools.workflow.enforcement import EnforcementResult
+        return EnforcementResult
+    elif name == "MetricsProvider":
+        from triads.tools.workflow.metrics import MetricsProvider
+        return MetricsProvider
+    elif name == "MetricsResult":
+        from triads.tools.workflow.metrics import MetricsResult
+        return MetricsResult
+    elif name == "CodeMetricsProvider":
+        from triads.tools.workflow.metrics import CodeMetricsProvider
+        return CodeMetricsProvider
+    elif name == "WorkflowInstanceManager":
+        from triads.workflow_enforcement.instance_manager import WorkflowInstanceManager
+        return WorkflowInstanceManager
+    elif name == "WorkflowInstance":
+        from triads.workflow_enforcement.instance_manager import WorkflowInstance
+        return WorkflowInstance
+    elif name == "WorkflowStateManager":
+        from triads.workflow_enforcement.state_manager import WorkflowStateManager
+        return WorkflowStateManager
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 __all__ = [
     # Primary exports (v0.7+)

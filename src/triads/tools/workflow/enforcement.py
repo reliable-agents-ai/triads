@@ -21,12 +21,12 @@ from typing import Optional
 # Import domain models from tools/workflow
 from triads.tools.workflow.domain import WorkflowInstance, WorkflowDeviation
 from triads.tools.workflow.validation import WorkflowValidator, ValidationResult
+from triads.tools.workflow.repository import AbstractWorkflowRepository
 
 # Import schema and discovery from tools/workflow (moved in Phase 5)
 from triads.tools.workflow.schema import WorkflowSchemaLoader, WorkflowSchema
 from triads.tools.workflow.discovery import TriadDiscovery
-from triads.workflow_enforcement.instance_manager import WorkflowInstanceManager
-from triads.workflow_enforcement.metrics import MetricsProvider
+from triads.tools.workflow.metrics import MetricsProvider
 
 import logging
 
@@ -71,13 +71,13 @@ class WorkflowEnforcer:
 
     Example:
         schema_loader = WorkflowSchemaLoader()
-        instance_manager = WorkflowInstanceManager()
+        repository = FileSystemWorkflowRepository()
         discovery = TriadDiscovery()
         metrics_provider = CodeMetricsProvider()
 
         enforcer = WorkflowEnforcer(
             schema_loader,
-            instance_manager,
+            repository,
             discovery,
             metrics_provider
         )
@@ -92,7 +92,7 @@ class WorkflowEnforcer:
     def __init__(
         self,
         schema_loader: WorkflowSchemaLoader,
-        instance_manager: WorkflowInstanceManager,
+        repository: AbstractWorkflowRepository,
         discovery: TriadDiscovery,
         metrics_provider: Optional[MetricsProvider] = None
     ):
@@ -100,12 +100,12 @@ class WorkflowEnforcer:
 
         Args:
             schema_loader: Schema loader instance
-            instance_manager: Instance manager instance
+            repository: Workflow repository instance
             discovery: Triad discovery instance
             metrics_provider: Optional metrics provider
         """
         self.schema_loader = schema_loader
-        self.instance_manager = instance_manager
+        self.repository = repository
         self.discovery = discovery
         self.metrics_provider = metrics_provider
         self.schema = schema_loader.load_schema()
@@ -134,12 +134,8 @@ class WorkflowEnforcer:
             if not result.allowed:
                 print(f"Blocked: {result.message}")
         """
-        # Load instance (using old instance_manager for now - Phase 5 will refactor)
-        instance = self.instance_manager.load_instance(instance_id)
-
-        # Convert old WorkflowInstance format to new domain model
-        # This is temporary until Phase 5 when instance_manager moves
-        domain_instance = self._convert_to_domain_instance(instance)
+        # Load instance using repository
+        instance = self.repository.get_workflow(instance_id)
 
         # Calculate metrics (if provider available)
         metrics = None
@@ -151,77 +147,16 @@ class WorkflowEnforcer:
                 pass
 
         # Validate transition
-        validation = self.validator.validate_transition(domain_instance, target_triad, metrics)
+        validation = self.validator.validate_transition(instance, target_triad, metrics)
 
         # Apply enforcement mode logic
         return self._apply_enforcement_mode(
-            instance, domain_instance, target_triad, validation, skip_reason, force_skip
-        )
-
-    def _convert_to_domain_instance(self, old_instance) -> WorkflowInstance:
-        """Convert old WorkflowInstance to new domain model.
-
-        Temporary method until Phase 5 moves instance_manager.
-
-        Args:
-            old_instance: Old WorkflowInstance with workflow_progress dict
-
-        Returns:
-            New WorkflowInstance with typed fields
-        """
-        from triads.tools.workflow.domain import WorkflowStatus, TriadCompletion
-
-        # Parse status
-        status_map = {
-            "in_progress": WorkflowStatus.IN_PROGRESS,
-            "completed": WorkflowStatus.COMPLETED,
-            "abandoned": WorkflowStatus.ABANDONED,
-        }
-        status = status_map.get(old_instance.status, WorkflowStatus.IN_PROGRESS)
-
-        # Parse completed triads
-        completed_triads = []
-        for t in old_instance.workflow_progress.get("completed_triads", []):
-            if isinstance(t, dict):
-                completed_triads.append(TriadCompletion(
-                    triad_id=t.get("triad_id", ""),
-                    completed_at=t.get("completed_at", ""),
-                    duration_minutes=t.get("duration_minutes", 0.0)
-                ))
-
-        # Parse deviations
-        deviations = []
-        for d in old_instance.workflow_deviations:
-            deviations.append(WorkflowDeviation(
-                deviation_type=d.get("type", ""),
-                from_triad=d.get("from_triad"),
-                to_triad=d.get("to_triad", ""),
-                reason=d.get("reason", ""),
-                timestamp=d.get("timestamp", ""),
-                user=d.get("user"),
-                skipped=d.get("skipped", [])
-            ))
-
-        return WorkflowInstance(
-            instance_id=old_instance.instance_id,
-            workflow_type=old_instance.workflow_type,
-            status=status,
-            title=old_instance.title,
-            current_triad=old_instance.workflow_progress.get("current_triad"),
-            completed_triads=completed_triads,
-            started_at=old_instance.started_at,
-            completed_at=old_instance.completed_at,
-            abandoned_at=old_instance.abandoned_at,
-            started_by=old_instance.started_by,
-            workflow_deviations=deviations,
-            significance_metrics=old_instance.significance_metrics,
-            metadata=old_instance.metadata,
+            instance, target_triad, validation, skip_reason, force_skip
         )
 
     def _apply_enforcement_mode(
         self,
-        old_instance,  # Old instance for recording deviations
-        domain_instance: WorkflowInstance,
+        instance: WorkflowInstance,
         target_triad: str,
         validation: ValidationResult,
         skip_reason: Optional[str],
@@ -230,8 +165,7 @@ class WorkflowEnforcer:
         """Apply enforcement mode logic (strict/recommended/optional).
 
         Args:
-            old_instance: Old instance (for deviation recording)
-            domain_instance: Domain instance (for validation)
+            instance: Workflow instance (for deviation recording)
             target_triad: Target triad
             validation: Validation result
             skip_reason: Optional skip reason
@@ -256,19 +190,19 @@ class WorkflowEnforcer:
 
         # Handle violations/warnings based on mode
         if mode == "strict":
-            return self._apply_strict_mode(validation, force_skip, skip_reason, old_instance, target_triad)
+            return self._apply_strict_mode(validation, force_skip, skip_reason, instance, target_triad)
         elif mode == "recommended":
             return self._apply_recommended_mode(
-                old_instance, target_triad, validation, skip_reason
+                instance, target_triad, validation, skip_reason
             )
         elif mode == "optional":
             return self._apply_optional_mode(
-                old_instance, target_triad, validation, skip_reason
+                instance, target_triad, validation, skip_reason
             )
         else:
             # Unknown mode, default to recommended
             return self._apply_recommended_mode(
-                old_instance, target_triad, validation, skip_reason
+                instance, target_triad, validation, skip_reason
             )
 
     def _apply_strict_mode(
@@ -276,7 +210,7 @@ class WorkflowEnforcer:
         validation: ValidationResult,
         force_skip: bool,
         skip_reason: Optional[str],
-        old_instance,
+        instance: WorkflowInstance,
         target_triad: str
     ) -> EnforcementResult:
         """Strict mode: Block deviations, require emergency override.
@@ -285,7 +219,7 @@ class WorkflowEnforcer:
             validation: Validation result
             force_skip: Force skip flag
             skip_reason: Skip reason
-            old_instance: Old instance (for deviation recording)
+            instance: Workflow instance (for deviation recording)
             target_triad: Target triad
 
         Returns:
@@ -300,7 +234,7 @@ class WorkflowEnforcer:
                     validation_result=validation
                 )
             # Allow with override - record deviation
-            self._record_deviation(old_instance, target_triad, validation, skip_reason)
+            self._record_deviation(instance, target_triad, validation, skip_reason)
             return EnforcementResult(
                 allowed=True,
                 message=f"⚠️  EMERGENCY OVERRIDE: {skip_reason}\n(Audit logged)",
@@ -326,7 +260,7 @@ class WorkflowEnforcer:
 
     def _apply_recommended_mode(
         self,
-        old_instance,
+        instance: WorkflowInstance,
         target_triad: str,
         validation: ValidationResult,
         skip_reason: Optional[str]
@@ -334,7 +268,7 @@ class WorkflowEnforcer:
         """Recommended mode: Warn about deviations, allow skip with reason.
 
         Args:
-            old_instance: Old instance (for deviation recording)
+            instance: Workflow instance (for deviation recording)
             target_triad: Target triad
             validation: Validation result
             skip_reason: Skip reason
@@ -344,7 +278,7 @@ class WorkflowEnforcer:
         """
         if skip_reason:
             # User provided reason, record and allow
-            self._record_deviation(old_instance, target_triad, validation, skip_reason)
+            self._record_deviation(instance, target_triad, validation, skip_reason)
             return EnforcementResult(
                 allowed=True,
                 message=f"⚠️  Deviation recorded: {skip_reason}\n✓ Proceeding with {target_triad}",
@@ -375,7 +309,7 @@ class WorkflowEnforcer:
 
     def _apply_optional_mode(
         self,
-        old_instance,
+        instance: WorkflowInstance,
         target_triad: str,
         validation: ValidationResult,
         skip_reason: Optional[str]
@@ -383,7 +317,7 @@ class WorkflowEnforcer:
         """Optional mode: Log deviations, minimal friction.
 
         Args:
-            old_instance: Old instance (for deviation recording)
+            instance: Workflow instance (for deviation recording)
             target_triad: Target triad
             validation: Validation result
             skip_reason: Skip reason
@@ -393,7 +327,7 @@ class WorkflowEnforcer:
         """
         # Record deviation (even without reason)
         reason = skip_reason or "No reason provided"
-        self._record_deviation(old_instance, target_triad, validation, reason)
+        self._record_deviation(instance, target_triad, validation, reason)
 
         message = f"ℹ️  Deviation logged"
         if validation.skipped_triads:
@@ -409,7 +343,7 @@ class WorkflowEnforcer:
 
     def _record_deviation(
         self,
-        old_instance,
+        instance: WorkflowInstance,
         target_triad: str,
         validation: ValidationResult,
         reason: str
@@ -417,31 +351,31 @@ class WorkflowEnforcer:
         """Record deviation in instance file.
 
         Args:
-            old_instance: Old instance (for deviation recording)
+            instance: Workflow instance (for deviation recording)
             target_triad: Target triad
             validation: Validation result
             reason: Deviation reason
         """
         deviation = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "type": self._classify_deviation(old_instance, target_triad, validation),
-            "from_triad": old_instance.workflow_progress.get("current_triad"),
+            "type": self._classify_deviation(instance, target_triad, validation),
+            "from_triad": instance.current_triad,
             "to_triad": target_triad,
             "skipped": validation.skipped_triads,
             "reason": reason,
             "enforcement_mode": validation.enforcement_mode,
-            "user": old_instance.metadata.get("started_by", "unknown")
+            "user": instance.started_by or "unknown"
         }
 
-        self.instance_manager.add_deviation(old_instance.instance_id, deviation)
+        self.repository.add_deviation(instance.instance_id, deviation)
 
     def _classify_deviation(
-        self, old_instance, target_triad: str, validation: ValidationResult
+        self, instance: WorkflowInstance, target_triad: str, validation: ValidationResult
     ) -> str:
         """Classify deviation type.
 
         Args:
-            old_instance: Old instance
+            instance: Workflow instance
             target_triad: Target triad
             validation: Validation result
 
@@ -453,7 +387,7 @@ class WorkflowEnforcer:
 
         # Check if going backward
         triad_sequence = [t.id for t in self.schema.triads]
-        current_triad = old_instance.workflow_progress.get("current_triad")
+        current_triad = instance.current_triad
 
         try:
             current_idx = triad_sequence.index(current_triad) if current_triad else -1

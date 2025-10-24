@@ -1,0 +1,170 @@
+================================================================================
+MODULE REDUNDANCY ANALYSIS - RESULTS
+================================================================================
+
+Question: "Why are these modules still there?"
+Date: 2025-10-23
+Analyst: senior-developer (Claude Code)
+
+================================================================================
+ANALYZED MODULES (5 total, ~14,415 LOC)
+================================================================================
+
+1. src/triads/generator/              0 LOC    [EMPTY - DELETE NOW]
+2. src/triads/router/             2,799 LOC    [DIFFERENT SYSTEM - KEEP]
+3. src/triads/km/                 4,316 LOC    [MIXED - PARTIAL CLEANUP]
+4. src/triads/workflow_matching/  1,800 LOC    [SHIM - DELETE v0.11.0]
+5. src/triads/workflow_enforcement/ 5,500 LOC  [MIXED - PARTIAL CLEANUP]
+
+================================================================================
+VERDICT
+================================================================================
+
+                    CAN DELETE    MUST KEEP    % DELETABLE
+    ───────────────────────────────────────────────────────
+    generator/             0            0         N/A (empty)
+    router/                0        2,799         0% (different system)
+    km/                  907        3,409        21%
+    workflow_matching/ 1,800            0       100% (v0.11.0)
+    workflow_enforcement/ 2,051     3,449        37%
+    ───────────────────────────────────────────────────────
+    TOTAL              4,758        9,657        33%
+
+================================================================================
+WHY MODULES ARE STILL HERE
+================================================================================
+
+✅ generator/
+   → Empty module (0 bytes)
+   → Safe to delete immediately
+   → Script: SAFE_DELETION_SCRIPT.sh
+
+⚠️  router/
+   → NOT REDUNDANT - Different system
+   → Old: CLI-driven routing (LLM, telemetry, training mode)
+   → New: MCP tool-driven routing (headless classification)
+   → Both serve different purposes
+   → 177 passing tests
+   → KEEP BOTH
+
+🔍 km/
+   → MOSTLY ACTIVE (67% of code)
+   → Used heavily by hooks system
+   → Only graph_access/ subdirectory refactored to tools/knowledge
+   → Can delete graph_access/ after migrating 2 imports
+   → Lines saved: 907 LOC
+
+⏰ workflow_matching/
+   → Backward compatibility shim
+   → All functionality moved to tools/router in v0.10.0
+   → Issues deprecation warning
+   → No external imports (all migrated)
+   → DELETE in v0.11.0 after deprecation period
+   → Lines saved: 1,800 LOC
+
+🔍 workflow_enforcement/
+   → PARTIALLY REFACTORED
+   → Active files: instance_manager.py, state_manager.py, cli.py (3,449 LOC)
+   → Refactored files: validator, enforcement, schema, etc. (2,051 LOC)
+   → Verification: ✅ PASSED (no external imports)
+   → Can delete refactored files NOW
+   → Lines saved: 2,051 LOC
+
+================================================================================
+IMMEDIATE ACTIONS (SAFE NOW)
+================================================================================
+
+1. DELETE generator/
+   bash .claude/analysis/SAFE_DELETION_SCRIPT.sh
+   Lines saved: 0 (already empty)
+   Risk: ZERO
+
+2. DELETE workflow_enforcement refactored files (8 files)
+   See: VERIFICATION_CHECKLIST.md
+   Lines saved: 2,051 LOC
+   Risk: LOW (verified ✅)
+
+================================================================================
+SHORT-TERM ACTIONS (THIS WEEK)
+================================================================================
+
+3. MIGRATE km/ imports → DELETE graph_access/
+   Files to update: experience_query.py, commands.py
+   Lines saved: 907 LOC
+   Risk: LOW
+
+================================================================================
+MEDIUM-TERM ACTIONS (v0.11.0)
+================================================================================
+
+4. DELETE workflow_matching/ shim
+   After deprecation period
+   Lines saved: 1,800 LOC
+   Risk: MEDIUM
+
+================================================================================
+TOTAL IMPACT
+================================================================================
+
+Immediate deletions:    2,051 LOC (14%)
+Short-term deletions:     907 LOC ( 6%)
+Medium-term deletions:  1,800 LOC (13%)
+                      ─────────────────
+TOTAL DELETABLE:        4,758 LOC (33%)
+
+MUST KEEP:              9,657 LOC (67%)
+                      ─────────────────
+TOTAL ANALYZED:        14,415 LOC
+
+================================================================================
+KEY FINDINGS
+================================================================================
+
+1. Router is NOT redundant
+   → Old and new routers serve different purposes
+   → Document split or plan convergence
+
+2. km/ is mostly active
+   → Only 21% can be deleted (graph_access/)
+   → Rest used by hooks system
+
+3. Verification critical
+   → verify_workflow_enforcement.sh found exactly what's safe
+   → Always verify before deleting
+
+4. Shims have purpose
+   → Backward compatibility during migration
+   → Respect deprecation periods
+
+================================================================================
+DOCUMENTATION CREATED
+================================================================================
+
+1. EXECUTIVE_SUMMARY.md          - High-level findings & action plan
+2. module_deletion_analysis.md   - Deep dive with evidence
+3. VERIFICATION_CHECKLIST.md     - Step-by-step guide
+4. SAFE_DELETION_SCRIPT.sh       - Delete generator/ (executable)
+5. verify_workflow_enforcement.sh - Verify safety (executable) ✅ PASSED
+6. README.md                     - Quick reference
+7. ANALYSIS_RESULTS.txt          - This file
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+Your decision needed:
+
+1. Run immediate deletion? (generator/, workflow_enforcement/ files)
+2. Approve km/ migration? (2 imports, then delete graph_access/)
+3. Router split strategy? (document or converge?)
+4. Documentation updates? (which docs first?)
+
+All scripts have safety checks. Tests will be verified before/after.
+
+================================================================================
+ANALYSIS COMPLETE - AWAITING YOUR DECISION
+================================================================================
+
+All files in: /Users/iainnb/Documents/repos/triads/.claude/analysis/
+
+Start with: cat .claude/analysis/README.md

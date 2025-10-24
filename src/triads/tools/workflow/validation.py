@@ -24,7 +24,7 @@ from triads.tools.workflow.domain import WorkflowInstance
 # Import schema and discovery from tools/workflow (moved in Phase 5)
 from triads.tools.workflow.schema import WorkflowSchema, WorkflowRule, WorkflowSchemaLoader
 from triads.tools.workflow.discovery import TriadDiscovery
-from triads.workflow_enforcement.metrics import MetricsResult
+from triads.tools.workflow.metrics import MetricsResult
 
 import logging
 

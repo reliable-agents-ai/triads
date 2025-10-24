@@ -7,6 +7,7 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -16,7 +17,7 @@ from triads.tools.workflow.domain import (
     TriadCompletion,
     WorkflowDeviation,
 )
-from triads.utils.file_operations import atomic_read_json
+from triads.utils.file_operations import atomic_read_json, atomic_write_json
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,19 @@ class AbstractWorkflowRepository(ABC):
 
         Raises:
             WorkflowRepositoryError: If instance not found or retrieval fails
+        """
+        pass
+
+    @abstractmethod
+    def add_deviation(self, instance_id: str, deviation: Dict[str, Any]) -> None:
+        """Add a workflow deviation to an instance.
+
+        Args:
+            instance_id: Instance identifier
+            deviation: Deviation data (type, reason, timestamp, etc.)
+
+        Raises:
+            WorkflowRepositoryError: If instance not found or write fails
         """
         pass
 
@@ -176,6 +190,31 @@ class InMemoryWorkflowRepository(AbstractWorkflowRepository):
             )
 
         return instance
+
+    def add_deviation(self, instance_id: str, deviation: Dict[str, Any]) -> None:
+        """Add a workflow deviation to an instance.
+
+        Args:
+            instance_id: Instance identifier
+            deviation: Deviation data
+
+        Raises:
+            WorkflowRepositoryError: If instance not found
+        """
+        instance = self.get_workflow(instance_id)
+
+        # Convert deviation dict to WorkflowDeviation domain object
+        deviation_obj = WorkflowDeviation(
+            deviation_type=deviation.get("type", "unknown"),
+            from_triad=deviation.get("from_triad"),
+            to_triad=deviation.get("to_triad", ""),
+            reason=deviation.get("reason", ""),
+            timestamp=deviation.get("timestamp", ""),
+            user=deviation.get("user"),
+            skipped=deviation.get("skipped", [])
+        )
+
+        instance.workflow_deviations.append(deviation_obj)
 
 
 class FileSystemWorkflowRepository(AbstractWorkflowRepository):
@@ -385,3 +424,53 @@ class FileSystemWorkflowRepository(AbstractWorkflowRepository):
         """
         # Only allow alphanumeric and hyphens
         return bool(re.match(r"^[a-z0-9\-]+$", instance_id))
+
+    def add_deviation(self, instance_id: str, deviation: Dict[str, Any]) -> None:
+        """Add a workflow deviation to an instance.
+
+        Args:
+            instance_id: Instance identifier
+            deviation: Deviation data (type, reason, timestamp, etc.)
+
+        Raises:
+            WorkflowRepositoryError: If instance not found or write fails
+        """
+        # Find and read the instance file
+        instance_file = None
+        for directory in [self.instances_dir, self.completed_dir, self.abandoned_dir]:
+            candidate = directory / f"{instance_id}.json"
+            if candidate.exists():
+                instance_file = candidate
+                break
+
+        if not instance_file:
+            raise WorkflowRepositoryError(
+                f"Workflow instance not found: {instance_id}"
+            )
+
+        try:
+            # Read current data
+            with open(instance_file, "r") as f:
+                data = json.load(f)
+
+            # Add timestamp if not present
+            if "timestamp" not in deviation:
+                deviation["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+            # Append deviation to list
+            if "workflow_deviations" not in data:
+                data["workflow_deviations"] = []
+
+            data["workflow_deviations"].append(deviation)
+
+            # Write back atomically
+            atomic_write_json(instance_file, data)
+
+        except json.JSONDecodeError as e:
+            raise WorkflowRepositoryError(
+                f"Invalid JSON in instance file: {instance_file}. Error: {e}"
+            )
+        except Exception as e:
+            raise WorkflowRepositoryError(
+                f"Error updating instance file: {instance_file}. Error: {e}"
+            )

@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 import re
 
-from triads.router.timestamp_utils import utc_now_iso, utc_now_aware
+from triads.tools.router._timestamp_utils import utc_now_iso, utc_now_aware
 
 
 class TestTimestampUtils:
