@@ -1,6 +1,6 @@
 {
   "name": "triads",
-  "version": "0.9.0",
+  "version": "0.9.0-alpha.1",
   "description": "Triad workflow system for Claude Code - organize complex work into phases with specialized agents and automatic knowledge management",
   "author": {
     "name": "Reliable Agents AI",
