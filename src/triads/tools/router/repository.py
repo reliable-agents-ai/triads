@@ -159,13 +159,17 @@ class InMemoryRouterRepository(AbstractRouterRepository):
 class FileSystemRouterRepository(AbstractRouterRepository):
     """File system-based router repository.
 
-    Provides routing and state management using the actual TriadRouter
-    and RouterStateManager implementations. This is the production repository.
+    PHASE 2 REFACTOR: Contains actual routing implementation (NO WRAPPER).
+
+    Implements routing logic with:
+    - Grace period checking (prevent mid-conversation re-routing)
+    - Semantic routing (embedding-based, fast)
+    - LLM disambiguation (when semantic is uncertain)
+    - Manual selection fallback (ultimate failsafe)
 
     Architecture:
-    - Uses triads.router.router.TriadRouter for routing logic
-    - Uses triads.router.state_manager.RouterStateManager for state persistence
-    - Maps between domain models (tools.router.domain) and router models
+    - Uses actual migrated components from tools.router._*
+    - NO imports from triads.router (eliminated wrapper pattern)
     """
 
     def __init__(
@@ -173,22 +177,65 @@ class FileSystemRouterRepository(AbstractRouterRepository):
         config_path: Optional[Path] = None,
         state_path: Optional[Path] = None
     ):
-        """Initialize file system repository.
+        """Initialize file system repository with actual components.
 
         Args:
             config_path: Path to router config.json (default: ~/.claude/router/config.json)
             state_path: Path to router state file (default: ~/.claude/router_state.json)
         """
-        # Import here to avoid circular dependencies
-        from triads.router.router import TriadRouter
-        from triads.router.state_manager import RouterStateManager
+        # Import migrated components (NOT from triads.router)
+        from .config import RouterConfig
+        from ._state_manager import _RouterStateManager
+        from ._embedder import RouterEmbedder
+        from ._semantic_router import SemanticRouter, RoutingDecision as SemanticDecision
+        from ._grace_period import GracePeriodChecker
+        from ._telemetry import TelemetryLogger
 
-        # Initialize router components
-        self.router = TriadRouter(config_path=config_path, state_path=state_path)
-        self.state_manager = RouterStateManager(state_path=state_path)
+        # Load configuration
+        self.config = RouterConfig(config_path)
+
+        # Initialize state management
+        self.state_manager = _RouterStateManager(state_path)
+
+        # Initialize telemetry
+        self.telemetry = TelemetryLogger(enabled=self.config.telemetry_enabled)
+
+        # Initialize embedder and semantic router
+        self.embedder = RouterEmbedder()
+        self.semantic_router = SemanticRouter(self.embedder)
+
+        # Initialize grace period checker
+        self.grace_period = GracePeriodChecker(
+            self.state_manager,
+            grace_turns=self.config.grace_period_turns,
+            grace_minutes=self.config.grace_period_minutes,
+        )
+
+        # Initialize LLM disambiguator (may not have API key)
+        try:
+            from ._llm_disambiguator import LLMDisambiguator
+            self.llm_disambiguator = LLMDisambiguator(
+                timeout_ms=self.config.llm_timeout_ms
+            )
+        except ValueError:
+            # No API key set, LLM unavailable
+            self.llm_disambiguator = None
+
+        # Initialize manual selector
+        from ._manual_selector import ManualSelector
+        self.manual_selector = ManualSelector()
+
+        # Store SemanticDecision enum for threshold checking
+        self._SemanticDecision = SemanticDecision
 
     def route_prompt(self, prompt: str) -> RoutingDecision:
-        """Route prompt using TriadRouter.
+        """Route prompt using actual implementation (NO DELEGATION).
+
+        Implements full routing cascade:
+        1. Grace period check (stay in current triad if active)
+        2. Semantic routing (fast, embedding-based)
+        3. LLM disambiguation (if semantic uncertain)
+        4. Manual selection (if LLM fails/unavailable)
 
         Args:
             prompt: User's input prompt
@@ -203,21 +250,143 @@ class FileSystemRouterRepository(AbstractRouterRepository):
             raise RouterRepositoryError("Prompt cannot be empty")
 
         try:
-            # Call TriadRouter.route() which returns dict
-            result = self.router.route(prompt)
+            import time
+            start_time = time.time()
 
-            # Map router result to domain RoutingDecision
-            # Router returns: {triad, confidence, method, reasoning, ...}
-            return RoutingDecision(
-                triad=result["triad"],
-                confidence=result["confidence"],
-                method=result["method"],
-                reasoning=result.get("reasoning")
+            # Load current state
+            state = self.state_manager.load()
+
+            # Check for bypass conditions
+            should_bypass, bypass_reason = self.grace_period.should_bypass_grace_period(
+                prompt, state
             )
+
+            # Check grace period (unless explicitly bypassed)
+            if not should_bypass and self.grace_period.is_within_grace_period(state):
+                # Stay in current triad during grace period
+                latency_ms = (time.time() - start_time) * 1000
+
+                self.telemetry.log_event(
+                    "grace_period_active",
+                    {
+                        "triad": state.current_triad,
+                        "latency_ms": latency_ms,
+                    },
+                )
+
+                return RoutingDecision(
+                    triad=state.current_triad,
+                    confidence=1.0,
+                    method="grace_period",
+                    reasoning=f"Continuing in {state.current_triad} (grace period active)"
+                )
+
+            # Perform routing (semantic → LLM → manual cascade)
+            result = self._perform_routing(prompt, start_time)
+
+            # Update state with new triad
+            if result.triad:
+                self.grace_period.reset_grace_period(state, result.triad)
+                self.state_manager.save(state)
+
+            return result
 
         except Exception as e:
             logger.error(f"Routing failed: {e}")
             raise RouterRepositoryError(f"Routing failed: {e}") from e
+
+    def _perform_routing(self, prompt: str, start_time: float) -> RoutingDecision:
+        """Perform actual routing logic (semantic → LLM → manual).
+
+        Args:
+            prompt: User prompt
+            start_time: Routing start time (for latency tracking)
+
+        Returns:
+            RoutingDecision
+        """
+        import time
+
+        # Step 1: Semantic routing
+        semantic_scores = self.semantic_router.route(prompt)
+        decision, candidates = self.semantic_router.threshold_check(
+            semantic_scores,
+            confidence_threshold=self.config.confidence_threshold,
+            ambiguity_threshold=self.config.semantic_similarity_threshold,
+        )
+
+        # Step 2: High confidence semantic route
+        if decision == self._SemanticDecision.ROUTE_IMMEDIATELY:
+            triad, confidence = candidates[0]
+            latency_ms = (time.time() - start_time) * 1000
+
+            self.telemetry.log_route_decision(
+                prompt_snippet=prompt[:50],
+                triad=triad,
+                confidence=confidence,
+                method="semantic",
+                latency_ms=latency_ms,
+            )
+
+            return RoutingDecision(
+                triad=triad,
+                confidence=confidence,
+                method="semantic",
+                reasoning=f"High confidence semantic match ({confidence:.0%})"
+            )
+
+        # Step 3: LLM disambiguation (if available)
+        if (
+            self.llm_disambiguator
+            and decision == self._SemanticDecision.LLM_FALLBACK_REQUIRED
+        ):
+            try:
+                triad, confidence, reasoning = (
+                    self.llm_disambiguator.disambiguate_with_retry(
+                        prompt=prompt,
+                        candidates=candidates,
+                        context=None,
+                    )
+                )
+
+                latency_ms = (time.time() - start_time) * 1000
+
+                self.telemetry.log_route_decision(
+                    prompt_snippet=prompt[:50],
+                    triad=triad,
+                    confidence=confidence,
+                    method="llm",
+                    latency_ms=latency_ms,
+                )
+
+                return RoutingDecision(
+                    triad=triad,
+                    confidence=confidence,
+                    method="llm",
+                    reasoning=reasoning
+                )
+
+            except Exception as llm_error:
+                logger.warning(f"LLM disambiguation failed: {llm_error}, falling back to manual")
+
+        # Step 4: Manual selection fallback
+        selected_triad = self.manual_selector.select(prompt, candidates[:3])
+        latency_ms = (time.time() - start_time) * 1000
+
+        self.telemetry.log_route_decision(
+            prompt_snippet=prompt[:50],
+            triad=selected_triad,
+            confidence=1.0,  # User explicitly selected
+            method="manual",
+            latency_ms=latency_ms,
+        )
+
+        return RoutingDecision(
+            triad=selected_triad,
+            confidence=1.0,
+            method="manual",
+            reasoning="User selected manually"
+        )
 
     def load_state(self) -> RouterState:
         """Load router state from file system.
@@ -225,17 +394,8 @@ class FileSystemRouterRepository(AbstractRouterRepository):
         Returns:
             RouterState with current triad and session information
         """
-        # Load state using RouterStateManager
-        state = self.state_manager.load()
-
-        # Map router.state_manager.RouterState to tools.router.domain.RouterState
-        return RouterState(
-            current_triad=state.active_triad,
-            session_id=state.session_id,
-            turn_count=state.turn_count,
-            conversation_start=state.conversation_start,
-            last_activity=state.last_activity
-        )
+        # Load state using _RouterStateManager (already returns domain model)
+        return self.state_manager.load()
 
     def save_state(self, state: RouterState) -> None:
         """Save router state to file system.
@@ -243,17 +403,5 @@ class FileSystemRouterRepository(AbstractRouterRepository):
         Args:
             state: RouterState to persist
         """
-        # Import here to avoid circular dependencies
-        from triads.router.state_manager import RouterState as RouterStateImpl
-
-        # Map tools.router.domain.RouterState to router.state_manager.RouterState
-        impl_state = RouterStateImpl(
-            session_id=state.session_id,
-            active_triad=state.current_triad,
-            conversation_start=state.conversation_start,
-            turn_count=state.turn_count,
-            last_activity=state.last_activity
-        )
-
-        # Save using RouterStateManager
-        self.state_manager.save(impl_state)
+        # Save using _RouterStateManager (accepts domain model)
+        self.state_manager.save(state)
