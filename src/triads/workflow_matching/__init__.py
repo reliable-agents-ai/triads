@@ -54,15 +54,9 @@ from triads.tools.router import (
     get_all_workflow_types,
 )
 
-# Configuration constants - create shim module
-from triads.tools.router import config as _router_config
-
-class _ConfigShim:
-    """Backward compatibility shim for config module."""
-    def __getattr__(self, name):
-        return getattr(_router_config, name)
-
-config = _ConfigShim()
+# Configuration constants - import from actual config.py file
+# (workflow_matching/config.py has different constants than tools/router/config.py)
+from triads.workflow_matching import config
 
 # LLM fallback stub (was never implemented, always returned None)
 def classify_with_llm(user_message: str, confidence_threshold: float = 0.7):

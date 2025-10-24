@@ -37,7 +37,7 @@ def bootstrap_router_service(
     # Auto-detect mode if not specified
     if use_filesystem is None:
         # Check if router config exists to determine mode
-        from triads.router.router_paths import DEFAULT_PATHS
+        from triads.tools.router._router_paths import DEFAULT_PATHS
 
         default_config = config_path if config_path else DEFAULT_PATHS.config_file
         use_filesystem = Path(default_config).exists()
