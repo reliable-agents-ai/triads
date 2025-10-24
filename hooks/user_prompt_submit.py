@@ -28,6 +28,98 @@ if str(repo_root / "hooks") not in sys.path:
 from common import output_hook_result, get_project_dir  # noqa: E402
 
 
+def detect_work_request(user_message: str) -> dict:
+    """
+    Detect if user message is a work request and classify it.
+
+    Distinguishes between Q&A requests (informational) and work requests
+    (action required). Work requests trigger triad orchestration.
+
+    Args:
+        user_message: User's message to classify
+
+    Returns:
+        Dict with classification if work request:
+            {'type': str, 'triad': str, 'original_request': str}
+        Empty dict if Q&A or unclear
+
+    Examples:
+        >>> detect_work_request("Implement OAuth2")
+        {'type': 'feature', 'triad': 'idea-validation', 'original_request': 'Implement OAuth2'}
+
+        >>> detect_work_request("What is OAuth2?")
+        {}
+
+        >>> detect_work_request("Fix router crash")
+        {'type': 'bug', 'triad': 'idea-validation', 'original_request': 'Fix router crash'}
+    """
+    if not user_message or not isinstance(user_message, str):
+        return {}
+
+    message_lower = user_message.lower()
+
+    # Q&A indicators (NOT work requests)
+    qa_patterns = [
+        'what is', 'what are', 'what does',
+        'how does', 'how do', 'how to',
+        'explain', 'tell me about', 'tell me how',
+        'can you explain', 'could you explain',
+        'describe', 'why is', 'why does',
+        'when should', 'where is', 'where does',
+        'who is', 'which is'
+    ]
+
+    # Check if Q&A (return empty dict - not a work request)
+    for pattern in qa_patterns:
+        if pattern in message_lower:
+            return {}
+
+    # Work indicators by type
+    work_patterns = {
+        'feature': [
+            'implement', 'add', 'create', 'build',
+            'let\'s implement', 'let\'s add', 'let\'s create', 'let\'s build',
+            'please implement', 'please add', 'please create',
+            'we need to implement', 'we need to add',
+            'develop', 'make'
+        ],
+        'bug': [
+            'fix', 'bug', 'error', 'broken', 'issue',
+            'crash', 'failing', 'not working',
+            'resolve', 'correct', 'repair'
+        ],
+        'refactor': [
+            'refactor', 'cleanup', 'clean up', 'improve',
+            'consolidate', 'reorganize', 'restructure',
+            'messy code', 'technical debt',
+            'simplify', 'optimize'
+        ],
+        'design': [
+            'design', 'architecture', 'how should we',
+            'what approach', 'which approach',
+            'architect', 'structure for'
+        ],
+        'release': [
+            'deploy', 'release', 'publish',
+            'ship', 'launch'
+        ]
+    }
+
+    # Check for work patterns
+    for work_type, patterns in work_patterns.items():
+        for pattern in patterns:
+            if pattern in message_lower:
+                # Per ADR-007: ALL work enters through idea-validation
+                return {
+                    'type': work_type,
+                    'triad': 'idea-validation',
+                    'original_request': user_message
+                }
+
+    # No clear classification - return empty dict
+    return {}
+
+
 def load_workflow_config():
     """
     Load workflow configuration from .claude/settings.json.
@@ -302,9 +394,26 @@ def format_supervisor_instructions() -> str:
     lines.append("")
     lines.append("**ROE 1: TRIAGE PROTOCOL**")
     lines.append("- CLASSIFY every user message as Q&A OR work request")
-    lines.append("- Q&A indicators: \"What is\", \"How does\", \"Explain\", \"Tell me about\"")
-    lines.append("- Work indicators: \"Implement\", \"Fix\", \"Add\", \"Refactor\", \"Deploy\"")
-    lines.append("- If uncertain: ASK user for clarification - DO NOT guess")
+    lines.append("")
+    lines.append("**Q&A Indicators (NOT work requests)**:")
+    lines.append("- what is, what are, what does")
+    lines.append("- how does, how do, how to")
+    lines.append("- explain, tell me about, describe")
+    lines.append("- can you explain, could you explain")
+    lines.append("- why is, why does")
+    lines.append("- when should, where is, who is, which is")
+    lines.append("")
+    lines.append("**Work Indicators by Type**:")
+    lines.append("- **Feature**: implement, add, create, build, develop, make")
+    lines.append("- **Bug**: fix, bug, error, broken, issue, crash, failing, not working")
+    lines.append("- **Refactor**: refactor, cleanup, clean up, improve, consolidate, messy code")
+    lines.append("- **Design**: design, architecture, how should we, what approach")
+    lines.append("- **Release**: deploy, release, publish, ship, launch")
+    lines.append("")
+    lines.append("**Detection Priority**:")
+    lines.append("1. If message matches Q&A patterns → ANSWER directly")
+    lines.append("2. If message matches work patterns → INVOKE triad")
+    lines.append("3. If ambiguous → ASK user for clarification")
     lines.append("")
     lines.append("**ROE 2: Q&A HANDLING**")
     lines.append("- ANSWER informational questions directly")
@@ -408,12 +517,47 @@ def format_supervisor_instructions() -> str:
 
 
 def main():
-    """Generate Supervisor instructions for user prompt."""
-    # Generate Supervisor instructions
-    supervisor_context = format_supervisor_instructions()
+    """
+    Generate Supervisor instructions for user prompt.
 
-    # Output in Claude Code hook format
-    output_hook_result("UserPromptSubmit", supervisor_context)
+    Entry point for UserPromptSubmit hook. Generates and outputs
+    Supervisor standing orders including work request detection protocol.
+
+    Error Handling:
+        - Catches all exceptions to prevent hook crashes
+        - Falls back to basic instructions if config fails
+        - Logs errors to stderr for debugging
+    """
+    try:
+        # Generate Supervisor instructions (with built-in fallback handling)
+        supervisor_context = format_supervisor_instructions()
+
+        # Output in Claude Code hook format
+        output_hook_result("UserPromptSubmit", supervisor_context)
+
+    except Exception as e:
+        # Critical error - hook should never crash
+        # Log to stderr
+        import sys
+        print(f"ERROR in UserPromptSubmit hook: {e}", file=sys.stderr)
+
+        # Output minimal fallback instructions
+        fallback = """
+===============================================================================
+# SUPERVISOR MODE (FALLBACK)
+===============================================================================
+
+**ERROR**: Hook encountered error while loading configuration.
+
+**FALLBACK MODE**:
+- Provide Q&A responses for user questions
+- For work requests: Ask user to check .claude/settings.json configuration
+- Report this error to user for investigation
+
+**Error Details**: See stderr for technical details
+===============================================================================
+"""
+        output_hook_result("UserPromptSubmit", fallback)
 
 
 if __name__ == "__main__":
