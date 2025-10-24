@@ -164,6 +164,118 @@ Before starting, check: `.claude/km_status.txt`
 ## Remember
 
 [Include key reminders and guidelines]
+
+---
+
+## 🔗 Handoff Protocol (MANDATORY FOR ALL AGENTS)
+
+**CRITICAL**: Every agent must include handoff instructions that tell them to invoke the next agent in their triad using the Task tool.
+
+For each agent, you MUST determine:
+1. **Position in triad sequence**: First, Second, or Third (final) agent
+2. **Next agent**: The name of the next agent in the sequence
+3. **Next agent role**: What the next agent does (e.g., "quality review", "deployment")
+
+**Handoff Protocol Template**:
+
+````markdown
+## 🔗 Handoff Protocol (MANDATORY)
+
+**Your position in triad**: {First agent | Second agent | Third agent (final)}
+**Next agent**: {next_agent_name}
+
+### When You Complete Your Work
+
+After finishing your deliverables, you MUST hand off to {next_agent_name} for {next_agent_role}.
+
+**1. Prepare Handoff Context**
+
+Collect what {next_agent_name} needs:
+- Files you created/modified
+- Decisions you made
+- Test results (if applicable)
+- Open questions/uncertainties
+- Knowledge graph updates you made
+
+**2. Invoke Next Agent**
+
+Use the Task tool to invoke **{next_agent_name}**:
+
+```
+[Use Task tool with the following parameters]
+
+subagent_type: "{next_agent_name}"
+description: "Handoff from {current_agent_name}"
+prompt: """
+**Handoff from {current_agent_name}**
+
+I've completed my work on [brief description of what you did].
+
+**What I Delivered**:
+- [Deliverable 1]: [Location/status]
+- [Deliverable 2]: [Location/status]
+
+**Files Modified**:
+- `path/to/file.py` ([what changed])
+
+**Decisions Made**:
+1. [Decision 1]: [Rationale]
+
+**Open Questions for {next_agent_name}**:
+1. [Question 1]
+
+**Knowledge Graph Location**: `.claude/graphs/{triad_name}_graph.json`
+**My updates**: [List node IDs or labels I added]
+
+Please proceed with {next_agent_role}.
+"""
+```
+
+**3. Do NOT Proceed Without Handoff**
+
+Your work is NOT complete until you invoke {next_agent_name}. If you finish your deliverables but don't hand off, the triad workflow is broken.
+````
+
+**For final agents** (third in triad sequence), replace the handoff section with:
+
+````markdown
+## 🔗 Final Agent Completion (NO HANDOFF)
+
+**Your position in triad**: Third agent (final)
+
+You are the **final agent** in the {triad_name} triad. After completing your work:
+
+1. **Mark triad complete**: Add a completion node to the knowledge graph
+2. **Create final summary**: Summarize all work done by the triad
+3. **DO NOT invoke another agent**: The triad workflow ends with you
+
+**Completion Template**:
+
+```
+[GRAPH_UPDATE]
+type: add_node
+node_id: {triad_name}_complete_{timestamp}
+node_type: Task
+label: {Triad Name} Triad Complete
+description: All work in {triad_name} triad completed successfully. Ready for next phase.
+confidence: 1.0
+evidence: All agents completed their work, deliverables verified
+status: completed
+[/GRAPH_UPDATE]
+```
+````
+
+**How to determine agent sequence** (for triad-architect):
+
+When generating agents for a triad, determine the sequence from the triad design:
+1. **First agent**: Usually receives input from previous triad or user
+2. **Second agent**: Usually processes the first agent's output
+3. **Third agent (final)**: Usually validates/completes the work, often a bridge to next triad
+
+Example for Implementation triad (design-bridge → senior-developer → test-engineer):
+- `design-bridge`: First agent, next_agent="senior-developer", next_agent_role="implementation"
+- `senior-developer`: Second agent, next_agent="test-engineer", next_agent_role="quality review"
+- `test-engineer`: Third agent (final), no next agent, marks triad complete
 ```
 
 **For bridge agents**: Add bridge-specific instructions after main content:

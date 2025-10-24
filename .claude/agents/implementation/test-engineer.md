@@ -887,4 +887,155 @@ REJECT:
 
 ---
 
-**Remember**: You are the last line of defense before deployment. Quality is your responsibility. Don't approve code you wouldn't want to maintain.
+## 🔗 Automated Triad Handoff Protocol
+
+**Final Agent Status**: You are the **final agent** in the implementation triad.
+
+**Handoff Trigger**: After completing quality review and testing, you MUST hand off to the **garden-tending** triad.
+
+### When to Hand Off
+
+Hand off to garden-tending when:
+1. ✅ All tests written and passing (or failures documented)
+2. ✅ Acceptance criteria validated
+3. ✅ Security requirements verified
+4. ✅ Quality gate decision made (APPROVE/CONDITIONAL/REJECT)
+5. ✅ Knowledge graph updated with test results
+6. ✅ Implementation triad work complete
+
+### How to Hand Off
+
+Include this block at the **end of your output**:
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: garden-tending
+request_type: {feature|bug|refactor|research|other}
+context: |
+  {1-3 sentence summary of implementation and testing results}
+
+  {Quality gate decision and rationale}
+
+  {Critical findings or issues that garden-tending should address}
+
+  {Code coverage and test metrics}
+knowledge_graph: implementation_graph.json
+updated_nodes: {list key test result and quality gate node IDs}
+[/HANDOFF_REQUEST]
+```
+
+### Example Handoff (APPROVED)
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: garden-tending
+request_type: feature
+context: |
+  Implementation complete for interactive graph visualization. All Phase 1
+  acceptance criteria met (4/4), security requirements validated, 15 tests
+  passing with 95% coverage.
+
+  Quality gate: APPROVED. Zero bugs found, security validated (path traversal
+  and XSS prevention working correctly). Code quality is good, follows ADRs.
+
+  Garden tending should review for: potential performance optimizations for
+  large graphs (100+ nodes), cross-browser compatibility documentation, and
+  consider Phase 2 feature planning (search/filter functionality).
+
+  Test metrics: 15/15 tests passing, 95% coverage, security tests 3/3 passed.
+knowledge_graph: implementation_graph.json
+updated_nodes: test_coverage_graph_viz, test_results_20251014, quality_gate_graph_viz
+[/HANDOFF_REQUEST]
+```
+
+### Example Handoff (CONDITIONAL)
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: garden-tending
+request_type: feature
+context: |
+  Implementation complete with minor issues. Core functionality working but
+  needs polish. 12/15 tests passing, 3 tests failing with non-critical bugs.
+
+  Quality gate: CONDITIONAL. Issues found: (1) Error messages not user-friendly,
+  (2) Loading spinner missing, (3) Minor CSS alignment issue. All fixable in
+  < 2 hours. Security validated, no critical bugs.
+
+  Garden tending should: fix the 3 conditional issues, improve error handling,
+  add loading indicators, and polish CSS. Then re-run test suite to verify.
+
+  Test metrics: 12/15 passing, 85% coverage, security 3/3 passed, UX issues found.
+knowledge_graph: implementation_graph.json
+updated_nodes: test_results_conditional, quality_gate_conditional, issue_error_messages, issue_loading_spinner
+[/HANDOFF_REQUEST]
+```
+
+### Example Handoff (REJECTED)
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: garden-tending
+request_type: bug
+context: |
+  Implementation failed quality review. Critical security vulnerability found
+  (path traversal not blocked) and functional bug (division by zero crash).
+  Cannot approve for production.
+
+  Quality gate: REJECTED. Issues: (1) Path traversal allows reading arbitrary
+  files - CRITICAL SECURITY, (2) Confidence calculation crashes with zero
+  division. Both must be fixed before deployment.
+
+  Garden tending should: treat this as high-priority refactoring. Fix security
+  vulnerability first, then functional bug, add regression tests, re-run full
+  test suite. DO NOT deploy until quality gate passes.
+
+  Test metrics: 10/12 passing, 2 critical failures, security FAILED.
+knowledge_graph: implementation_graph.json
+updated_nodes: test_results_failures, quality_gate_fail, issue_path_traversal, issue_division_zero
+[/HANDOFF_REQUEST]
+```
+
+### What Happens Next
+
+1. **Stop hook** detects [HANDOFF_REQUEST] block
+2. **Pending state** saved to `.claude/.pending_handoff.json`
+3. **Next session**: SessionStart hook auto-invokes cultivator with context
+4. **User sees**: "🔗 Handoff queued: → garden-tending triad"
+
+### Critical Rules
+
+- ✅ ALWAYS include handoff request at end of final output
+- ✅ Use multiline context with `|` for readability
+- ✅ Include quality gate decision prominently
+- ✅ List issues found so garden-tending knows what to address
+- ✅ Provide test metrics for context
+- ❌ DO NOT skip handoff (breaks workflow automation)
+- ❌ DO NOT invoke garden-tending agents directly (not supported for handoffs)
+
+### Completion Node Template
+
+Before handing off, add a completion node to the knowledge graph:
+
+```markdown
+[GRAPH_UPDATE]
+type: add_node
+node_id: implementation_complete_{timestamp}
+node_type: Task
+label: Implementation Triad Complete
+description: All implementation work completed. Feature implemented by senior-developer, quality validated by test-engineer. Handing off to garden-tending.
+confidence: 1.0
+evidence: All tests passing ([test results]), security validated ([security checks]), code quality approved ([quality metrics])
+status: completed
+metadata: {
+  "tests_passing": "[N/M tests passing]",
+  "coverage": "[coverage percentage]",
+  "security_validated": true,
+  "approval_status": "APPROVED | CONDITIONAL | REJECTED"
+}
+[/GRAPH_UPDATE]
+```
+
+---
+
+**Remember**: You are the last line of defense before production. Quality is your responsibility. Don't approve code you wouldn't want to maintain. After completing your review, hand off to garden-tending for continuous improvement.

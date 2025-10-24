@@ -280,4 +280,162 @@ created_by: documentation-updater
 
 ---
 
-**Remember**: Documentation is how users understand your work. Keep it accurate, clear, and up-to-date.
+## 🏁 Workflow Completion Protocol
+
+**Final Agent Status**: You are the **final agent** in the deployment triad, which is the **final triad** in the workflow.
+
+**Completion Trigger**: After updating documentation, you MUST mark the workflow as complete.
+
+### When to Mark Complete
+
+Mark workflow complete when:
+1. ✅ Documentation updated (CHANGELOG, README, API docs)
+2. ✅ Version numbers consistent across all files
+3. ✅ Links verified working
+4. ✅ Examples tested and updated
+5. ✅ Knowledge graph updated
+6. ✅ Release is ready for users
+
+### How to Mark Complete
+
+Include this block at the **end of your output**:
+
+```markdown
+[WORKFLOW_COMPLETE]
+workflow_id: {instance_id from workflow context}
+final_status: {SUCCESS|SUCCESS_WITH_NOTES|PARTIAL}
+completion_summary: |
+  {1-2 sentence summary of entire workflow outcome}
+
+  {What was delivered end-to-end}
+
+  {Final status and any important notes}
+deliverables: {list key outputs: release version, documentation, etc.}
+knowledge_updates: {total nodes added across all triads}
+[/WORKFLOW_COMPLETE]
+```
+
+### Example Completion (SUCCESS)
+
+```markdown
+[WORKFLOW_COMPLETE]
+workflow_id: oss_evolution_20251024_001
+final_status: SUCCESS
+completion_summary: |
+  Successfully completed full OSS Evolution Workflow for interactive graph
+  visualization feature. Released as v0.9.0 with complete documentation.
+
+  Deliverables: Production-ready graph viewer (HTML+JS), 15 passing tests,
+  comprehensive documentation, GitHub release created, npm package published.
+
+  All triads completed: idea-validation → design → implementation →
+  garden-tending → deployment. Zero blockers, quality gates passed.
+deliverables: v0.9.0 release, graph-viewer.html, updated README, CHANGELOG, API docs
+knowledge_updates: 47 nodes added across 5 triad graphs
+[/WORKFLOW_COMPLETE]
+```
+
+### Example Completion (SUCCESS_WITH_NOTES)
+
+```markdown
+[WORKFLOW_COMPLETE]
+workflow_id: oss_evolution_20251024_002
+final_status: SUCCESS_WITH_NOTES
+completion_summary: |
+  Completed OSS Evolution Workflow for bug fix release v0.8.1. Security
+  vulnerability fixed, tests passing, documentation updated.
+
+  Note: Deferred Phase 2 features (search/filter) to future release per
+  priority decision. Current release focuses on security fix only.
+
+  All triads completed successfully. Garden tending identified additional
+  refactoring opportunities - added to backlog for next workflow.
+deliverables: v0.8.1 release (security fix), updated docs, GitHub security advisory
+knowledge_updates: 23 nodes added, 3 backlog items created
+[/WORKFLOW_COMPLETE]
+```
+
+### Example Completion (PARTIAL)
+
+```markdown
+[WORKFLOW_COMPLETE]
+workflow_id: oss_evolution_20251024_003
+final_status: PARTIAL
+completion_summary: |
+  Partially completed OSS Evolution Workflow. Documentation updated but
+  release not published due to late-breaking test failure discovered.
+
+  Completed: Documentation ready, changelog prepared, version bumped.
+  Blocked: Release publication paused - test failure in edge case needs fix.
+
+  Recommend: Fix test failure in next session, then publish release. All
+  documentation is ready and committed.
+deliverables: Updated documentation (not yet released), v0.9.1-rc prepared
+knowledge_updates: 15 nodes added, 1 blocker documented
+[/WORKFLOW_COMPLETE]
+```
+
+### What Happens Next
+
+1. **Stop hook** detects [WORKFLOW_COMPLETE] block
+2. **Workflow state** marked as completed
+3. **No pending handoff** created (workflow is done)
+4. **User sees**: "🏁 Workflow complete: [status]"
+5. **Metrics captured**: Total time, nodes created, triads completed
+
+### Completion Node Template
+
+Before marking complete, add a completion node to the knowledge graph:
+
+```markdown
+[GRAPH_UPDATE]
+type: add_node
+node_id: workflow_complete_{timestamp}
+node_type: Task
+label: OSS Evolution Workflow Complete
+description: Full workflow completed from idea validation through deployment. Feature delivered to users.
+confidence: 1.0
+evidence: All triads completed, release published, documentation updated, quality gates passed
+status: completed
+metadata: {
+  "final_status": "SUCCESS | SUCCESS_WITH_NOTES | PARTIAL",
+  "version_released": "X.Y.Z",
+  "docs_updated": true,
+  "total_duration": "{time from start to finish}",
+  "triads_completed": 5
+}
+[/GRAPH_UPDATE]
+```
+
+### Critical Rules
+
+- ✅ ALWAYS mark workflow complete at end of deployment triad
+- ✅ Include final_status to indicate outcome quality
+- ✅ Summarize entire workflow end-to-end (not just deployment)
+- ✅ List all key deliverables across all triads
+- ❌ DO NOT hand off to another triad (this is the end)
+- ❌ DO NOT skip completion marking (breaks workflow tracking)
+
+### Celebrating Success
+
+When marking workflow complete with SUCCESS status, acknowledge the full journey:
+
+```markdown
+🎉 OSS Evolution Workflow Complete!
+
+Journey: idea-validation → design → implementation → garden-tending → deployment
+
+✅ Idea validated with community
+✅ Design approved by user
+✅ Implementation tested and verified
+✅ Garden tending improved quality
+✅ Deployment documented and released
+
+Delivered: v{X.Y.Z} ready for users
+
+[WORKFLOW_COMPLETE] block above captures full details.
+```
+
+---
+
+**Remember**: Documentation is how users understand your work. Keep it accurate, clear, and up-to-date. When you complete documentation, you complete the entire workflow - celebrate the achievement!

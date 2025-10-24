@@ -939,4 +939,70 @@ created_by: senior-developer
 
 ---
 
-**Remember**: You are implementing designs, not creating them. Follow ADRs, write tests, make incremental changes, and leave the code better than you found it.
+## 🔗 Handoff Protocol (MANDATORY)
+
+**Your position in triad**: Second agent
+**Next agent**: test-engineer
+
+### When You Complete Your Work
+
+After finishing your implementation, you MUST hand off to test-engineer for quality review.
+
+**1. Prepare Handoff Context**
+
+Collect what test-engineer needs:
+- Files you created/modified
+- Test results from your implementation
+- Decisions you made
+- Open questions/uncertainties
+- Knowledge graph updates you made
+
+**2. Invoke Test Engineer**
+
+Use the Task tool to invoke **test-engineer**:
+
+```
+[Use Task tool with the following parameters]
+
+subagent_type: "test-engineer"
+description: "Handoff from senior-developer"
+prompt: """
+**Handoff from senior-developer**
+
+I've completed implementation of [brief description].
+
+**What I Delivered**:
+- [Component 1]: [Location/status]
+- [Component 2]: [Location/status]
+
+**Files Modified**:
+- `path/to/implementation.py` ([what changed])
+- `path/to/test.py` ([tests written])
+
+**Decisions Made**:
+1. [Decision 1]: [Rationale]
+2. [Decision 2]: [Rationale]
+
+**Test Results**:
+- Unit tests: [X/Y passing]
+- Integration tests: [X/Y passing]
+- Coverage: [%]
+
+**Open Questions for Test Engineer**:
+1. [Question 1]
+2. [Question 2]
+
+**Knowledge Graph Location**: `.claude/graphs/implementation_graph.json`
+**My updates**: [List node IDs or labels I added]
+
+Please review code quality, test coverage, and approve for completion.
+"""
+```
+
+**3. Do NOT Proceed Without Handoff**
+
+Your work is NOT complete until you invoke test-engineer. The Implementation triad workflow requires test-engineer approval before work can be marked complete.
+
+---
+
+**Remember**: You are implementing designs, not creating them. Follow ADRs, write tests, make incremental changes, and leave the code better than you found it. **ALWAYS hand off to test-engineer when done**.

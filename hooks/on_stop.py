@@ -56,6 +56,219 @@ from triads.hooks.safe_io import safe_load_json_file, safe_save_json_file  # noq
 # Graph Update Extraction
 # ============================================================================
 
+def extract_handoff_requests_from_text(text):
+    """
+    Extract [HANDOFF_REQUEST] blocks from text.
+
+    Args:
+        text: String containing [HANDOFF_REQUEST]...[/HANDOFF_REQUEST] blocks
+
+    Returns:
+        List of handoff request dictionaries
+    """
+    pattern = r'\[HANDOFF_REQUEST\](.*?)\[/HANDOFF_REQUEST\]'
+    matches = re.findall(pattern, text, re.DOTALL)
+
+    requests = []
+    for match in matches:
+        request = {}
+        current_key = None
+        multiline_value = []
+
+        for line in match.strip().split('\n'):
+            line_stripped = line.strip()
+
+            # Check if this is a continuation of multiline value (starts with |)
+            if line_stripped.startswith('|') and current_key:
+                multiline_value.append(line_stripped[1:].strip())
+                continue
+
+            # Regular key: value line
+            if ':' in line_stripped:
+                # Save previous multiline value if exists
+                if current_key and multiline_value:
+                    request[current_key] = '\n'.join(multiline_value)
+                    multiline_value = []
+
+                key, value = line_stripped.split(':', 1)
+                key = key.strip()
+                value = value.strip()
+
+                # If value is empty, this might be start of multiline
+                if not value or value == '|':
+                    current_key = key
+                    multiline_value = []
+                else:
+                    request[key] = value
+                    current_key = None
+
+        # Save final multiline value if exists
+        if current_key and multiline_value:
+            request[current_key] = '\n'.join(multiline_value)
+
+        if request:
+            requests.append(request)
+
+    return requests
+
+
+def handle_handoff_request(handoff_request):
+    """
+    Process a handoff request and write pending handoff state.
+
+    Args:
+        handoff_request: Dictionary containing handoff data
+
+    Returns:
+        bool: True if handoff was queued successfully
+    """
+    try:
+        next_triad = handoff_request.get('next_triad')
+        if not next_triad:
+            print("⚠️  Handoff request missing next_triad field", file=sys.stderr)
+            return False
+
+        # Create pending handoff directory
+        pending_dir = Path('.claude')
+        pending_dir.mkdir(exist_ok=True)
+
+        pending_file = pending_dir / '.pending_handoff.json'
+
+        # Build handoff data
+        handoff_data = {
+            'next_triad': next_triad,
+            'request_type': handoff_request.get('request_type', 'unknown'),
+            'context': handoff_request.get('context', ''),
+            'knowledge_graph': handoff_request.get('knowledge_graph', ''),
+            'updated_nodes': handoff_request.get('updated_nodes', '').split(',') if handoff_request.get('updated_nodes') else [],
+            'timestamp': datetime.now().isoformat(),
+            'status': 'pending'
+        }
+
+        # Write pending handoff
+        with open(pending_file, 'w') as f:
+            json.dump(handoff_data, f, indent=2)
+
+        print(f"\n🔗 Handoff queued: → {next_triad} triad", file=sys.stderr)
+        print(f"   Type: {handoff_data['request_type']}", file=sys.stderr)
+        print(f"   Status: Pending (will auto-invoke on next session)", file=sys.stderr)
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Error handling handoff request: {e}", file=sys.stderr)
+        return False
+
+
+def extract_workflow_completions_from_text(text):
+    """
+    Extract [WORKFLOW_COMPLETE] blocks from text.
+
+    Args:
+        text: String containing [WORKFLOW_COMPLETE]...[/WORKFLOW_COMPLETE] blocks
+
+    Returns:
+        List of workflow completion dictionaries
+    """
+    pattern = r'\[WORKFLOW_COMPLETE\](.*?)\[/WORKFLOW_COMPLETE\]'
+    matches = re.findall(pattern, text, re.DOTALL)
+
+    completions = []
+    for match in matches:
+        completion = {}
+        current_key = None
+        multiline_value = []
+
+        for line in match.strip().split('\n'):
+            line_stripped = line.strip()
+
+            # Handle multiline with | prefix
+            if line_stripped.startswith('|') and current_key:
+                multiline_value.append(line_stripped[1:].strip())
+                continue
+
+            # Parse key: value
+            if ':' in line_stripped:
+                # Save previous multiline value if exists
+                if current_key and multiline_value:
+                    completion[current_key] = '\n'.join(multiline_value)
+                    multiline_value = []
+
+                key, value = line_stripped.split(':', 1)
+                key = key.strip()
+                value = value.strip()
+
+                if not value or value == '|':
+                    # Start of multiline value
+                    current_key = key
+                    multiline_value = []
+                else:
+                    # Single-line value
+                    completion[key] = value
+                    current_key = None
+
+        # Save final multiline value if exists
+        if current_key and multiline_value:
+            completion[current_key] = '\n'.join(multiline_value)
+
+        if completion:
+            completions.append(completion)
+
+    return completions
+
+
+def handle_workflow_completion(completion_data):
+    """
+    Process workflow completion and mark workflow as done.
+
+    Args:
+        completion_data: Dictionary containing completion data
+
+    Returns:
+        bool: True if completion was recorded successfully
+    """
+    try:
+        workflow_id = completion_data.get('workflow_id', 'unknown')
+        final_status = completion_data.get('final_status', 'UNKNOWN')
+
+        # Create workflow state directory
+        workflow_dir = Path('.claude/.workflow')
+        workflow_dir.mkdir(exist_ok=True)
+
+        completion_file = workflow_dir / 'completed.json'
+
+        # Build completion record
+        completion_record = {
+            'workflow_id': workflow_id,
+            'final_status': final_status,
+            'completion_summary': completion_data.get('completion_summary', ''),
+            'deliverables': completion_data.get('deliverables', ''),
+            'knowledge_updates': completion_data.get('knowledge_updates', ''),
+            'timestamp': datetime.now().isoformat(),
+            'completed': True
+        }
+
+        # Write completion record
+        with open(completion_file, 'w') as f:
+            json.dump(completion_record, f, indent=2)
+
+        # Remove any pending handoff (workflow is complete)
+        pending_file = Path('.claude/.pending_handoff.json')
+        if pending_file.exists():
+            pending_file.unlink()
+
+        print(f"\n🏁 Workflow Complete: {final_status}", file=sys.stderr)
+        print(f"   Workflow ID: {workflow_id}", file=sys.stderr)
+        print(f"   Deliverables: {completion_data.get('deliverables', 'N/A')}", file=sys.stderr)
+        print(f"   All triads completed successfully!", file=sys.stderr)
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Error handling workflow completion: {e}", file=sys.stderr)
+        return False
+
+
 def extract_pre_flight_checks_from_text(text):
     """
     Extract [PRE_FLIGHT_CHECK] blocks from text.
@@ -1008,14 +1221,25 @@ def main():
     # Extract all [GRAPH_UPDATE] blocks
     updates = extract_graph_updates_from_text(conversation_text)
 
-    if not updates:
-        # No updates found - exit silently
+    # Extract all [HANDOFF_REQUEST] blocks
+    handoff_requests = extract_handoff_requests_from_text(conversation_text)
+
+    # Extract all [WORKFLOW_COMPLETE] blocks
+    workflow_completions = extract_workflow_completions_from_text(conversation_text)
+
+    if not updates and not handoff_requests and not workflow_completions:
+        # No updates, handoffs, or completions found - exit silently
         return
 
     print(f"\n{'='*80}", file=sys.stderr)
-    print("📊 Knowledge Graph Update (Stop Hook)", file=sys.stderr)
+    print("📊 Stop Hook Processing", file=sys.stderr)
     print(f"{'='*80}", file=sys.stderr)
-    print(f"Found {len(updates)} [GRAPH_UPDATE] blocks", file=sys.stderr)
+    if updates:
+        print(f"Found {len(updates)} [GRAPH_UPDATE] blocks", file=sys.stderr)
+    if handoff_requests:
+        print(f"Found {len(handoff_requests)} [HANDOFF_REQUEST] blocks", file=sys.stderr)
+    if workflow_completions:
+        print(f"Found {len(workflow_completions)} [WORKFLOW_COMPLETE] blocks", file=sys.stderr)
 
     # Validate pre-flight checks
     pre_flight_violations = validate_pre_flight_checks(conversation_text, updates)
@@ -1298,6 +1522,52 @@ def main():
         traceback.print_exc(file=sys.stderr)
 
     print(f"{'='*80}\n", file=sys.stderr)
+
+    # ========================================================================
+    # Phase 4: Triad Handoff Detection
+    # ========================================================================
+    if handoff_requests:
+        print(f"\n{'='*80}", file=sys.stderr)
+        print("🔗 Triad Handoff Detection", file=sys.stderr)
+        print(f"{'='*80}", file=sys.stderr)
+
+        try:
+            for handoff in handoff_requests:
+                success = handle_handoff_request(handoff)
+                if success:
+                    print(f"✅ Handoff successfully queued", file=sys.stderr)
+                else:
+                    print(f"⚠️  Handoff processing failed", file=sys.stderr)
+
+        except Exception as e:
+            print(f"❌ Error during handoff processing: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc(file=sys.stderr)
+
+        print(f"{'='*80}\n", file=sys.stderr)
+
+    # ========================================================================
+    # Phase 5: Workflow Completion Detection
+    # ========================================================================
+    if workflow_completions:
+        print(f"\n{'='*80}", file=sys.stderr)
+        print("🏁 Workflow Completion Detection", file=sys.stderr)
+        print(f"{'='*80}", file=sys.stderr)
+
+        try:
+            for completion in workflow_completions:
+                success = handle_workflow_completion(completion)
+                if success:
+                    print(f"✅ Workflow completion recorded", file=sys.stderr)
+                else:
+                    print(f"⚠️  Workflow completion processing failed", file=sys.stderr)
+
+        except Exception as e:
+            print(f"❌ Error during workflow completion processing: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc(file=sys.stderr)
+
+        print(f"{'='*80}\n", file=sys.stderr)
 
 
 if __name__ == "__main__":

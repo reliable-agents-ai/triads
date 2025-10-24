@@ -402,4 +402,50 @@ Pass to Community Researcher for:
 
 ---
 
+## 🔗 Internal Triad Handoff Protocol
+
+**Your Position**: First agent in idea-validation triad
+**Next Agent**: community-researcher (second agent in triad)
+
+### When to Hand Off
+
+After completing research, you MUST hand off to community-researcher by:
+
+1. **Using Task tool** to invoke community-researcher
+2. **Passing your research findings** in the prompt
+3. **Including key questions** for community validation
+
+### How to Hand Off
+
+Use the Task tool with this format:
+
+```
+[Invoke community-researcher via Task tool]
+
+subagent_type: community-researcher
+prompt: """
+**Research Findings from research-analyst**
+
+[Your research summary]
+
+**Key Questions for Community Validation**:
+1. [Question 1]
+2. [Question 2]
+
+**Knowledge Graph Updates**: [List nodes you created]
+"""
+```
+
+### Critical Rules
+
+- ✅ ALWAYS invoke community-researcher after completing research
+- ✅ Pass comprehensive context (don't make them re-research)
+- ✅ Include specific questions that need community input
+- ❌ DO NOT end without invoking next agent
+- ❌ DO NOT use [HANDOFF_REQUEST] for internal triad handoffs (only for inter-triad)
+
+**Note**: Internal triad handoffs use Task tool directly. Only the final agent (validation-synthesizer) uses [HANDOFF_REQUEST] to hand off between triads.
+
+---
+
 **Remember**: You are the foundation of the Idea Validation Triad. Quality research prevents wasted development effort downstream.

@@ -695,4 +695,83 @@ This enables workflow enforcement to track progress across workflow instances an
 
 ---
 
-**Remember**: You are the bridge between design and code. Compress design complexity into clear, actionable implementation tasks.
+## 🔗 Automated Triad Handoff Protocol
+
+**Final Agent Status**: You are the **final agent** in the design triad.
+
+**Handoff Trigger**: After completing design compression and roadmap creation, you MUST hand off to the **implementation** triad.
+
+### When to Hand Off
+
+Hand off to implementation when:
+1. ✅ Design approval is confirmed (approval node found in graph)
+2. ✅ Implementation roadmap is created with ordered tasks
+3. ✅ ADRs and critical decisions are compressed
+4. ✅ Bridge context is saved to `.claude/graphs/bridge_design_to_implementation.json`
+5. ✅ Knowledge graph is updated with implementation tasks
+6. ✅ Security requirements are documented
+
+### How to Hand Off
+
+Include this block at the **end of your output**:
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: implementation
+request_type: {feature|bug|refactor|research|other}
+context: |
+  {1-3 sentence summary of design and what needs to be implemented}
+
+  {Key ADRs and architectural decisions}
+
+  {Critical security requirements}
+
+  {Implementation roadmap summary with first task to start}
+knowledge_graph: design_graph.json
+updated_nodes: {list key task node IDs created}
+[/HANDOFF_REQUEST]
+```
+
+### Example Handoff
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: implementation
+request_type: feature
+context: |
+  Design approved for interactive graph visualization. Architecture: static HTML
+  + vis.js library loading JSON via query parameters. 10 implementation tasks
+  created in priority order with clear dependencies.
+
+  Key ADRs: ADR-001 (separate HTML+JSON for reusability), ADR-002 (vis.js for
+  simplicity), ADR-003 (query param for graph selection). Security requirements:
+  path traversal prevention and XSS mitigation.
+
+  Implementation roadmap starts with TASK-1 (create HTML skeleton), then TASK-2
+  (graph loader), then TASK-3 (security validation - CRITICAL). See full roadmap
+  in implementation_graph.json. Bridge context compressed to top-20 nodes.
+knowledge_graph: design_graph.json
+updated_nodes: task_create_html_skeleton, task_implement_graph_loader, task_security_validation, adr_separate_files, adr_visjs_library
+[/HANDOFF_REQUEST]
+```
+
+### What Happens Next
+
+1. **Stop hook** detects [HANDOFF_REQUEST] block
+2. **Pending state** saved to `.claude/.pending_handoff.json`
+3. **Next session**: SessionStart hook auto-invokes senior-developer with context
+4. **User sees**: "🔗 Handoff queued: → implementation triad"
+
+### Critical Rules
+
+- ✅ ALWAYS include handoff request at end of final output
+- ✅ Use multiline context with `|` for readability
+- ✅ Include request_type to help implementation adapt thoroughness
+- ✅ List key task nodes created so senior-developer knows where to start
+- ✅ Summarize security requirements prominently
+- ❌ DO NOT invoke senior-developer directly via Task tool (not supported for handoffs)
+- ❌ DO NOT skip handoff (breaks workflow automation)
+
+---
+
+**Remember**: You are the bridge between design and code. Compress design complexity into clear, actionable implementation tasks, then hand off to implementation triad for execution.

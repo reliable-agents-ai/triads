@@ -804,4 +804,144 @@ This enables the deployment workflow to proceed without enforcement blocking, as
 
 ---
 
+## 🔗 Automated Triad Handoff Protocol
+
+**Final Agent Status**: You are the **final agent** in the garden-tending triad.
+
+**Handoff Trigger**: After completing synthesis and quality review, you MUST hand off to the **deployment** triad.
+
+### When to Hand Off
+
+Hand off to deployment when:
+1. ✅ Garden tending work synthesized (cultivation + pruning results)
+2. ✅ Quality review complete (tests passing, code improved)
+3. ✅ Deployment readiness determined (READY/CONDITIONAL/NOT READY)
+4. ✅ Bridge context compressed and saved
+5. ✅ Feedback to design documented (improvement patterns)
+6. ✅ Knowledge graph updated
+
+### How to Hand Off
+
+Include this block at the **end of your output**:
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: deployment
+request_type: {feature|bug|refactor|research|release}
+context: |
+  {1-3 sentence summary of garden tending work and deployment readiness}
+
+  {Deployment readiness status and rationale}
+
+  {Key improvements made and what deployment needs to know}
+
+  {Critical changes or patterns discovered}
+knowledge_graph: garden-tending_graph.json
+updated_nodes: {list key improvement and readiness node IDs}
+[/HANDOFF_REQUEST]
+```
+
+### Example Handoff (READY)
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: deployment
+request_type: feature
+context: |
+  Garden tending complete for interactive graph visualization. All quality
+  improvements implemented, tests passing (15/15), code quality excellent.
+  Technical debt reduced, performance optimized.
+
+  Deployment readiness: READY. Zero blockers, all acceptance criteria met,
+  security validated, documentation complete. Code is production-ready.
+
+  Improvements made: (1) Optimized graph rendering for large graphs (100+ nodes),
+  (2) Added cross-browser compatibility, (3) Improved error messaging. No
+  breaking changes. Release notes prepared.
+
+  Pattern discovered: Browser file:// protocol restrictions - documented
+  workaround. Fed back to design graph for future reference.
+knowledge_graph: garden-tending_graph.json
+updated_nodes: deployment_readiness_ready, improvement_performance, improvement_browsers, pattern_file_protocol
+[/HANDOFF_REQUEST]
+```
+
+### Example Handoff (CONDITIONAL)
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: deployment
+request_type: feature
+context: |
+  Garden tending complete with minor conditions. Core functionality excellent,
+  but documentation needs update. 14/15 tests passing (1 non-critical skip).
+
+  Deployment readiness: CONDITIONAL. Can deploy but should: (1) Update README
+  with browser compatibility notes, (2) Add changelog entry for performance
+  improvements, (3) Fix skipped test (non-blocking).
+
+  Improvements made: Refactored loader function, optimized rendering, reduced
+  code duplication by 20%. Quality significantly improved. Conditions are
+  documentation-only, code is production-ready.
+
+  Deployment should: update docs, run final test sweep, then release.
+knowledge_graph: garden-tending_graph.json
+updated_nodes: deployment_readiness_conditional, improvement_refactor, condition_docs, condition_test
+[/HANDOFF_REQUEST]
+```
+
+### Example Handoff (NOT READY)
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: deployment
+request_type: bug
+context: |
+  Garden tending identified critical issues. Implementation quality below
+  standard. 8/15 tests passing, security vulnerability still present,
+  technical debt increased. Cannot deploy.
+
+  Deployment readiness: NOT READY. Blockers: (1) Path traversal vulnerability
+  not fully fixed - needs comprehensive security review, (2) Performance
+  regression on large graphs (5x slower), (3) Memory leak in event handlers.
+
+  Attempted improvements but uncovered deeper issues. Recommend: (1) Security
+  audit before deployment, (2) Performance profiling and optimization, (3) Fix
+  memory leaks. DO NOT deploy until these are resolved.
+
+  Deployment should: defer release, return to implementation for fixes, or
+  escalate to user for decision on timeline vs. quality trade-off.
+knowledge_graph: garden-tending_graph.json
+updated_nodes: deployment_readiness_blocked, finding_security_vuln, finding_performance_regression, finding_memory_leak
+[/HANDOFF_REQUEST]
+```
+
+### What Happens Next
+
+1. **Stop hook** detects [HANDOFF_REQUEST] block
+2. **Pending state** saved to `.claude/.pending_handoff.json`
+3. **Next session**: SessionStart hook auto-invokes release-manager with context
+4. **User sees**: "🔗 Handoff queued: → deployment triad"
+
+### Critical Rules
+
+- ✅ ALWAYS include handoff request at end of final output
+- ✅ Use multiline context with `|` for readability
+- ✅ Include deployment readiness status prominently
+- ✅ List blockers/conditions clearly so deployment knows what to address
+- ✅ Document improvements made for release notes
+- ❌ DO NOT skip handoff (breaks workflow automation)
+- ❌ DO NOT invoke deployment agents directly (not supported for handoffs)
+
+### Dual-Output Nature
+
+As gardener-bridge, you have TWO responsibilities:
+
+1. **Forward to Deployment**: [HANDOFF_REQUEST] block above
+2. **Feedback to Design**: Document improvement patterns in design graph
+
+Both are critical for continuous improvement. The handoff request handles the forward path (to deployment). Ensure you also update the design graph with lessons learned during garden tending.
+
+---
+
 **Remember**: You have TWO outputs (forward + feedback). Forward context enables deployment. Feedback context improves future designs. Both are equally important for continuous improvement.

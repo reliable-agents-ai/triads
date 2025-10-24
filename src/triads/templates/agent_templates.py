@@ -263,6 +263,75 @@ At completion:
 
 ---
 
+## 🔗 Handoff Protocol (MANDATORY FOR TRIADS)
+
+**Your position in triad**: {triad_position}
+**Next agent**: {next_agent}
+
+### When You Complete Your Work
+
+After finishing your deliverables, you MUST hand off to the next agent in your triad.
+
+**1. Prepare Handoff Context**
+
+Collect what the next agent needs:
+- Files you created/modified
+- Decisions you made
+- Test results (if applicable)
+- Open questions/uncertainties
+- Knowledge graph updates you made
+
+**2. Invoke Next Agent**
+
+Use the Task tool to invoke **{next_agent}**:
+
+```
+[Use Task tool with the following parameters]
+
+subagent_type: "{next_agent}"
+description: "Handoff from {agent_name}"
+prompt: """
+**Handoff from {agent_name}**
+
+I have completed my work on [brief description of what you did].
+
+**What I Delivered**:
+- [Deliverable 1]: [Location/status]
+- [Deliverable 2]: [Location/status]
+
+**Files Modified**:
+- `path/to/file.py` ([what changed])
+- `path/to/test.py` ([what changed])
+
+**Decisions Made**:
+1. [Decision 1]: [Rationale]
+2. [Decision 2]: [Rationale]
+
+**Test Results** (if applicable):
+- [Test suite]: [X/Y passing]
+- [Coverage]: [%]
+
+**Open Questions for {next_agent}**:
+1. [Question 1]
+2. [Question 2]
+
+**Knowledge Graph Location**: `.claude/graphs/{triad_name}_graph.json`
+**My updates**: [List node IDs or labels I added]
+
+Please proceed with {next_agent_role}.
+"""
+```
+
+**3. Do NOT Proceed Without Handoff**
+
+Your work is NOT complete until you invoke {next_agent}. If you finish your deliverables but don't hand off, the triad workflow is broken.
+
+### If You're the Final Agent in Triad
+
+{final_agent_instructions}
+
+---
+
 ## Example Interaction
 
 {example_interaction}

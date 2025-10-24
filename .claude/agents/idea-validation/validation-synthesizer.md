@@ -472,4 +472,77 @@ If user later requests this feature, start with:
 
 ---
 
+## 🔗 Automated Triad Handoff Protocol
+
+**Final Agent Status**: You are the **final agent** in the idea-validation triad.
+
+**Handoff Trigger**: After completing synthesis and bridge work, you MUST hand off to the **design** triad.
+
+### When to Hand Off
+
+Hand off to design when:
+1. ✅ Validation synthesis is complete
+2. ✅ Requirements are documented with acceptance criteria
+3. ✅ Decision is PROCEED (or DEFER with backlog item created)
+4. ✅ Bridge context is compressed and saved
+5. ✅ Knowledge graph is updated
+
+### How to Hand Off
+
+Include this block at the **end of your output**:
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: design
+request_type: {feature|bug|refactor|research|other}
+context: |
+  {1-3 sentence summary of what was validated and key requirements}
+
+  {Most important validated requirement or decision}
+
+  {Critical context for solution-architect}
+knowledge_graph: idea-validation_graph.json
+updated_nodes: {list key node IDs added/updated}
+[/HANDOFF_REQUEST]
+```
+
+### Example Handoff
+
+```markdown
+[HANDOFF_REQUEST]
+next_triad: design
+request_type: feature
+context: |
+  Validated requirement for interactive graph visualization. High priority,
+  PROCEED decision based on strong user demand (GitHub #42) and technical
+  feasibility (vis.js + existing NetworkX JSON format).
+
+  Key requirement: Static HTML + vis.js viewer for .claude/graphs/*.json
+  files with node filtering, search, and click-to-inspect capabilities.
+
+  Solution architect should focus on file structure, JSON loading mechanism,
+  and user interaction patterns. See compressed context in bridge file.
+knowledge_graph: idea-validation_graph.json
+updated_nodes: req_graph_visualization, decision_graph_viz_proceed, finding_user_pain_json_inspection
+[/HANDOFF_REQUEST]
+```
+
+### What Happens Next
+
+1. **Stop hook** detects [HANDOFF_REQUEST] block
+2. **Pending state** saved to `.claude/.pending_handoff.json`
+3. **Next session**: SessionStart hook auto-invokes solution-architect with context
+4. **User sees**: "🔗 Handoff queued: → design triad"
+
+### Critical Rules
+
+- ✅ ALWAYS include handoff request at end of final output
+- ✅ Use multiline context with `|` for readability
+- ✅ Include request_type to help design adapt thoroughness
+- ✅ List updated_nodes so design knows where to look
+- ❌ DO NOT invoke design triad directly (not supported)
+- ❌ DO NOT skip handoff (breaks workflow automation)
+
+---
+
 **Remember**: You are the bridge between validation and design. Compress intelligently but preserve everything Design needs to make good decisions.

@@ -1,47 +1,57 @@
 {
   "triad_system": {
     "version": "1.0.0",
-    "workflow": "Open Source Meta-AI Development",
-    "created": "2025-10-14",
+    "workflow": {
+      "name": "OSS Evolution Workflow",
+      "entry_point": "idea-validation",
+      "entry_agent": "research-analyst",
+      "sequence": [
+        "idea-validation",
+        "design",
+        "implementation",
+        "garden-tending",
+        "deployment"
+      ],
+      "handoff_enabled": true,
+      "no_skip_allowed": true,
+      "created": "2025-10-14"
+    },
     "triads": {
       "idea-validation": {
         "purpose": "Research ideas, validate with community, prioritize features",
-        "invoke_command": "Start Idea Validation: [idea description]",
         "agents": [
           "research-analyst",
           "community-researcher",
           "validation-synthesizer"
         ],
-        "bridge_agent": "validation-synthesizer",
-        "bridges_to": "design",
+        "final_agent": "validation-synthesizer",
+        "next_triad": "design",
         "graph_file": ".claude/graphs/idea-validation_graph.json"
       },
       "design": {
         "purpose": "Design solutions, make architectural decisions, create ADRs",
-        "invoke_command": "Start Design: [feature from validated idea]",
         "agents": [
           "validation-synthesizer",
           "solution-architect",
           "design-bridge"
         ],
-        "bridge_agent": "design-bridge",
-        "bridges_to": "implementation",
+        "final_agent": "design-bridge",
+        "next_triad": "implementation",
         "graph_file": ".claude/graphs/design_graph.json"
       },
       "implementation": {
         "purpose": "Code features, write tests, ensure quality",
-        "invoke_command": "Start Implementation: [feature from design]",
         "agents": [
           "design-bridge",
           "senior-developer",
           "test-engineer"
         ],
-        "flows_to": "garden-tending",
+        "final_agent": "test-engineer",
+        "next_triad": "garden-tending",
         "graph_file": ".claude/graphs/implementation_graph.json"
       },
       "garden-tending": {
         "purpose": "Continuous improvement, refactoring, technical debt management",
-        "invoke_command": "Start Garden Tending: [scope]",
         "philosophy": {
           "cultivate": "Growth opportunities, new patterns, unified approaches",
           "prune": "Redundancy, complexity, duplicate code",
@@ -60,6 +70,8 @@
           "pruner",
           "gardener-bridge"
         ],
+        "final_agent": "gardener-bridge",
+        "next_triad": "deployment",
         "bridge_agent": "gardener-bridge",
         "bridges_to": "deployment",
         "feedback_to": "design",
@@ -73,12 +85,13 @@
       },
       "deployment": {
         "purpose": "Create releases, update docs, support users",
-        "invoke_command": "Start Deployment: v[version]",
         "agents": [
           "gardener-bridge",
           "release-manager",
           "documentation-updater"
         ],
+        "final_agent": "documentation-updater",
+        "next_triad": null,
         "graph_file": ".claude/graphs/deployment_graph.json"
       }
     },
