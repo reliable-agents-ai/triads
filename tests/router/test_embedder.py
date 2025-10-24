@@ -5,7 +5,7 @@ import time
 import numpy as np
 import pytest
 
-from src.triads.router.embedder import RouterEmbedder
+from triads.tools.router._embedder import RouterEmbedder
 
 
 class TestRouterEmbedder:

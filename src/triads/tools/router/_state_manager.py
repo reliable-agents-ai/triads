@@ -108,7 +108,6 @@ class _RouterStateManager:
     def _create_default_state(self) -> RouterState:
         """Create default router state with new session ID."""
         return RouterState(
-            current_triad=None,
             session_id=str(uuid.uuid4())
         )
 

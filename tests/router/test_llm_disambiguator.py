@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from src.triads.router.llm_disambiguator import (
+from triads.tools.router._llm_disambiguator import (
     DisambiguationError,
     LLMDisambiguator,
 )

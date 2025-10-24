@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from src.triads.router.telemetry import TelemetryLogger
+from triads.tools.router._telemetry import TelemetryLogger
 
 
 class TestTelemetryLogger:

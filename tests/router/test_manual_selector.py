@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.triads.router.manual_selector import ManualSelector
+from triads.tools.router._manual_selector import ManualSelector
 
 
 class TestManualSelector:

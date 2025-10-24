@@ -14,11 +14,11 @@ from pathlib import Path
 from typing import Optional
 
 from .config import RouterConfig
-from .grace_period import GracePeriodChecker
-from .notifications import NotificationBuilder
-from .router_paths import DEFAULT_PATHS
-from .state_manager import RouterStateManager
-from .telemetry import TelemetryLogger
+from ._grace_period import GracePeriodChecker
+from ._notifications import NotificationBuilder
+from ._router_paths import DEFAULT_PATHS
+from ._state_manager import _RouterStateManager as RouterStateManager
+from ._telemetry import TelemetryLogger
 from .training_mode import TrainingModeHandler
 
 

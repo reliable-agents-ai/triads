@@ -33,14 +33,9 @@ from ._grace_period import GracePeriodChecker
 from ._manual_selector import ManualSelector
 from ._embedder import RouterEmbedder
 
-# Import CLI and training mode from old location (not yet migrated)
-try:
-    from triads.router.cli import RouterCLI
-    from triads.router.training_mode import TrainingModeHandler
-except ImportError:
-    # Fallback if old location doesn't exist
-    RouterCLI = None
-    TrainingModeHandler = None
+# Import CLI and training mode (now migrated to tools/router)
+from .cli import RouterCLI
+from .training_mode import TrainingModeHandler
 
 __all__ = [
     # Core orchestrator

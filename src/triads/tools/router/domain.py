@@ -40,8 +40,8 @@ class RouterState:
     conversation tracking, and grace period information.
 
     Attributes:
-        current_triad: Currently active triad name (None if no active triad)
         session_id: Unique session identifier
+        current_triad: Currently active triad name (None if no active triad)
         turn_count: Number of turns since triad activation
         conversation_start: ISO 8601 timestamp when conversation started
         last_activity: ISO 8601 timestamp of last routing activity
@@ -49,8 +49,8 @@ class RouterState:
         training_confirmations: Count of training mode confirmations
     """
 
-    current_triad: Optional[str]
     session_id: str
+    current_triad: Optional[str] = None
     turn_count: int = 0
     conversation_start: Optional[str] = None
     last_activity: Optional[str] = None

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from src.triads.router.config import RouterConfig
+from triads.tools.router.config import RouterConfig
 
 
 class TestRouterConfig:

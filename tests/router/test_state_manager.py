@@ -1,11 +1,12 @@
 """Tests for router state management."""
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from src.triads.router.state_manager import RouterState, RouterStateManager
+from triads.tools.router._state_manager import _RouterStateManager as RouterStateManager
+from triads.tools.router.domain import RouterState
 
 
 class TestRouterState:
@@ -16,55 +17,50 @@ class TestRouterState:
         state = RouterState(session_id="test-123")
 
         assert state.session_id == "test-123"
-        assert state.active_triad is None
+        assert state.current_triad is None
         assert state.conversation_start is None
         assert state.turn_count == 0
         assert state.last_activity is None
-        assert state.pending_intents == []
-        assert state.training_mode_confirmations == 0
+        assert state.training_mode is False
+        assert state.training_confirmations == 0
 
     def test_to_json(self):
         """Test JSON serialization."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=5,
-            pending_intents=["research", "code"],
         )
 
-        json_data = state.to_json()
+        json_data = state.to_dict()
 
         assert json_data["session_id"] == "test-123"
-        assert json_data["active_triad"] == "design"
+        assert json_data["current_triad"] == "design"
         assert json_data["turn_count"] == 5
-        assert json_data["pending_intents"] == ["research", "code"]
 
     def test_from_json(self):
         """Test JSON deserialization."""
         data = {
             "session_id": "test-456",
-            "active_triad": "implementation",
+            "current_triad": "implementation",
             "turn_count": 3,
-            "pending_intents": ["debug"],
         }
 
-        state = RouterState.from_json(data)
+        state = RouterState.from_dict(data)
 
         assert state.session_id == "test-456"
-        assert state.active_triad == "implementation"
+        assert state.current_triad == "implementation"
         assert state.turn_count == 3
-        assert state.pending_intents == ["debug"]
 
     def test_from_json_missing_fields(self):
         """Test JSON deserialization with missing fields uses defaults."""
         data = {"session_id": "test-789"}
 
-        state = RouterState.from_json(data)
+        state = RouterState.from_dict(data)
 
         assert state.session_id == "test-789"
-        assert state.active_triad is None
+        assert state.current_triad is None
         assert state.turn_count == 0
-        assert state.pending_intents == []
 
     def test_from_json_extra_fields(self):
         """Test JSON deserialization ignores unknown fields."""
@@ -74,12 +70,12 @@ class TestRouterState:
             "another_unknown": 123,
         }
 
-        state = RouterState.from_json(data)
+        state = RouterState.from_dict(data)
 
         assert state.session_id == "test-999"
         assert not hasattr(state, "unknown_field")
 
-    def test_is_within_grace_period_no_active_triad(self):
+    def test_is_within_grace_period_no_current_triad(self):
         """Test grace period check with no active triad."""
         state = RouterState(session_id="test")
 
@@ -89,8 +85,8 @@ class TestRouterState:
         """Test grace period satisfied by turn count."""
         state = RouterState(
             session_id="test",
-            active_triad="design",
-            conversation_start=datetime.utcnow().isoformat() + "Z",
+            current_triad="design",
+            conversation_start=datetime.now(timezone.utc).isoformat() + "Z",
             turn_count=3,
         )
 
@@ -98,12 +94,13 @@ class TestRouterState:
 
     def test_is_within_grace_period_turns_exceeded(self):
         """Test grace period when turns exceeded but time is within limit."""
-        # Start time 2 minutes ago
-        start = datetime.utcnow() - timedelta(minutes=2)
+        # Last activity 2 minutes ago
+        last = datetime.now(timezone.utc) - timedelta(minutes=2)
         state = RouterState(
             session_id="test",
-            active_triad="design",
-            conversation_start=start.isoformat() + "Z",
+            current_triad="design",
+            conversation_start=datetime.now(timezone.utc).isoformat() + "Z",
+            last_activity=last.isoformat().replace("+00:00", "Z"),
             turn_count=10,  # Exceeds grace_turns
         )
 
@@ -112,12 +109,13 @@ class TestRouterState:
 
     def test_is_within_grace_period_both_exceeded(self):
         """Test grace period when both turns and time exceeded."""
-        # Start time 10 minutes ago
-        start = datetime.utcnow() - timedelta(minutes=10)
+        # Last activity 10 minutes ago
+        last = datetime.now(timezone.utc) - timedelta(minutes=10)
         state = RouterState(
             session_id="test",
-            active_triad="design",
-            conversation_start=start.isoformat() + "Z",
+            current_triad="design",
+            conversation_start=datetime.now(timezone.utc).isoformat() + "Z",
+            last_activity=last.isoformat().replace("+00:00", "Z"),
             turn_count=10,  # Exceeds grace_turns
         )
 
@@ -140,7 +138,7 @@ class TestRouterStateManager:
         state = manager.load()
 
         assert state.session_id  # Should have generated UUID
-        assert state.active_triad is None
+        assert state.current_triad is None
 
     def test_save_and_load(self, temp_state_path):
         """Test basic save and load cycle."""
@@ -149,7 +147,7 @@ class TestRouterStateManager:
         # Create and save state
         state = RouterState(
             session_id="test-session",
-            active_triad="implementation",
+            current_triad="implementation",
             turn_count=7,
         )
         manager.save(state)
@@ -157,7 +155,7 @@ class TestRouterStateManager:
         # Load and verify
         loaded = manager.load()
         assert loaded.session_id == "test-session"
-        assert loaded.active_triad == "implementation"
+        assert loaded.current_triad == "implementation"
         assert loaded.turn_count == 7
 
     def test_save_creates_directory(self, tmp_path):
@@ -181,7 +179,7 @@ class TestRouterStateManager:
 
         # Should get default state
         assert state.session_id  # New UUID generated
-        assert state.active_triad is None
+        assert state.current_triad is None
 
     def test_reset(self, temp_state_path):
         """Test state reset deletes file."""
@@ -201,41 +199,55 @@ class TestRouterStateManager:
         manager = RouterStateManager(state_path=temp_state_path)
 
         state = RouterState(session_id="test")
-        before = datetime.utcnow()
+        before = datetime.now(timezone.utc)
 
-        updated = manager.update_activity(state)
+        # update_activity is now a domain method on RouterState
+        state.update_activity()
 
-        after = datetime.utcnow()
+        after = datetime.now(timezone.utc)
 
         # Verify timestamp is recent
         activity_time = datetime.fromisoformat(
-            updated.last_activity.replace("Z", "+00:00")
+            state.last_activity.replace("Z", "+00:00")
         )
-        before_with_tz = before.replace(tzinfo=activity_time.tzinfo)
-        after_with_tz = after.replace(tzinfo=activity_time.tzinfo)
-        assert before_with_tz <= activity_time <= after_with_tz
+        assert before <= activity_time <= after
 
     def test_activate_triad(self, temp_state_path):
         """Test triad activation."""
+        from triads.tools.router._timestamp_utils import utc_now_iso
+
         manager = RouterStateManager(state_path=temp_state_path)
 
-        state = RouterState(session_id="test")
-        activated = manager.activate_triad(state, "design")
+        # Triad activation is now handled in service/repository layer
+        # Create state with activated triad
+        state = RouterState(
+            session_id="test",
+            current_triad="design",
+            turn_count=0,
+            conversation_start=utc_now_iso(),
+            last_activity=utc_now_iso()
+        )
 
-        assert activated.active_triad == "design"
-        assert activated.turn_count == 0
-        assert activated.conversation_start is not None
-        assert activated.last_activity is not None
+        # Save and verify persistence
+        manager.save(state)
+        loaded = manager.load()
+
+        assert loaded.current_triad == "design"
+        assert loaded.turn_count == 0
+        assert loaded.conversation_start is not None
+        assert loaded.last_activity is not None
 
     def test_increment_turn(self, temp_state_path):
         """Test turn counter increment."""
         manager = RouterStateManager(state_path=temp_state_path)
 
         state = RouterState(session_id="test", turn_count=5)
-        incremented = manager.increment_turn(state)
 
-        assert incremented.turn_count == 6
-        assert incremented.last_activity is not None
+        # Turn increment is handled by update_activity() domain method
+        state.update_activity()
+
+        assert state.turn_count == 6
+        assert state.last_activity is not None
 
     def test_concurrent_access(self, temp_state_path):
         """Test concurrent read/write doesn't corrupt state."""

@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from src.triads.router.grace_period import GracePeriodChecker
-from src.triads.router.state_manager import RouterState, RouterStateManager
+from triads.tools.router._grace_period import GracePeriodChecker
+from triads.tools.router._state_manager import _RouterStateManager as RouterStateManager
+from triads.tools.router.domain import RouterState
 
 
 class TestGracePeriodChecker:
@@ -40,7 +41,7 @@ class TestGracePeriodChecker:
         assert checker.grace_turns == 10
         assert checker.grace_minutes == 15
 
-    def test_is_within_grace_period_no_active_triad(self, checker):
+    def test_is_within_grace_period_no_current_triad(self, checker):
         """Test grace period returns False when no active triad."""
         state = RouterState(session_id="test-123")
 
@@ -50,7 +51,7 @@ class TestGracePeriodChecker:
         """Test grace period satisfied by turn count."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=3,
             last_activity=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         )
@@ -61,7 +62,7 @@ class TestGracePeriodChecker:
         """Test grace period when turn count equals threshold."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=5,  # Equal to grace_turns
             last_activity=(
                 datetime.now(timezone.utc) - timedelta(minutes=10)
@@ -75,7 +76,7 @@ class TestGracePeriodChecker:
         """Test grace period satisfied by time."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=10,  # Turns exceeded
             last_activity=(datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
         )
@@ -87,7 +88,7 @@ class TestGracePeriodChecker:
         """Test grace period when time equals threshold."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=10,
             last_activity=(datetime.now(timezone.utc) - timedelta(minutes=8)).isoformat()
             + "Z",
@@ -102,7 +103,7 @@ class TestGracePeriodChecker:
         """Test grace period when both turn and time exceeded."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=10,
             last_activity=(
                 datetime.now(timezone.utc) - timedelta(minutes=15)
@@ -116,7 +117,7 @@ class TestGracePeriodChecker:
         """Test grace period with invalid timestamp."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=10,
             last_activity="invalid-timestamp",
         )
@@ -124,7 +125,7 @@ class TestGracePeriodChecker:
         # Invalid timestamp should be treated as expired
         assert not checker.is_within_grace_period(state)
 
-    def test_get_grace_period_status_no_active_triad(self, checker):
+    def test_get_grace_period_status_no_current_triad(self, checker):
         """Test status with no active triad."""
         state = RouterState(session_id="test-123")
 
@@ -137,7 +138,7 @@ class TestGracePeriodChecker:
         """Test status when turns are active."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=3,
             last_activity=(
                 datetime.now(timezone.utc) - timedelta(minutes=10)
@@ -156,7 +157,7 @@ class TestGracePeriodChecker:
         """Test status when time is active."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=10,
             last_activity=(datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
         )
@@ -173,7 +174,7 @@ class TestGracePeriodChecker:
         """Test status when both turn and time are active."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=3,
             last_activity=(datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
         )
@@ -189,7 +190,7 @@ class TestGracePeriodChecker:
         """Test status when neither turn nor time are active."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=10,
             last_activity=(
                 datetime.now(timezone.utc) - timedelta(minutes=15)
@@ -206,7 +207,7 @@ class TestGracePeriodChecker:
 
     def test_should_bypass_grace_period_explicit_command(self, checker):
         """Test bypass with explicit /switch-triad command."""
-        state = RouterState(session_id="test-123", active_triad="design")
+        state = RouterState(session_id="test-123", current_triad="design")
 
         should_bypass, reason = checker.should_bypass_grace_period(
             "/switch-triad implementation", state
@@ -217,7 +218,7 @@ class TestGracePeriodChecker:
 
     def test_should_bypass_grace_period_lets_switch_to(self, checker):
         """Test bypass with 'let's switch to' phrase."""
-        state = RouterState(session_id="test-123", active_triad="design")
+        state = RouterState(session_id="test-123", current_triad="design")
 
         should_bypass, reason = checker.should_bypass_grace_period(
             "Let's switch to implementation now", state
@@ -228,7 +229,7 @@ class TestGracePeriodChecker:
 
     def test_should_bypass_grace_period_lets_move_to(self, checker):
         """Test bypass with 'let's move to' phrase."""
-        state = RouterState(session_id="test-123", active_triad="design")
+        state = RouterState(session_id="test-123", current_triad="design")
 
         should_bypass, reason = checker.should_bypass_grace_period(
             "Now let's move to deployment", state
@@ -239,7 +240,7 @@ class TestGracePeriodChecker:
 
     def test_should_bypass_grace_period_now_lets(self, checker):
         """Test bypass with 'now let's' phrase."""
-        state = RouterState(session_id="test-123", active_triad="design")
+        state = RouterState(session_id="test-123", current_triad="design")
 
         should_bypass, reason = checker.should_bypass_grace_period(
             "Great! Now let's build it", state
@@ -250,7 +251,7 @@ class TestGracePeriodChecker:
 
     def test_should_bypass_grace_period_can_we_switch(self, checker):
         """Test bypass with 'can we switch to' phrase."""
-        state = RouterState(session_id="test-123", active_triad="design")
+        state = RouterState(session_id="test-123", current_triad="design")
 
         should_bypass, reason = checker.should_bypass_grace_period(
             "Can we switch to implementation?", state
@@ -261,7 +262,7 @@ class TestGracePeriodChecker:
 
     def test_should_bypass_grace_period_i_want_to_switch(self, checker):
         """Test bypass with 'i want to switch to' phrase."""
-        state = RouterState(session_id="test-123", active_triad="design")
+        state = RouterState(session_id="test-123", current_triad="design")
 
         should_bypass, reason = checker.should_bypass_grace_period(
             "I want to switch to deployment", state
@@ -272,7 +273,7 @@ class TestGracePeriodChecker:
 
     def test_should_bypass_grace_period_and_then(self, checker):
         """Test bypass with 'and then' multi-intent."""
-        state = RouterState(session_id="test-123", active_triad="design")
+        state = RouterState(session_id="test-123", current_triad="design")
 
         should_bypass, reason = checker.should_bypass_grace_period(
             "Let's finalize the design and then start coding", state
@@ -283,7 +284,7 @@ class TestGracePeriodChecker:
 
     def test_should_bypass_grace_period_then(self, checker):
         """Test bypass with 'then' multi-intent."""
-        state = RouterState(session_id="test-123", active_triad="design")
+        state = RouterState(session_id="test-123", current_triad="design")
 
         should_bypass, reason = checker.should_bypass_grace_period(
             "Complete the ADR then implement it", state
@@ -294,7 +295,7 @@ class TestGracePeriodChecker:
 
     def test_should_bypass_grace_period_normal_prompt(self, checker):
         """Test no bypass for normal prompt."""
-        state = RouterState(session_id="test-123", active_triad="design")
+        state = RouterState(session_id="test-123", current_triad="design")
 
         should_bypass, reason = checker.should_bypass_grace_period(
             "What should we consider in the design?", state
@@ -305,7 +306,7 @@ class TestGracePeriodChecker:
 
     def test_should_bypass_grace_period_case_insensitive(self, checker):
         """Test bypass detection is case insensitive."""
-        state = RouterState(session_id="test-123", active_triad="design")
+        state = RouterState(session_id="test-123", current_triad="design")
 
         should_bypass, reason = checker.should_bypass_grace_period(
             "LET'S SWITCH TO IMPLEMENTATION", state
@@ -318,7 +319,7 @@ class TestGracePeriodChecker:
         """Test resetting grace period for new triad."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=10,
             last_activity="2024-01-01T10:00:00Z",
             conversation_start="2024-01-01T09:00:00Z",
@@ -326,7 +327,7 @@ class TestGracePeriodChecker:
 
         new_state = checker.reset_grace_period(state, "implementation")
 
-        assert new_state.active_triad == "implementation"
+        assert new_state.current_triad == "implementation"
         assert new_state.turn_count == 1
         # Check timestamps are recent (within last second)
         assert new_state.last_activity is not None
@@ -347,13 +348,13 @@ class TestGracePeriodChecker:
         """Test reset updates all relevant fields."""
         state = RouterState(
             session_id="test-123",
-            active_triad="design",
+            current_triad="design",
             turn_count=10,
         )
 
         new_state = checker.reset_grace_period(state, "deployment")
 
-        assert new_state.active_triad == "deployment"
+        assert new_state.current_triad == "deployment"
         assert new_state.turn_count == 1
         assert new_state.last_activity == new_state.conversation_start
         assert new_state.session_id == "test-123"  # Unchanged

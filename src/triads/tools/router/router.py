@@ -168,7 +168,7 @@ class TriadRouter:
         self.telemetry.log_event(
             "grace_period_active",
             {
-                "triad": state.active_triad,
+                "triad": state.current_triad,
                 "turns_remaining": grace_status["turns_remaining"],
                 "minutes_remaining": grace_status["minutes_remaining"],
                 "reason": grace_status["reason"],
@@ -177,10 +177,10 @@ class TriadRouter:
         )
 
         return {
-            "triad": state.active_triad,
+            "triad": state.current_triad,
             "confidence": 1.0,  # High confidence - staying in current triad
             "method": "grace_period",
-            "reasoning": f"Continuing in {state.active_triad} (grace period active)",
+            "reasoning": f"Continuing in {state.current_triad} (grace period active)",
             "grace_period_active": True,
             "grace_status": grace_status,
             "latency_ms": latency_ms,

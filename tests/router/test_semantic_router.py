@@ -6,8 +6,8 @@ import time
 import numpy as np
 import pytest
 
-from src.triads.router.embedder import RouterEmbedder
-from src.triads.router.semantic_router import (
+from triads.tools.router._embedder import RouterEmbedder
+from triads.tools.router._semantic_router import (
     RoutingDecision,
     SemanticRouter,
     TriadRoute,
