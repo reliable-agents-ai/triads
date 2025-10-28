@@ -20,11 +20,15 @@ is_bridge: false
 
 Execute the upgrade plan from gap-analyzer to:
 - Copy missing template files to `.claude/` directories
+- **Generate domain-specific brief skills** (transform vague input → actionable specs)
+- Install standard output protocols (OUTPUT envelope, node types)
 - Update CLAUDE.md to use @import syntax
 - Preserve all existing custom content (agents, commands, etc.)
 - Maintain project functionality throughout upgrade
 
 **Safety First**: Create git branch, backup files, validate after each step.
+
+**Key Feature**: Automatically generates brief skills for the project's domain (software, design, legal, business, research, content) with research-backed keywords from industry sources.
 
 ---
 
@@ -70,6 +74,20 @@ cp -r .claude/agents .claude/agents.backup
 ---
 
 ### Step 3: Execute Phases
+
+**Standard Phase Sequence** (execute in order if needed):
+
+1. **Safety Measures** (Step 2) - ALWAYS execute first
+2. **Constitutional Principles** (Step 4) - If missing
+3. **Software Methodologies** (Step 5) - If missing
+4. **Framework Skills** (Step 6) - If missing
+5. **Domain-Specific Skills** (Step 6.5) - If missing
+6. **Standard Output Protocols** (Step 6.7) - If missing
+7. **Brief Skills** (Step 6.8) - **ALWAYS execute for domain**
+8. **CLAUDE.md Update** (Step 7) - If needed
+9. **Memory Templates** (Step 8) - If missing
+
+**IMPORTANT**: Step 6.8 (Brief Skills) should ALWAYS be executed if the project has a domain classification and doesn't already have brief skills. This transforms vague input → actionable specifications.
 
 **For each phase in upgrade_plan**:
 
@@ -1664,7 +1682,40 @@ import_validation:
 **Files Added**:
 {{FILE_LIST}}
 
-### Phase 5: CLAUDE.md Update
+### Phase 5: Domain-Specific Skills
+**Status**: {{COMPLETE|SKIPPED}}
+- Domain: {{DOMAIN}}
+- Skills generated: {{COUNT}}
+- Validation: {{PASSED|FAILED}}
+
+**Files Added** (if generated):
+{{FILE_LIST}}
+
+### Phase 6: Standard Output Protocols
+**Status**: {{COMPLETE|SKIPPED}}
+- Files copied: {{COUNT}}/2
+- Validation: {{PASSED|FAILED}}
+
+**Files Added**:
+- .claude/protocols/standard-output.md
+- .claude/protocols/node-types.md
+
+### Phase 7: Brief Skills (Domain-Specific)
+**Status**: {{COMPLETE|SKIPPED}}
+- Domain: {{DOMAIN}}
+- Brief skills generated: {{COUNT}}
+- Research evidence: {{QUALITY}}
+- Validation: {{PASSED|FAILED}}
+
+**Brief Skills Created**:
+{{FILE_LIST}}
+
+**Research Sources** (domain-specific):
+{{RESEARCH_SOURCES_LIST}}
+
+**Keywords Generated**: {{TOTAL_KEYWORDS}} (research-backed, not guessed)
+
+### Phase 8: CLAUDE.md Update
 **Status**: {{COMPLETE|FAILED}}
 - @imports added: {{COUNT}}
 - Custom sections preserved: {{COUNT}}
@@ -1676,7 +1727,7 @@ import_validation:
 - Triad routing → PRESERVED
 - Knowledge management → PRESERVED
 
-### Phase 6: Memory Templates
+### Phase 9: Memory Templates
 **Status**: {{COMPLETE|FAILED}}
 - User memory: {{ADDED|SKIPPED}}
 - Workflow memory: {{ADDED|SKIPPED}}
