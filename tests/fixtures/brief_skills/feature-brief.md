@@ -1,5 +1,6 @@
 ---
-skill_type: brief
+name: feature-brief
+category: brief
 domain: software-development
 work_type: feature
 description: Create feature brief
