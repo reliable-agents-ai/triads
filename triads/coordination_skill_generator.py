@@ -3,12 +3,21 @@ Coordination Skill Generator - Domain-agnostic coordination skill creation.
 
 Generates coordination skills based on routing_decision_table.yaml
 and brief skill discovery.
+
+Phase 3: Now supports LLM-based discovery without routing_decision_table.yaml
 """
 
 import yaml
 from pathlib import Path
 from typing import Dict, List, Any
 from datetime import datetime, UTC
+from triads.llm_routing import _parse_frontmatter
+
+# Constants for Phase 3: LLM-based discovery defaults
+DEFAULT_TARGET_TRIAD = "implementation"
+DEFAULT_ENTRY_AGENT = "senior-developer"
+DEFAULT_CONFIDENCE = 0.85
+DEFAULT_DOMAIN = "software-development"
 
 # Coordination skill template with complete 4-phase workflow
 COORDINATION_SKILL_TEMPLATE = """---
@@ -280,6 +289,191 @@ def generate_all_coordination_skills(
         print(f"✅ Generated coordination skill: {skill_path.name}")
 
     return generated_skills
+
+
+def generate_all_coordination_skills_from_discovery(
+    skills_dir: Path,
+    output_dir: Path,
+    default_domain: str = DEFAULT_DOMAIN
+) -> List[Path]:
+    """
+    Generate coordination skills for all discovered brief skills.
+
+    Uses LLM routing discovery to find brief skills dynamically from filesystem
+    instead of reading from routing_decision_table.yaml.
+
+    Args:
+        skills_dir: Directory containing brief skills (searches subdirectories)
+        output_dir: Output directory for coordination skill files
+        default_domain: Default domain if not specified in brief skill metadata
+
+    Returns:
+        List of generated skill file paths
+
+    Example:
+        >>> skills_dir = Path(".claude/skills")
+        >>> output_dir = Path(".claude/skills/software-development")
+        >>> generate_all_coordination_skills_from_discovery(skills_dir, output_dir)
+        [PosixPath('.claude/skills/software-development/coordinate-bug.md'), ...]
+    """
+    # Create output directory
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Discover brief skills from filesystem (searches recursively)
+    brief_skills = _discover_brief_skills_recursive(skills_dir)
+
+    if not brief_skills:
+        print(f"⚠️  No brief skills found in {skills_dir}")
+        return []
+
+    print(f"🔍 Discovered {len(brief_skills)} brief skills:")
+    for skill_name in brief_skills.keys():
+        print(f"   - {skill_name}")
+
+    # Generate coordination skill for each discovered brief skill
+    generated_skills = []
+
+    for skill_name, skill_metadata in brief_skills.items():
+        # Extract work type from skill name (remove "-brief" suffix)
+        work_type = skill_name.replace("-brief", "")
+
+        # Extract domain from metadata
+        domain = skill_metadata.get("domain", default_domain)
+
+        # Extract keywords from description (simple approach)
+        # Keywords are embedded in description after "Keywords -"
+        description = skill_metadata.get("description", "")
+        keywords = _extract_keywords_from_description(description)
+
+        # For Phase 3, use default routing to implementation triad
+        # This can be enhanced later with actual LLM routing
+        config = {
+            "keywords": keywords,
+            "target_triad": DEFAULT_TARGET_TRIAD,
+            "entry_agent": DEFAULT_ENTRY_AGENT,
+            "brief_skill": skill_name,
+            "confidence": DEFAULT_CONFIDENCE
+        }
+
+        # Generate coordination skill
+        skill_path = generate_coordination_skill(
+            work_type=work_type,
+            config=config,
+            domain=domain,
+            output_dir=output_dir
+        )
+        generated_skills.append(skill_path)
+        print(f"✅ Generated coordination skill: {skill_path.name}")
+
+    return generated_skills
+
+
+def _discover_brief_skills_recursive(skills_dir: Path) -> Dict[str, Dict[str, str]]:
+    """
+    Discover brief skills recursively from filesystem.
+
+    Searches for *-brief.md files in skills_dir and all subdirectories.
+    Parses frontmatter to extract metadata.
+
+    Args:
+        skills_dir: Root directory to search for brief skills
+
+    Returns:
+        Dictionary mapping skill names to metadata
+
+    Example:
+        >>> _discover_brief_skills_recursive(Path(".claude/skills"))
+        {
+            "bug-brief": {"name": "bug-brief", "description": "...", "category": "brief"},
+            "feature-brief": {"name": "feature-brief", ...}
+        }
+    """
+    brief_skills = {}
+
+    if not skills_dir.exists():
+        return brief_skills
+
+    # Search recursively for *-brief.md files
+    for skill_file in skills_dir.rglob("*-brief.md"):
+        try:
+            content = skill_file.read_text()
+            metadata = _parse_frontmatter(content)
+
+            # Only include if category is "brief"
+            if metadata.get("category") == "brief":
+                skill_name = metadata.get("name", skill_file.stem)
+                brief_skills[skill_name] = metadata
+
+        except Exception as e:
+            print(f"⚠️  Failed to parse {skill_file}: {e}")
+
+    return brief_skills
+
+
+def _extract_keywords_from_description(description: str) -> List[str]:
+    """
+    Extract keywords from brief skill description.
+
+    Brief skill descriptions contain keywords after "Keywords -" or "Keywords:".
+    Example: "...discovers via keywords - bug, issue, error, crash..."
+
+    Args:
+        description: Brief skill description string
+
+    Returns:
+        List of extracted keywords
+
+    Example:
+        >>> desc = "Transform bug report. Keywords - bug, issue, error"
+        >>> _extract_keywords_from_description(desc)
+        ['bug', 'issue', 'error']
+    """
+    # Look for keywords marker (case-insensitive)
+    keywords_markers = ["Keywords - ", "Keywords: ", "keywords - ", "keywords: "]
+
+    for marker in keywords_markers:
+        if marker in description:
+            # Extract text after marker
+            after_marker = description.split(marker, 1)[1]
+
+            # Take first clause (up to period or newline)
+            keywords_text = after_marker.split(".")[0].split("\n")[0]
+
+            # Split by comma, strip whitespace, filter empty
+            keywords = [kw.strip() for kw in keywords_text.split(",") if kw.strip()]
+
+            if keywords:
+                return keywords
+
+    # Fallback: infer keywords from common work type patterns
+    return _infer_keywords_from_work_type(description)
+
+
+def _infer_keywords_from_work_type(description: str) -> List[str]:
+    """
+    Infer keywords from description when explicit keywords not found.
+
+    Args:
+        description: Brief skill description
+
+    Returns:
+        List of inferred keywords based on common patterns
+    """
+    words = description.lower().split()
+
+    # Pattern matching for common work types
+    keyword_patterns = {
+        "bug": ["bug", "issue", "error", "fix"],
+        "feature": ["feature", "enhancement", "new", "add"],
+        "refactor": ["refactor", "cleanup", "improve", "restructure"]
+    }
+
+    for work_type, default_keywords in keyword_patterns.items():
+        if work_type in words:
+            return default_keywords
+
+    # Generic fallback
+    return ["work"]
 
 
 if __name__ == "__main__":
