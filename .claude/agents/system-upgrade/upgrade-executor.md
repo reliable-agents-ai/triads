@@ -557,23 +557,183 @@ Based on domain classification:
 mkdir -p .claude/skills/software-development
 ```
 
-**Action 3: Generate brief skills from templates**
+**Action 3: Research and Analyze Brief Skill Needs (Domain-Agnostic)**
 
-**For each brief type**:
-1. Load template from templates/skills/brief-templates/{brief_type}-template.md
-2. Customize for domain (keywords, node type, handoff target)
-3. Write to .claude/skills/{domain}/{brief_type}.md
+**IMPORTANT**: Brief skills are NOT copied from templates. They are GENERATED based on research and analysis of domain-specific best practices.
 
-**Generate bug-brief skill**:
+**Universal Research Process (Applies to ALL Domains)**:
+
+1. **Identify Domain**: What domain is this project in?
+   ```bash
+   # Check CLAUDE.md or agents for domain classification
+   grep -i "domain:" .claude/CLAUDE.md .claude/agents/**/*.md | head -5
+   ```
+
+   **Possible domains**:
+   - software-development: Code, bugs, features, refactoring
+   - design: Creative briefs, campaigns, brand work, user experience
+   - legal: Cases, contracts, research, arguments, filings
+   - business: Proposals, bids, analysis, strategy, marketing
+   - research: Studies, experiments, papers, literature reviews
+   - content-creation: Articles, videos, scripts, copy, editorial
+   - custom: Domain-specific workflows
+
+2. **Research Domain Best Practices**: What input types exist in this domain?
+
+   **Examples by domain**:
+
+   ```
+   software-development:
+   - Bug reports (GitHub issues, Jira tickets, error logs)
+   - Feature requests (user stories, enhancements, capabilities)
+   - Refactoring needs (technical debt, code quality, improvements)
+   Evidence: GitHub templates, Jira workflows, SDLC practices
+
+   design:
+   - Campaign briefs (print, digital, video campaigns)
+   - Brand identity briefs (logo, colors, voice, guidelines)
+   - UX design briefs (user flows, wireframes, prototypes)
+   - Project briefs (deliverables, timeline, audience, goals)
+   Evidence: AIGA, design agencies, creative brief templates
+
+   legal:
+   - Case briefs (facts, issues, holdings, reasoning)
+   - Contract briefs (parties, terms, obligations, risks)
+   - Research briefs (legal questions, statutes, precedents)
+   - Argument briefs (claims, evidence, rebuttals)
+   Evidence: Legal writing guides, bar associations, law firms
+
+   business:
+   - Proposal briefs (RFP responses, project proposals)
+   - Bid briefs (tenders, quotes, competitive analysis)
+   - Strategy briefs (market analysis, competitive positioning)
+   - Marketing briefs (campaigns, channels, messaging, KPIs)
+   Evidence: Consulting frameworks, McKinsey, BCG, agency practices
+
+   research:
+   - Study briefs (hypothesis, methodology, data collection)
+   - Experiment briefs (design, variables, protocols, analysis)
+   - Literature review briefs (scope, sources, synthesis)
+   - Grant proposal briefs (aims, significance, approach)
+   Evidence: Academic journals, NIH, NSF guidelines
+
+   content-creation:
+   - Article briefs (topic, angle, sources, audience, word count)
+   - Video script briefs (concept, scenes, dialogue, duration)
+   - Editorial briefs (tone, style, publication guidelines)
+   - Social media briefs (platform, format, message, CTA)
+   Evidence: AP Stylebook, content marketing, editorial guides
+   ```
+
+3. **Identify Input Patterns**: What vague phrases do users say in this domain?
+
+   ```
+   software-development:
+   - "login is broken", "crashes", "doesn't work", "error message"
+   - "add dark mode", "we need X", "can you make it do Y"
+   - "code is messy", "duplicated", "hard to understand"
+
+   design:
+   - "we need a brochure", "design our logo", "refresh the brand"
+   - "make it more modern", "better user experience", "improve the flow"
+
+   legal:
+   - "review this contract", "research precedent for X", "prepare argument for Y"
+   - "what are the risks", "opposing counsel claims Z", "need brief on statute"
+
+   business:
+   - "respond to this RFP", "write proposal for X", "bid on contract"
+   - "analyze market for Y", "create strategy for Z", "pitch new product"
+
+   research:
+   - "design study for X", "review literature on Y", "write grant for Z"
+   - "what's known about A", "test hypothesis B", "analyze data from C"
+
+   content-creation:
+   - "write article about X", "create video on Y", "social post for Z"
+   - "blog post idea", "newsletter content", "product description"
+   ```
+
+4. **Map to Node Types**: Use `.claude/protocols/node-types.md` registry
+   ```bash
+   # Load node types to understand data structures
+   cat .claude/protocols/node-types.md | grep -A10 "type: Brief"
+   ```
+
+   **Domain-specific brief node types**:
+   ```
+   software-development: BugBrief, FeatureBrief, RefactorBrief
+   design: CampaignBrief, BrandBrief, UXBrief, ProjectBrief
+   legal: CaseBrief, ContractBrief, ResearchBrief, ArgumentBrief
+   business: ProposalBrief, BidBrief, StrategyBrief, MarketingBrief
+   research: StudyBrief, ExperimentBrief, LiteratureReviewBrief, GrantBrief
+   content-creation: ArticleBrief, VideoBrief, EditorialBrief, SocialBrief
+   ```
+
+5. **Define Keywords**: Based on research, not guessing
+
+   **Keyword research evidence sources**:
+   - Industry standard terminology (domain glossaries)
+   - Professional workflows (how practitioners describe work)
+   - Common user language (how non-experts request work)
+   - Tool/platform conventions (Jira, Asana, creative platforms)
+
+   **Example keywords by domain**:
+   ```
+   software-development/bug-brief:
+   bug, issue, error, crash, broken, fails, not working, exception,
+   stack trace, failure, problem, defect, regression, production issue,
+   incident, glitch, malfunction, doesn't work, freezes, hangs
+
+   design/campaign-brief:
+   campaign, creative, brochure, poster, ad, advertisement, print,
+   digital campaign, marketing materials, brand campaign, awareness,
+   launch, promotional, collateral, deliverables, creative direction
+
+   legal/case-brief:
+   case, lawsuit, litigation, dispute, claim, plaintiff, defendant,
+   court, judge, ruling, precedent, facts, issues, holding, reasoning,
+   brief the case, analyze case, case summary, legal research
+
+   business/proposal-brief:
+   proposal, RFP, request for proposal, bid, tender, quote, pitch,
+   project proposal, business proposal, respond to RFP, submit proposal,
+   competitive bid, statement of work, SOW, scope of work
+
+   research/study-brief:
+   study, experiment, research, hypothesis, methodology, data collection,
+   research design, experimental design, protocol, IRB, participants,
+   sample, measure, analyze, study design, research plan
+
+   content-creation/article-brief:
+   article, blog post, write, content, piece, story, editorial,
+   feature article, news article, listicle, how-to, guide, explainer,
+   word count, topic, angle, audience, publication
+   ```
+
+**Action 4: Generate Brief Skills Dynamically (Domain-Specific)**
+
+**IMPORTANT**: Generate brief skills appropriate for the detected domain.
+
+**For each inferred brief type, generate complete skill file with:**
+- Research-backed keywords (50-100+ from domain glossaries, industry practices)
+- Domain-specific clarifying questions (what practitioners need to know)
+- Appropriate tool usage (domain-relevant searches and reads)
+- Correct knowledge graph node type (from node-types.md registry)
+- Standard OUTPUT envelope (follows standard-output.md protocol)
+
+**Example 1: software-development domain - bug-brief skill**
+
 ```bash
+# Generate bug-brief.md dynamically
 cat > .claude/skills/software-development/bug-brief.md <<'EOF'
 ---
 name: bug-brief
-description: Transform vague bug report into complete BugBrief specification. Use when user reports bugs, issues, errors, crashes, broken functionality, failures, exceptions, or not working features. Keywords: bug, issue, error, crash, broken, fails, not working, exception, stack trace, failure, problem, defect, regression, production issue, incident
+description: Transform vague bug report into complete BugBrief specification with reproduction steps, expected vs actual behavior, and acceptance criteria. Use when user reports bugs, issues, errors, crashes, broken functionality, failures, exceptions, or not working features. Discovers via keywords - bug, issue, error, crash, broken, fails, not working, exception, stack trace, failure, problem, defect, regression, production issue, incident, glitch, malfunction, doesn't work, freezes, hangs, unresponsive, broken behavior, unexpected behavior
 category: brief
 domain: software-development
 generated_by: upgrade-executor
-generated_at: {ISO 8601 timestamp}
+generated_at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 allowed_tools: ["Grep", "Read", "AskUserQuestion"]
 ---
 
@@ -583,37 +743,669 @@ allowed_tools: ["Grep", "Read", "AskUserQuestion"]
 
 Transform vague bug report into complete BugBrief specification.
 
-Users say: "login is broken" or "app crashes"
-This skill creates: Complete bug specification with reproduction steps, expected vs actual behavior, acceptance criteria
+**What users say**: "login is broken", "app crashes when I...", "error message appears", "doesn't work"
 
-[... rest follows template structure from Triad Architect Step 3.5.3 ...]
+**What this skill creates**: Complete bug specification with:
+- One-sentence summary
+- Reproduction steps
+- Expected vs actual behavior
+- Acceptance criteria for fix
+- Error messages and affected files (if available)
+
+## Keywords for Discovery
+
+bug, issue, error, crash, broken, fails, not working, exception, stack trace, failure, problem, defect, regression, production issue, incident, glitch, malfunction, doesn't work, freezes, hangs, unresponsive, broken behavior, unexpected behavior
+
+## When to Invoke This Skill
+
+Invoke when user provides vague bug report like:
+- "Login is broken"
+- "App crashes when I click submit"
+- "Getting an error message"
+- "Feature X doesn't work anymore"
+- "Users can't access Y"
+- "System freezes on startup"
+
+## Skill Procedure
+
+### Step 1: Clarify Input with Questions
+
+Use AskUserQuestion to gather missing information:
+
+**Questions for bug reports**:
+1. Can you reproduce this bug consistently? (Yes/No/Sometimes)
+2. What were you doing when it happened? (Steps leading to bug)
+3. What did you expect to happen? (Expected behavior)
+4. What actually happened instead? (Actual behavior)
+5. Are there any error messages? (Copy exact error text)
+6. What environment? (OS, browser, version, etc.)
+
+**Example AskUserQuestion call**:
+```markdown
+I need to create a complete bug specification. Please answer:
+
+1. **Can you reproduce this?** (Yes/No/Sometimes)
+2. **What steps lead to the bug?** (e.g., 1. Open app, 2. Click login, 3. ...)
+3. **What should happen?** (Expected behavior)
+4. **What actually happens?** (Actual behavior)
+5. **Any error messages?** (Copy exact text if visible)
+```
+
+### Step 2: Gather Context Using Tools
+
+**Use Grep to find relevant code**:
+```bash
+# Search for error-related code
+Grep pattern="login" path=.
+Grep pattern="authentication" path=.
+Grep pattern="error.*{user_keyword}" path=.
+```
+
+**Use Read to examine files**:
+```bash
+# Read files discovered from Grep
+Read file_path="{file_from_grep_results}"
+```
+
+**Analyze for**:
+- Error handling code
+- Related functionality
+- Recent changes (if git available)
+- Test coverage for affected area
+
+### Step 3: Create BugBrief Knowledge Graph Node
+
+Based on gathered information, create structured specification:
+
+```markdown
+[GRAPH_UPDATE]
+type: add_node
+node_id: bug_brief_{sanitized_summary}_{timestamp}
+node_type: BugBrief
+
+metadata:
+  created_by: bug-brief-skill
+  created_at: {ISO 8601 timestamp}
+  confidence: {0.85-1.0 based on information completeness}
+  domain: software-development
+  output_type: "brief"
+
+data:
+  summary: "{One-sentence bug description}"
+
+  reproduction_steps:
+    - "{Step 1}"
+    - "{Step 2}"
+    - "{Step 3}"
+    - "Expected: {what should happen}"
+    - "Actual: {what actually happens}"
+
+  expected_behavior: "{What the user expected}"
+  actual_behavior: "{What actually occurred}"
+
+  acceptance_criteria:
+    - "Bug no longer occurs when following reproduction steps"
+    - "{Specific fix validation criterion 1}"
+    - "{Specific fix validation criterion 2}"
+
+  error_messages:
+    - "{Error text 1}"
+    - "{Error text 2}"
+
+  affected_files:
+    - "{file_path:line_number}"
+    - "{file_path:line_number}"
+
+  environment:
+    os: "{operating system}"
+    browser: "{browser + version}"
+    app_version: "{version}"
+    other: "{relevant environment details}"
+
+  severity: "{CRITICAL|HIGH|MEDIUM|LOW based on impact}"
+  reproducibility: "{ALWAYS|SOMETIMES|ONCE}"
+
+handoff:
+  ready_for_next: true
+  next_stage: "implementation-triad"
+  required_fields: ["summary", "reproduction_steps", "expected_behavior", "actual_behavior", "acceptance_criteria"]
+  optional_fields: ["error_messages", "affected_files", "environment", "severity", "reproducibility"]
+
+lineage:
+  created_from_node: null
+  consumed_by_nodes: []
+[/GRAPH_UPDATE]
+```
+
+### Step 4: Return Standard OUTPUT Envelope
+
+Return lightweight handoff with node reference:
+
+```markdown
+OUTPUT:
+  _meta:
+    output_type: "brief"
+    created_by: "bug-brief"
+    domain: "software-development"
+    timestamp: "{ISO 8601}"
+    confidence: {0.85-1.0}
+
+  _handoff:
+    next_stage: "implementation-triad"
+    graph_node: "bug_brief_{sanitized_summary}_{timestamp}"
+    required_fields: ["summary", "reproduction_steps", "expected_behavior", "actual_behavior", "acceptance_criteria"]
+    optional_fields: ["error_messages", "affected_files", "environment"]
+```
+
+## Output Format
+
+Returns:
+- **Knowledge graph node** with complete bug specification (stored in graph)
+- **Standard OUTPUT envelope** with node reference (lightweight handoff)
+
+**User sees**:
+```markdown
+✅ Created BugBrief specification: bug_brief_login_broken_20251028_173045
+
+**Summary**: Login form fails to authenticate valid credentials
+
+**Reproduction Steps**:
+1. Navigate to /login
+2. Enter valid username and password
+3. Click "Submit"
+Expected: Redirect to dashboard
+Actual: Error "Invalid credentials" appears
+
+**Acceptance Criteria**:
+- Valid credentials authenticate successfully
+- Error only appears for actual invalid credentials
+- Dashboard loads after successful login
+
+**Next Stage**: implementation-triad
+
+View full specification in knowledge graph: bug_brief_login_broken_20251028_173045
+```
+
+## Example Usage
+
+**User Input**: "login is broken"
+
+**Skill Process**:
+1. ✅ Keyword match: "broken" triggers bug-brief skill
+2. ✅ Asked clarifying questions via AskUserQuestion
+   - User provided: reproduction steps, expected vs actual, no error message visible
+3. ✅ Searched codebase with Grep for "login" and "authentication"
+   - Found: src/auth/login.py, src/auth/validators.py
+4. ✅ Read relevant files with Read tool
+   - Discovered: Password validation logic in validators.py:45
+5. ✅ Created BugBrief knowledge graph node with complete specification
+6. ✅ Returned OUTPUT envelope with node reference
+
+**Output**: Complete bug specification ready for implementation triad
+
+## Integration with Standard Output Protocol
+
+This skill follows the standard output protocol (`.claude/protocols/standard-output.md`):
+- Creates knowledge graph node (full data storage)
+- Returns OUTPUT envelope (lightweight handoff)
+- Downstream agents load node by reference
+
+**Node structure** follows `.claude/protocols/node-types.md` → BugBrief definition.
+
+## Why This Skill Matters
+
+**Before**:
+- User: "login is broken"
+- Developer: "Can you provide more details?"
+- [Multiple back-and-forth messages]
+- [Developer manually searches code]
+- [Finally enough context to start fixing]
+
+**After**:
+- User: "login is broken"
+- bug-brief skill activates automatically
+- Asks structured questions once
+- Gathers code context automatically
+- Creates complete specification
+- Implementation triad receives structured input and fixes bug immediately
+
+**Time saved**: ~15-20 minutes per bug report
+**Context quality**: Systematic and complete
 EOF
+
+# Follow same pattern for other brief types in software-development domain
+# feature-brief.md, refactor-brief.md
+# Each follows identical structure: keywords, questions, tools, node creation, OUTPUT envelope
 ```
 
-**Action 4: Verify brief skills generated**
+**Example 2: design domain - campaign-brief skill**
+
 ```bash
+# For design domain, generate campaign-brief.md
+cat > .claude/skills/design/campaign-brief.md <<'EOF'
+---
+name: campaign-brief
+description: Transform vague creative request into complete CampaignBrief specification with objectives, audience, deliverables, timeline, and success metrics. Use when user requests campaigns, brochures, posters, ads, print materials, digital campaigns, marketing collateral, promotional materials, brand campaigns, awareness campaigns, product launches. Discovers via keywords - campaign, creative, brochure, poster, ad, advertisement, print, digital campaign, marketing materials, brand campaign, awareness, launch, promotional, collateral, deliverables, creative direction, design campaign, marketing campaign, brand activation, creative brief, design brief
+category: brief
+domain: design
+generated_by: upgrade-executor
+generated_at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+allowed_tools: ["Grep", "Read", "AskUserQuestion", "WebFetch"]
+---
+
+# Campaign Brief Skill
+
+## Purpose
+
+Transform vague creative request into complete CampaignBrief specification.
+
+**What users say**: "we need a brochure", "design campaign for product launch", "create marketing materials"
+
+**What this skill creates**: Complete campaign specification with:
+- Campaign objectives and goals
+- Target audience definition
+- Key messages and brand guidelines
+- Deliverables and formats
+- Timeline and milestones
+- Budget constraints
+- Success metrics
+
+## Skill Procedure
+
+### Step 1: Clarify Input with Questions
+
+Use AskUserQuestion to gather missing information:
+
+**Questions for campaign briefs**:
+1. What is the main objective? (Brand awareness / Product launch / Lead generation / Event promotion)
+2. Who is the target audience? (Demographics, psychographics, behaviors)
+3. What key message should we communicate? (Main value proposition, emotional appeal)
+4. What deliverables are needed? (Print brochure / Digital ads / Social media / Video / Website landing page)
+5. What's the timeline? (Launch date, milestone dates, campaign duration)
+6. Are there brand guidelines? (Logo usage, colors, fonts, tone of voice)
+7. What's the budget? (Overall budget, budget per deliverable)
+8. How will success be measured? (Impressions, engagement, conversions, sales)
+
+**Example AskUserQuestion call**:
+```markdown
+I need to create a complete campaign brief. Please answer:
+
+1. **Campaign objective?** (e.g., Increase brand awareness for new product line)
+2. **Target audience?** (e.g., Women 25-40, urban, health-conscious)
+3. **Key message?** (e.g., "Natural skincare that works")
+4. **Deliverables needed?** (Check all that apply: Print brochure, Digital ads, Social media, Email, Video)
+5. **Launch date?** (When does campaign go live?)
+6. **Brand guidelines?** (Share link or file path to brand guide)
+7. **Budget?** (Total campaign budget or per-deliverable budget)
+```
+
+### Step 2: Gather Context Using Tools
+
+**Use Grep to find existing brand assets**:
+```bash
+# Search for brand guidelines, previous campaigns, design assets
+Grep pattern="brand.*guide\|style.*guide\|logo" path=.
+Grep pattern="campaign\|creative.*brief" path=.
+```
+
+**Use Read to examine brand documents**:
+```bash
+# Read brand guidelines found
+Read file_path="{brand_guide_path}"
+```
+
+**Use WebFetch for industry research** (if needed):
+```bash
+# Research similar campaigns, design trends, audience insights
+WebFetch url="https://www.example.com/design-inspiration"
+```
+
+**Analyze for**:
+- Existing brand voice and visual identity
+- Previous campaign performance (if available)
+- Competitive campaigns
+- Design constraints (formats, dimensions, platforms)
+
+### Step 3: Create CampaignBrief Knowledge Graph Node
+
+Based on gathered information, create structured specification:
+
+```markdown
+[GRAPH_UPDATE]
+type: add_node
+node_id: campaign_brief_{sanitized_name}_{timestamp}
+node_type: CampaignBrief
+
+metadata:
+  created_by: campaign-brief-skill
+  created_at: {ISO 8601 timestamp}
+  confidence: {0.85-1.0 based on information completeness}
+  domain: design
+  output_type: "brief"
+
+data:
+  campaign_name: "{Campaign name}"
+  summary: "{One-sentence campaign description}"
+
+  objectives:
+    primary: "{Main objective}"
+    secondary:
+      - "{Secondary objective 1}"
+      - "{Secondary objective 2}"
+
+  target_audience:
+    demographics:
+      age_range: "{e.g., 25-40}"
+      gender: "{e.g., Female, All, Male}"
+      location: "{e.g., Urban US, Global, NYC metro}"
+      income: "{e.g., $50K-$100K}"
+    psychographics:
+      - "{Lifestyle trait 1: e.g., Health-conscious}"
+      - "{Lifestyle trait 2: e.g., Environmentally aware}"
+    behaviors:
+      - "{Behavior 1: e.g., Online shoppers}"
+      - "{Behavior 2: e.g., Social media active}"
+
+  key_messages:
+    headline: "{Main campaign headline}"
+    tagline: "{Brand tagline if applicable}"
+    value_proposition: "{Why this matters to audience}"
+    supporting_messages:
+      - "{Supporting point 1}"
+      - "{Supporting point 2}"
+    tone: "{e.g., Inspirational, Professional, Playful, Urgent}"
+
+  deliverables:
+    - type: "{e.g., Print brochure}"
+      format: "{e.g., Tri-fold, 8.5x11}"
+      quantity: "{e.g., 5000 copies}"
+      specifications: "{e.g., Full color, glossy, double-sided}"
+    - type: "{e.g., Digital display ads}"
+      format: "{e.g., 300x250, 728x90, 160x600}"
+      quantity: "{e.g., 3 sizes × 5 variations = 15 ads}"
+      specifications: "{e.g., Animated GIF, static JPG fallback}"
+    - type: "{e.g., Social media graphics}"
+      format: "{e.g., Instagram 1080x1080, Facebook 1200x630}"
+      quantity: "{e.g., 10 posts}"
+      specifications: "{e.g., On-brand, include CTAs}"
+
+  brand_guidelines:
+    logo: "{Logo usage rules or file path}"
+    colors:
+      primary: ["{HEX}", "{HEX}"]
+      secondary: ["{HEX}", "{HEX}"]
+    fonts:
+      primary: "{Font name and weights}"
+      secondary: "{Font name and weights}"
+    voice: "{Brand voice description}"
+    visual_style: "{Design style: Modern, Classic, Bold, etc.}"
+
+  timeline:
+    kickoff: "{YYYY-MM-DD}"
+    concept_review: "{YYYY-MM-DD}"
+    design_drafts: "{YYYY-MM-DD}"
+    final_approval: "{YYYY-MM-DD}"
+    launch_date: "{YYYY-MM-DD}"
+    campaign_duration: "{e.g., 3 months, Ongoing}"
+
+  budget:
+    total: "{$X,XXX}"
+    breakdown:
+      - item: "{Deliverable or activity}"
+        amount: "{$XXX}"
+      - item: "{Deliverable or activity}"
+        amount: "{$XXX}"
+
+  success_metrics:
+    - metric: "{e.g., Brand awareness lift}"
+      target: "{e.g., +15%}"
+      measurement: "{e.g., Survey pre/post campaign}"
+    - metric: "{e.g., Engagement rate}"
+      target: "{e.g., 5% CTR}"
+      measurement: "{e.g., Analytics tracking}"
+    - metric: "{e.g., Conversions}"
+      target: "{e.g., 500 sign-ups}"
+      measurement: "{e.g., CRM tracking}"
+
+  acceptance_criteria:
+    - "All deliverables meet brand guidelines"
+    - "Designs approved by stakeholders"
+    - "Delivered on time and within budget"
+    - "{Domain-specific quality criterion}"
+
+handoff:
+  ready_for_next: true
+  next_stage: "design-triad"
+  required_fields: ["campaign_name", "objectives", "target_audience", "key_messages", "deliverables", "timeline"]
+  optional_fields: ["brand_guidelines", "budget", "success_metrics"]
+
+lineage:
+  created_from_node: null
+  consumed_by_nodes: []
+[/GRAPH_UPDATE]
+```
+
+### Step 4: Return Standard OUTPUT Envelope
+
+Return lightweight handoff with node reference:
+
+```markdown
+OUTPUT:
+  _meta:
+    output_type: "brief"
+    created_by: "campaign-brief"
+    domain: "design"
+    timestamp: "{ISO 8601}"
+    confidence: {0.85-1.0}
+
+  _handoff:
+    next_stage: "design-triad"
+    graph_node: "campaign_brief_{sanitized_name}_{timestamp}"
+    required_fields: ["campaign_name", "objectives", "target_audience", "key_messages", "deliverables", "timeline"]
+    optional_fields: ["brand_guidelines", "budget", "success_metrics"]
+```
+
+## Why This Skill Matters
+
+**Before**:
+- Client: "we need a brochure"
+- Designer: "What's it for? Who's the audience? What's the message? What's the deadline? What's the budget?"
+- [Multiple meetings, emails, back-and-forth]
+- [Designer waits for answers]
+- [Finally has enough context to design]
+
+**After**:
+- Client: "we need a brochure"
+- campaign-brief skill activates automatically
+- Asks structured questions once
+- Gathers brand assets automatically
+- Creates complete campaign brief
+- Design triad receives structured brief and creates campaign immediately
+
+**Time saved**: ~2-3 days of back-and-forth
+**Context quality**: Comprehensive and structured
+EOF
+
+# Follow same pattern for other design brief types:
+# brand-brief.md (brand identity projects)
+# ux-brief.md (user experience design)
+# project-brief.md (general design projects)
+```
+
+**Pattern Summary for Other Domains**:
+
+```bash
+# legal domain - case-brief.md example structure:
+# - Keywords: case, lawsuit, litigation, dispute, claim, plaintiff, defendant, precedent
+# - Questions: Parties? Facts? Legal issues? Holdings? Reasoning? Applicable statutes?
+# - Tools: Grep (search legal docs), Read (case files), WebFetch (legal research)
+# - Node: CaseBrief with facts, issues, holdings, reasoning, applicable_law
+# - Handoff: legal-analysis-triad
+
+# business domain - proposal-brief.md example structure:
+# - Keywords: proposal, RFP, request for proposal, bid, tender, quote, pitch, SOW
+# - Questions: RFP requirements? Scope? Timeline? Budget? Evaluation criteria? Differentiators?
+# - Tools: Grep (search for requirements), Read (RFP documents), WebFetch (client research)
+# - Node: ProposalBrief with requirements, scope, timeline, budget, approach, team
+# - Handoff: business-development-triad
+
+# research domain - study-brief.md example structure:
+# - Keywords: study, experiment, research, hypothesis, methodology, data collection
+# - Questions: Hypothesis? Variables? Sample? Protocol? IRB approval? Analysis plan?
+# - Tools: Grep (search literature), Read (papers), WebFetch (research databases)
+# - Node: StudyBrief with hypothesis, design, variables, methodology, analysis_plan
+# - Handoff: research-design-triad
+
+# content-creation domain - article-brief.md example structure:
+# - Keywords: article, blog post, write, content, piece, story, editorial, guide
+# - Questions: Topic? Angle? Target audience? Word count? Tone? Sources? Publication?
+# - Tools: Grep (search existing content), Read (style guides), WebFetch (topic research)
+# - Node: ArticleBrief with topic, angle, audience, word_count, sources, outline
+# - Handoff: content-production-triad
+
+# Each domain follows identical skill structure:
+# 1. Research-backed keywords (50-100+ from industry sources)
+# 2. Domain-specific clarifying questions (AskUserQuestion)
+# 3. Appropriate tool usage for context gathering
+# 4. Domain-specific knowledge graph node (from node-types.md)
+# 5. Standard OUTPUT envelope (follows standard-output.md)
+# 6. Integration documentation (references protocols)
+```
+
+**Action 5: Verify brief skills generated (domain-agnostic)**
+```bash
+# Count brief skills created for detected domain
+find .claude/skills/*/  -name "*-brief.md" -type f | wc -l
+# Expected: 2-4 brief skills per domain
+
+# List all brief skills by domain
+ls -la .claude/skills/*/brief.md 2>/dev/null || echo "Checking alternative structure..."
+ls -la .claude/skills/*/*.md | grep brief
+# Should show 3 brief skill files
 ls -la .claude/skills/software-development/ | grep brief
+# Expected: bug-brief.md, feature-brief.md, refactor-brief.md
 ```
 
-**Action 5: Validate brief skills reference protocols**
+**Action 6: Validate brief skills reference protocols (domain-agnostic)**
 ```bash
-grep -l "standard-output.md\|node-types.md" .claude/skills/software-development/*-brief.md
+# Verify brief skills follow standard output protocol (works for any domain)
+find .claude/skills/*/ -name "*-brief.md" -type f -exec grep -l "standard-output.md\|node-types.md" {} \;
+# Expected: All brief skills reference protocols
+
+# Verify skills have proper frontmatter
+find .claude/skills/*/ -name "*-brief.md" -type f -exec grep -l "domain:\|category: brief\|allowed_tools:" {} \;
+# Expected: All brief skills have required metadata
 ```
 
-**Document in report**:
+**Action 7: Document research evidence in report (domain-agnostic)**
+```markdown
+## Brief Skills Research Evidence
+
+**Domain**: {detected_domain}
+
+**Research Sources** (domain-specific):
+{
+  software-development: [
+    "GitHub issue templates (bug_report, feature_request)",
+    "Jira workflow types (Bug, Story, Improvement)",
+    "SDLC best practices (Agile, Scrum, Kanban)"
+  ],
+  design: [
+    "AIGA creative brief standards",
+    "Design agency workflows (campaign, brand, UX briefs)",
+    "Creative platform conventions (Behance, Dribbble)"
+  ],
+  legal: [
+    "Legal writing guides (The Bluebook, ALWD)",
+    "Bar association resources",
+    "Law firm brief templates (case brief, contract brief)"
+  ],
+  business: [
+    "Consulting frameworks (McKinsey, BCG)",
+    "RFP/proposal standards",
+    "Business development best practices"
+  ],
+  research: [
+    "Academic journal guidelines (APA, MLA)",
+    "NIH/NSF grant proposal formats",
+    "Research methodology textbooks"
+  ],
+  content-creation: [
+    "AP Stylebook, Chicago Manual",
+    "Content marketing guidelines",
+    "Editorial best practices (journalism, blogging)"
+  ]
+}
+
+**Identified Input Patterns** (vague user language):
+{
+  software-development: [
+    "Bug: 'X is broken', 'crashes', 'error', 'doesn't work'",
+    "Feature: 'add', 'I want', 'new feature', 'enhancement'",
+    "Refactor: 'messy code', 'duplication', 'technical debt'"
+  ],
+  design: [
+    "Campaign: 'need brochure', 'design campaign', 'marketing materials'",
+    "Brand: 'create logo', 'brand identity', 'refresh brand'",
+    "UX: 'improve experience', 'user flow', 'better design'"
+  ],
+  legal: [
+    "Case: 'brief this case', 'analyze ruling', 'research precedent'",
+    "Contract: 'review contract', 'draft agreement', 'check terms'",
+    "Research: 'find statute', 'case law search', 'legal memo'"
+  ],
+  business: [
+    "Proposal: 'respond to RFP', 'write proposal', 'submit bid'",
+    "Strategy: 'market analysis', 'competitive positioning', 'growth plan'",
+    "Marketing: 'campaign strategy', 'go-to-market', 'messaging'"
+  ],
+  research: [
+    "Study: 'design experiment', 'research design', 'methodology'",
+    "Literature: 'review research', 'survey field', 'synthesize findings'",
+    "Grant: 'write proposal', 'NIH grant', 'funding application'"
+  ],
+  content-creation: [
+    "Article: 'write article', 'blog post', 'content piece'",
+    "Video: 'script', 'storyboard', 'video content'",
+    "Social: 'social post', 'tweet', 'Instagram content'"
+  ]
+}
+
+**Brief Skills Generated**:
+{List generated brief skills with keyword counts and node types}
+
+**Example for software-development**:
+- bug-brief: 50+ keywords, BugBrief node type, implementation-triad handoff
+- feature-brief: 40+ keywords, FeatureBrief node type, validation-triad handoff
+- refactor-brief: 35+ keywords, RefactorBrief node type, garden-tending-triad handoff
+
+**Example for design**:
+- campaign-brief: 45+ keywords, CampaignBrief node type, design-triad handoff
+- brand-brief: 40+ keywords, BrandBrief node type, design-triad handoff
+- ux-brief: 35+ keywords, UXBrief node type, design-triad handoff
+
+**Evidence Quality**: All keywords derived from industry research, not speculation
+```
+
+**Document in report** (domain-agnostic):
 ```yaml
 phase_brief_skills:
   status: "COMPLETED"
-  domain: "software-development"
-  brief_skills_generated: 3
+  domain: "{detected_domain}"
+  brief_skills_generated: {count}
   files:
-    - ".claude/skills/software-development/bug-brief.md"
-    - ".claude/skills/software-development/feature-brief.md"
-    - ".claude/skills/software-development/refactor-brief.md"
+    - ".claude/skills/{domain}/{brief-type-1}-brief.md"
+    - ".claude/skills/{domain}/{brief-type-2}-brief.md"
+    - ".claude/skills/{domain}/{brief-type-3}-brief.md"
   integration:
     references_standard_output: true
     references_node_types: true
-    uses_allowed_tools: ["Grep", "Read", "AskUserQuestion"]
+    uses_allowed_tools: ["Grep", "Read", "AskUserQuestion", "WebFetch"]
+  research_evidence:
+    sources: [{domain-specific sources}]
+    input_patterns_identified: [{vague phrases users say}]
+    keywords_per_skill: "50-100+ from research"
+    quality: "Research-backed, not guessed"
 ```
 
 **Why this phase matters**:
