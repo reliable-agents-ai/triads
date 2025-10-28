@@ -98,6 +98,20 @@ No arguments required - the agents will discover everything automatically.
 - `.claude/skills/framework/multi-method-verify.md`
 - `.claude/skills/framework/bridge-compress.md`
 
+### Standard Output Protocols (2 files)
+- `.claude/protocols/standard-output.md` - OUTPUT envelope format
+- `.claude/protocols/node-types.md` - Knowledge graph node types registry
+
+### Brief Skills (Domain-Specific - 3 files for software)
+- `.claude/skills/software-development/bug-brief.md`
+- `.claude/skills/software-development/feature-brief.md`
+- `.claude/skills/software-development/refactor-brief.md`
+
+**What brief skills do**: Transform vague input → actionable specifications
+- "login is broken" → Complete BugBrief specification
+- "add dark mode" → Complete FeatureBrief specification
+- "code is messy" → Complete RefactorBrief specification
+
 ### Updated CLAUDE.md
 - Converts inline principles to @imports
 - Adds methodology @imports

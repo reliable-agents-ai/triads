@@ -63,6 +63,14 @@ current_state:
     location: "{{PATH or NONE}}"
     framework_skills: [{{LIST}}]
     domain_skills: [{{LIST}}]
+    brief_skills: [{{LIST}}]
+
+  protocols:
+    exists: {{YES|NO}}
+    location: "{{PATH or NONE}}"
+    files: [{{LIST}}]
+    has_standard_output: {{YES|NO}}
+    has_node_types: {{YES|NO}}
 
   agents:
     exists: {{YES|NO}}
@@ -188,6 +196,18 @@ gap_analysis:
       target: ".claude/skills/framework/ with 6 files"
       priority: "MEDIUM"
       risk_if_missing: "Skills must be in commands, not keyword-discoverable"
+
+    - component: "Standard Output Protocols"
+      current: "MISSING"
+      target: ".claude/protocols/ with standard-output.md and node-types.md"
+      priority: "HIGH"
+      risk_if_missing: "No standardized handoff format, agents can't communicate consistently"
+
+    - component: "Brief Skills (Domain-Specific Input Transformation)"
+      current: "MISSING"
+      target: ".claude/skills/{domain}/ with brief skills (bug-brief, feature-brief, etc.)"
+      priority: "MEDIUM"
+      risk_if_missing: "Can't transform vague user input into actionable specifications"
 
   existing_custom_content:
     - item: "Existing triads (5 standard workflows)"

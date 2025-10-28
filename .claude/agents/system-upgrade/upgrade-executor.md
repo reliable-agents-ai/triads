@@ -460,6 +460,193 @@ Domain skills ready for agent invocation.
 
 ---
 
+### Step 6.7: Add Standard Output Protocols
+
+**Phase**: Add Standard Output Protocols (NEW - for brief skills integration)
+
+**Purpose**: Install protocol files that define standardized output formats for all skills and agents.
+
+**Preconditions**:
+- Gap analyzer identified missing protocols
+- templates/protocols/ exists with protocol templates
+
+**Action 1: Create protocols directory**
+```bash
+mkdir -p .claude/protocols
+```
+
+**Action 2: Copy protocol templates**
+```bash
+cp templates/protocols/standard-output.md .claude/protocols/
+cp templates/protocols/node-types.md .claude/protocols/
+```
+
+**Action 3: Verify protocols installed**
+```bash
+ls .claude/protocols/
+```
+
+**Expected Output**:
+```
+node-types.md
+standard-output.md
+```
+
+**Document in report**:
+```yaml
+phase_protocols:
+  status: "COMPLETED"
+  protocols_installed: 2
+  files:
+    - ".claude/protocols/standard-output.md"
+    - ".claude/protocols/node-types.md"
+```
+
+**Why this phase matters**:
+
+Before this phase:
+- ❌ No standardized output format for skills/agents
+- ❌ Handoffs use inconsistent data structures
+- ❌ Knowledge graph nodes have varying formats
+- ❌ Downstream agents can't reliably consume outputs
+
+After this phase:
+- ✅ All skills/agents use standard OUTPUT envelope
+- ✅ Knowledge graph nodes follow consistent structure
+- ✅ Handoffs use lightweight node references
+- ✅ Downstream agents load nodes by reference
+
+**Integration**:
+- standard-output.md: Defines OUTPUT envelope (_meta + _handoff)
+- node-types.md: Registry of 16 standard node types (BugBrief, FeatureBrief, etc.)
+- Brief skills will reference these protocols
+- All agents can use consistent handoff pattern
+
+---
+
+### Step 6.8: Add Brief Skills (Domain-Specific Input Transformation)
+
+**Phase**: Generate Brief Skills (NEW - for vague input transformation)
+
+**Purpose**: Install brief skills that transform vague user input into actionable specifications.
+
+**Preconditions**:
+- Domain classification complete (from gap analyzer)
+- Standard output protocols installed (Step 6.7)
+- templates/skills/brief-templates/ exists
+
+**Action 1: Determine brief skills needed for domain**
+
+Based on domain classification:
+
+**For software-development domain**, generate 3 brief skills:
+1. **bug-brief** - Transform "login is broken" → BugBrief specification
+2. **feature-brief** - Transform "add dark mode" → FeatureBrief specification
+3. **refactor-brief** - Transform "code is messy" → RefactorBrief specification
+
+**For research domain**, generate 2 brief skills:
+1. **research-brief** - Transform research question → ResearchBrief specification
+2. **hypothesis-brief** - Transform vague hypothesis → HypothesisBrief specification
+
+**For content-creation domain**, generate 2 brief skills:
+1. **article-brief** - Transform topic idea → ArticleBrief specification
+2. **edit-brief** - Transform edit request → EditBrief specification
+
+**Action 2: Create domain skills directory (if not exists)**
+```bash
+mkdir -p .claude/skills/software-development
+```
+
+**Action 3: Generate brief skills from templates**
+
+**For each brief type**:
+1. Load template from templates/skills/brief-templates/{brief_type}-template.md
+2. Customize for domain (keywords, node type, handoff target)
+3. Write to .claude/skills/{domain}/{brief_type}.md
+
+**Generate bug-brief skill**:
+```bash
+cat > .claude/skills/software-development/bug-brief.md <<'EOF'
+---
+name: bug-brief
+description: Transform vague bug report into complete BugBrief specification. Use when user reports bugs, issues, errors, crashes, broken functionality, failures, exceptions, or not working features. Keywords: bug, issue, error, crash, broken, fails, not working, exception, stack trace, failure, problem, defect, regression, production issue, incident
+category: brief
+domain: software-development
+generated_by: upgrade-executor
+generated_at: {ISO 8601 timestamp}
+allowed_tools: ["Grep", "Read", "AskUserQuestion"]
+---
+
+# Bug Brief Skill
+
+## Purpose
+
+Transform vague bug report into complete BugBrief specification.
+
+Users say: "login is broken" or "app crashes"
+This skill creates: Complete bug specification with reproduction steps, expected vs actual behavior, acceptance criteria
+
+[... rest follows template structure from Triad Architect Step 3.5.3 ...]
+EOF
+```
+
+**Action 4: Verify brief skills generated**
+```bash
+ls -la .claude/skills/software-development/ | grep brief
+```
+
+**Action 5: Validate brief skills reference protocols**
+```bash
+grep -l "standard-output.md\|node-types.md" .claude/skills/software-development/*-brief.md
+```
+
+**Document in report**:
+```yaml
+phase_brief_skills:
+  status: "COMPLETED"
+  domain: "software-development"
+  brief_skills_generated: 3
+  files:
+    - ".claude/skills/software-development/bug-brief.md"
+    - ".claude/skills/software-development/feature-brief.md"
+    - ".claude/skills/software-development/refactor-brief.md"
+  integration:
+    references_standard_output: true
+    references_node_types: true
+    uses_allowed_tools: ["Grep", "Read", "AskUserQuestion"]
+```
+
+**Why this phase matters**:
+
+Before this phase:
+- ❌ Users must provide complete specifications upfront
+- ❌ Vague input like "login is broken" goes nowhere
+- ❌ No systematic way to clarify requirements
+- ❌ Context gathering is manual and inconsistent
+
+After this phase:
+- ✅ Brief skills discover vague input via keywords
+- ✅ Skills ask clarifying questions (AskUserQuestion)
+- ✅ Skills gather context (Grep, Read)
+- ✅ Skills create complete specifications (knowledge graph nodes)
+- ✅ Downstream agents get structured input
+
+**Example workflow**:
+```
+User: "login is broken"
+↓ bug-brief skill activates (keyword: "broken")
+↓ Asks: reproduction steps, expected vs actual, error messages
+↓ Greps codebase for login-related files
+↓ Reads relevant files for context
+↓ Creates BugBrief node in knowledge graph
+↓ Returns OUTPUT envelope with node_id
+↓ Implementation triad loads BugBrief and fixes bug
+```
+
+**Brief skill template source**: Generated from Triad Architect Step 3.5.3 specification.
+
+---
+
 ### Step 7: Update CLAUDE.md with @imports
 
 **Phase**: Update CLAUDE.md (MOST CRITICAL)
