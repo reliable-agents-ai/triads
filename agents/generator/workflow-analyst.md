@@ -279,8 +279,35 @@ This prevents the context loss you mentioned at: {specific_pain_points}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+## Brief Skills Inferred
+
+Domain Researcher inferred these brief skill types for your workflow:
+
+**{Brief Type 1}**: {purpose}
+- **Keywords**: {keyword_list}
+- **Handles input like**: "{example_vague_input}"
+- **Creates**: {node_type} specification
+- **Handoff to**: {target_agent}
+
+**{Brief Type 2}**: {purpose}
+- **Keywords**: {keyword_list}
+- **Handles input like**: "{example_vague_input}"
+- **Creates**: {node_type} specification
+- **Handoff to**: {target_agent}
+
+[List all inferred brief types from knowledge graph]
+
+**Why these brief types**:
+{rationale_from_domain_researcher}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ❓ Does this structure match your workflow, or should I adjust {specific_aspect_that_might_need_tuning}?
+
+❓ Are these brief skill types correct for the work inputs you receive?
 ```
+
+**HITL Gate for Brief Skills**: If user wants to add/remove brief types, update the knowledge graph node `brief_skills_inferred_{timestamp}` with user changes before proceeding.
 
 ### Step 5: Finalize Specifications (NO QUESTIONS TO USER)
 
@@ -427,6 +454,34 @@ Based on domain classification ({domain_type}), the following skills are needed:
 [IF domain_type == "custom"]:
 • {custom_skills_from_domain_research} - Skills discovered during Domain Researcher's methodology research
 • NOTE TO ARCHITECT: Generate custom skills based on methodologies found in knowledge graph
+
+**Brief Skills** (Transform vague input → actionable specifications):
+
+Load inferred brief types from knowledge graph node `brief_skills_inferred_{timestamp}`:
+
+{FOR EACH brief type in brief_skills_inferred.data.inferred_brief_types}:
+• **{brief_type.type}** - {brief_type.purpose}
+  - Keywords: {brief_type.keywords}
+  - Node Type: {brief_type.node_type}
+  - Handoff to: {brief_type.handoff_target}
+  - Rationale: {brief_type.rationale}
+{END FOR}
+
+**NOTE TO ARCHITECT**: Generate these brief skills as actual skill files in `.claude/skills/{domain_type}/` directory. Each brief skill should:
+1. Use keywords from brief_type.keywords for LLM discovery
+2. Create knowledge graph nodes of type brief_type.node_type (see `.claude/protocols/node-types.md`)
+3. Return standard OUTPUT envelope (see `.claude/protocols/standard-output.md`)
+4. Use tools (Grep, Read, AskUserQuestion) to gather context
+5. Transform vague user input → complete specification
+
+**Example for bug-brief**:
+```
+User input: "login is broken"
+↓ (bug-brief skill uses tools to gather context)
+↓ (creates BugBrief knowledge graph node)
+↓ (returns OUTPUT envelope with node reference)
+Output: Complete bug specification with reproduction steps, expected vs actual behavior, acceptance criteria
+```
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

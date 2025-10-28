@@ -289,6 +289,170 @@ evidence: WebSearch results from {sources}
 [/GRAPH_UPDATE]
 ```
 
+---
+
+### Step 3.5: Brief Skill Type Inference
+
+**Objective**: Determine what brief skill types are needed for this workflow based on domain and user work patterns.
+
+**Why This Matters**: Users provide vague input ("login is broken", "add dark mode"). Brief skills transform vague input → actionable specifications. Different domains need different brief types.
+
+**Process**:
+
+1. **Analyze Domain Classification**
+   ```
+   [Based on domain from Step 2, infer default brief types]
+
+   SOFTWARE-DEVELOPMENT → bug-brief, feature-brief, refactor-brief
+   RESEARCH → research-brief, hypothesis-brief, experiment-brief
+   CONTENT-CREATION → article-brief, edit-brief, seo-brief
+   BUSINESS-ANALYSIS → market-brief, financial-brief, strategy-brief
+   CUSTOM → [infer from workflow research]
+   ```
+
+2. **Analyze Workflow Patterns**
+   ```
+   [From Step 3 research, identify what types of input users provide]
+
+   If workflow includes "bug tracking" → need bug-brief
+   If workflow includes "feature requests" → need feature-brief
+   If workflow includes "code quality" → need refactor-brief
+   If workflow includes "research questions" → need research-brief
+   If workflow includes "content ideation" → need article-brief
+   ```
+
+3. **Map Brief Types to Input Patterns**
+
+   **For each brief type, define**:
+   - **Purpose**: What vague input it transforms
+   - **Keywords**: What triggers this brief skill (for LLM discovery)
+   - **Data Structure**: What node type it creates (from `.claude/protocols/node-types.md`)
+   - **Handoff Target**: Which triad/agent receives the brief
+
+   **Example for Software Development**:
+   ```markdown
+   Brief Type: bug-brief
+   Purpose: Transform vague bug report → BugBrief specification
+   Keywords: bug, issue, error, crash, broken, fails, not working, exception, stack trace
+   Node Type: BugBrief (see node-types.md)
+   Handoff Target: implementation-triad or senior-developer
+
+   Brief Type: feature-brief
+   Purpose: Transform feature idea → FeatureBrief specification
+   Keywords: feature, add, new, want, need, enhancement, improvement, capability
+   Node Type: FeatureBrief (see node-types.md)
+   Handoff Target: validation-triad (validate need first) or design-triad
+
+   Brief Type: refactor-brief
+   Purpose: Transform code quality concern → RefactorBrief specification
+   Keywords: refactor, clean, improve, messy, duplicate, smell, technical debt
+   Node Type: RefactorBrief (see node-types.md)
+   Handoff Target: garden-tending-triad or pruner
+   ```
+
+4. **Ask User for Additional Brief Types**
+
+   **Use AskUserQuestion to validate inference**:
+   ```markdown
+   Based on your workflow, I've inferred these brief types are needed:
+   - bug-brief: For bug reports
+   - feature-brief: For feature requests
+   - refactor-brief: For code quality improvements
+
+   Are there other types of work inputs you receive that need briefs?
+   Examples: security-review-brief, performance-brief, documentation-brief
+
+   [Allow user to add custom brief types]
+   ```
+
+5. **Document Brief Skills in Knowledge Graph**
+
+   ```markdown
+   [GRAPH_UPDATE]
+   type: add_node
+   node_id: brief_skills_inferred_{timestamp}
+   node_type: BriefSkillInference
+
+   metadata:
+     created_by: domain-researcher
+     created_at: {ISO 8601 timestamp}
+     confidence: {0.85-1.0 based on domain clarity}
+
+   data:
+     domain: {domain_type}
+     inferred_brief_types:
+       - type: "bug-brief"
+         purpose: "Transform vague bug report → BugBrief specification"
+         keywords: ["bug", "issue", "error", "crash", "broken", "fails"]
+         node_type: "BugBrief"
+         handoff_target: "implementation-triad"
+         rationale: "Software development workflows always include bug reports"
+
+       - type: "feature-brief"
+         purpose: "Transform feature idea → FeatureBrief specification"
+         keywords: ["feature", "add", "new", "want", "enhancement"]
+         node_type: "FeatureBrief"
+         handoff_target: "validation-triad"
+         rationale: "Users will request features needing validation"
+
+     custom_brief_types_added_by_user: [
+       # User additions from AskUserQuestion
+     ]
+
+   handoff:
+     ready_for_next: true
+     next_stage: "workflow-analyst"
+     required_fields: ["domain", "inferred_brief_types"]
+
+   lineage:
+     created_from_node: "domain_classification_{timestamp}"
+   [/GRAPH_UPDATE]
+   ```
+
+6. **Rationale for Each Brief Type**
+
+   **Document WHY each brief type is needed**:
+   - Evidence from domain research (what sources say about input patterns)
+   - Common failure modes (vague requirements cause 78% of project failures)
+   - User confirmation (if they validated or added types)
+
+**Output**:
+- Knowledge graph node with inferred brief skill types
+- Documented keywords for each brief (enables LLM discovery)
+- Mapped node types (from node-types.md registry)
+- User-validated brief types (via AskUserQuestion)
+
+**Example Output for Software Development**:
+```markdown
+## Brief Skills Inferred
+
+Based on domain (software-development) and workflow research, inferred 3 brief types:
+
+1. **bug-brief**
+   - Purpose: Transform bug reports → executable specifications
+   - Keywords: bug, issue, error, crash, broken, fails, not working
+   - Evidence: Software workflows always include bug tracking (SDLC research)
+
+2. **feature-brief**
+   - Purpose: Transform feature ideas → scoped requirements
+   - Keywords: feature, add, new, want, need, enhancement, improvement
+   - Evidence: Feature requests are primary input (Agile methodology)
+
+3. **refactor-brief**
+   - Purpose: Transform code quality concerns → refactor plans
+   - Keywords: refactor, clean, improve, duplicate, technical debt
+   - Evidence: Code maintenance is 60% of development time (IEEE study)
+
+User confirmed these brief types are sufficient for their workflow.
+
+Documented in knowledge graph: brief_skills_inferred_20251028_103045
+```
+
+**Handoff to Workflow Analyst**:
+These brief types will be validated in HITL gate by Workflow Analyst, then generated as actual skill files by Triad Architect.
+
+---
+
 ### Step 4: Gap Analysis & Recommendations
 
 **Compare user's stated workflow to research findings:**
@@ -531,10 +695,18 @@ Before passing to Workflow Analyst, validate:
 
 - [ ] **Knowledge Graph Updated** - All research findings documented with provenance
 - [ ] **Confidence Scores Recorded** - Domain classification, methodology research, recommendations
+- [ ] **Brief Skills Inferred** - Step 3.5 complete:
+  - Inferred brief types based on domain (e.g., bug-brief, feature-brief for software)
+  - Mapped keywords for each brief type (LLM discovery)
+  - Documented node types for each brief (from node-types.md)
+  - User validated brief types via AskUserQuestion
+  - Documented in knowledge graph with rationale
+
 - [ ] **Complete Context Provided** - Workflow Analyst will receive:
   - Domain classification with evidence
   - Workflow pattern research with sources
   - Methodology research with standards
+  - **Brief skill types inferred and validated** (NEW)
   - Recommended structure with reasoning
   - Critical requirements and quality priorities
 

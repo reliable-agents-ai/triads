@@ -517,6 +517,270 @@ Report progress:
 [IF needs_creation]: ⚠️ Generated custom skills from methodology research
 ```
 
+#### 3.5.3 Brief Skills (Domain-Specific Input Transformation)
+
+**Purpose**: Transform vague user input → actionable specifications
+
+**Load from knowledge graph**: `brief_skills_inferred_{timestamp}` node created by Domain Researcher
+
+**Brief skills convert**:
+- "login is broken" → Complete BugBrief specification
+- "add dark mode" → Complete FeatureBrief specification
+- "code is messy" → Complete RefactorBrief specification
+
+**File path**: `.claude/skills/{domain_type}/{brief_type}.md`
+
+**Generation Logic**:
+
+```python
+# Load inferred brief types from knowledge graph
+brief_skills_node = graph.load_node("brief_skills_inferred_{timestamp}")
+brief_types = brief_skills_node.data.inferred_brief_types
+
+# For each brief type, generate skill file
+for brief in brief_types:
+    skill_content = generate_brief_skill(
+        brief_type=brief.type,
+        purpose=brief.purpose,
+        keywords=brief.keywords,
+        node_type=brief.node_type,
+        handoff_target=brief.handoff_target,
+        domain=domain_type
+    )
+
+    write_file(f".claude/skills/{domain_type}/{brief.type}.md", skill_content)
+```
+
+**Brief Skill Template Structure**:
+
+```markdown
+---
+name: {brief_type}
+description: {purpose}. Keywords: {all_keywords_comma_separated}
+category: brief
+domain: {domain_type}
+generated_by: triads-generator
+generated_at: {timestamp}
+allowed_tools: ["Grep", "Read", "AskUserQuestion"]
+---
+
+# {Brief Type Title}
+
+## Purpose
+
+{purpose}
+
+Transform vague user input into complete {node_type} specification.
+
+## Keywords for Discovery
+
+{keywords_comma_separated}
+
+## When to Invoke This Skill
+
+Invoke when user provides vague input like:
+- "{example_vague_input_1}"
+- "{example_vague_input_2}"
+- "{example_vague_input_3}"
+
+## Skill Procedure
+
+### Step 1: Clarify Input with Questions
+
+Use AskUserQuestion to gather missing information:
+
+**For {brief_type}**, ask:
+{DOMAIN-SPECIFIC QUESTIONS - examples below}
+
+[IF bug-brief]:
+- Can you reproduce this? (Yes/No)
+- What were you doing when it happened?
+- What did you expect to happen?
+- What actually happened?
+- Any error messages?
+
+[IF feature-brief]:
+- What problem does this solve?
+- Who is this for? (target users)
+- What's the desired outcome?
+- How do you envision this working?
+
+[IF refactor-brief]:
+- What code needs improvement?
+- What specific issues? (duplication, complexity, smells)
+- What's the goal? (readability, performance, maintainability)
+
+### Step 2: Gather Context Using Tools
+
+**Use Grep to find relevant code**:
+```bash
+# Search for related functionality
+Grep: {relevant_search_patterns_for_this_brief_type}
+```
+
+**Use Read to examine files**:
+```bash
+# Read relevant files for context
+Read: {files_discovered_from_grep}
+```
+
+### Step 3: Create {node_type} Knowledge Graph Node
+
+Based on gathered information, create structured specification:
+
+```markdown
+[GRAPH_UPDATE]
+type: add_node
+node_id: {brief_type}_{topic}_{timestamp}
+node_type: {node_type}
+
+metadata:
+  created_by: {brief_type}-skill
+  created_at: {ISO 8601 timestamp}
+  confidence: {0.85-1.0 based on information completeness}
+  domain: {domain_type}
+  output_type: "brief"
+
+data:
+  {DOMAIN-SPECIFIC FIELDS from node-types.md}
+
+  [FOR BugBrief]:
+  summary: {one-sentence description}
+  reproduction_steps: [{step1}, {step2}, ...]
+  expected_behavior: {what should happen}
+  actual_behavior: {what actually happens}
+  acceptance_criteria: [{criterion1}, {criterion2}, ...]
+  error_messages: [{error1}, {error2}, ...] (optional)
+  affected_files: [{file1:line}, {file2:line}, ...] (optional)
+  environment: {OS, browser, versions} (optional)
+
+  [FOR FeatureBrief]:
+  summary: {one-sentence description}
+  user_story: "As a {user}, I want {goal}, so that {benefit}"
+  problem_statement: {user pain point}
+  acceptance_criteria: [{criterion1}, {criterion2}, ...]
+  proposed_solution: {high-level approach} (optional)
+  use_cases: [{scenario, steps, expected_outcome}, ...] (optional)
+
+  [FOR RefactorBrief]:
+  summary: {one-sentence refactoring goal}
+  scope: {what code to refactor}
+  goal: {what to improve - DRY, SOLID, readability, performance}
+  success_criteria: [{criterion1}, {criterion2}, ...]
+  code_smells_identified: [{smell, location, severity}, ...] (optional)
+  affected_files: [{file1:line}, {file2:line}, ...] (optional)
+
+handoff:
+  ready_for_next: true
+  next_stage: "{handoff_target}"
+  required_fields: {REQUIRED_FIELDS_from_node_types}
+  optional_fields: {OPTIONAL_FIELDS_from_node_types}
+
+lineage:
+  created_from_node: null  # First node in workflow
+  consumed_by_nodes: []
+[/GRAPH_UPDATE]
+```
+
+### Step 4: Return Standard OUTPUT Envelope
+
+Return lightweight handoff with node reference:
+
+```markdown
+OUTPUT:
+  _meta:
+    output_type: "brief"
+    created_by: "{brief_type}"
+    domain: "{domain_type}"
+    timestamp: "{ISO 8601}"
+    confidence: {score}
+
+  _handoff:
+    next_stage: "{handoff_target}"
+    graph_node: "{node_id}"
+    required_fields: {list}
+    optional_fields: {list}
+```
+
+## Output Format
+
+Returns:
+- Knowledge graph node with complete specification (stored in graph)
+- Standard OUTPUT envelope with node reference (lightweight handoff)
+
+## Example Usage
+
+**User Input**: "{example_vague_input}"
+
+**Skill Process**:
+1. Asked clarifying questions via AskUserQuestion
+2. Searched codebase with Grep for context
+3. Read relevant files with Read tool
+4. Created {node_type} knowledge graph node
+5. Returned OUTPUT envelope with node reference
+
+**Output**:
+```markdown
+Created {node_type} specification: {node_id}
+
+Summary: {brief_summary}
+Next stage: {handoff_target}
+
+View full specification in knowledge graph: {node_id}
+```
+
+## Integration with Standard Output Protocol
+
+This skill follows the standard output protocol (`.claude/protocols/standard-output.md`):
+- Creates knowledge graph node (full data storage)
+- Returns OUTPUT envelope (lightweight handoff)
+- Downstream agents load node by reference
+
+See `.claude/protocols/node-types.md` for {node_type} structure.
+```
+
+**Example - bug-brief skill for software-development**:
+
+```markdown
+---
+name: bug-brief
+description: Transform vague bug report into complete BugBrief specification. Use when user reports bugs, issues, errors, crashes, broken functionality, failures, exceptions, or not working features. Keywords: bug, issue, error, crash, broken, fails, not working, exception, stack trace, failure, problem, defect, regression, production issue, incident
+category: brief
+domain: software-development
+generated_by: triads-generator
+generated_at: 2025-10-28T10:30:00Z
+allowed_tools: ["Grep", "Read", "AskUserQuestion"]
+---
+
+# Bug Brief Skill
+
+## Purpose
+
+Transform vague bug report into complete BugBrief specification.
+
+Users say: "login is broken" or "app crashes"
+This skill creates: Complete bug specification with reproduction steps, expected vs actual behavior, acceptance criteria
+
+[... rest of template follows structure above ...]
+```
+
+**Report progress**:
+```markdown
+✓ Generated {B} brief skills for {domain_type}:
+  - {brief_type_1} ({keyword_count} keywords)
+  - {brief_type_2} ({keyword_count} keywords)
+  - {brief_type_3} ({keyword_count} keywords)
+```
+
+**CRITICAL - Integration Points**:
+1. Brief skills reference `.claude/protocols/node-types.md` for node structure
+2. Brief skills follow `.claude/protocols/standard-output.md` for OUTPUT format
+3. Brief skills are domain-specific (stored in `.claude/skills/{domain_type}/`)
+4. Brief skills use tools (Grep, Read, AskUserQuestion) to gather context
+5. Brief skills create knowledge graph nodes that downstream agents load by reference
+
+---
+
 ### Step 4: Generate Hooks
 
 Create 3 Python hook files:
