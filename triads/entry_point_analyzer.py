@@ -2,86 +2,22 @@
 Entry Point Analyzer - Domain-agnostic workflow entry point analysis.
 
 Analyzes settings.json workflow structure to determine routing mappings
-between work types and triad entry points.
+between work types and triad entry points using LLM-based intent detection.
+
+Uses Claude Code headless mode to replace brittle keyword matching.
+Reference: ADR-001 (.claude/graphs/adr_001_claude_code_headless_20251028.md)
 """
 
 import json
+import logging
 import yaml
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from datetime import datetime, UTC
+from triads.llm_routing import route_to_brief_skill
 
-# Domain-agnostic work type patterns
-WORK_TYPE_PATTERNS = {
-    "bug": {
-        "keywords": ["fix", "bug", "error", "crash", "broken", "issue", "defect"],
-        "purpose_patterns": ["fix", "debug", "resolve errors", "troubleshoot"],
-        "priority": 1,
-        "description": "Bug fixes, error resolution, crash fixes"
-    },
-    "feature": {
-        "keywords": ["feature", "add", "implement", "new", "enhancement", "capability"],
-        "purpose_patterns": ["research", "validate", "ideation", "new features"],
-        "priority": 2,
-        "description": "New features, enhancements, capabilities"
-    },
-    "refactor": {
-        "keywords": ["refactor", "improve", "clean", "optimize", "restructure"],
-        "purpose_patterns": ["improve quality", "refactor", "cleanup", "debt"],
-        "priority": 3,
-        "description": "Code improvements, refactoring, tech debt"
-    },
-    "release": {
-        "keywords": ["release", "deploy", "publish", "version", "launch"],
-        "purpose_patterns": ["release", "deploy", "publish", "distribution"],
-        "priority": 4,
-        "description": "Releases, deployments, versioning"
-    },
-    "documentation": {
-        "keywords": ["document", "docs", "readme", "guide", "explain"],
-        "purpose_patterns": ["documentation", "guide", "explain", "document"],
-        "priority": 5,
-        "description": "Documentation updates, guides, explanations"
-    }
-}
-
-
-def match_work_type_to_triad(triad_purpose: str) -> List[Dict[str, Any]]:
-    """
-    Match triad purpose to work types based on keyword overlap.
-
-    Args:
-        triad_purpose: The purpose string from triad configuration
-
-    Returns:
-        List of matches with work_type and confidence score
-    """
-    purpose_lower = triad_purpose.lower()
-    matches = []
-
-    for work_type, config in WORK_TYPE_PATTERNS.items():
-        match_score = 0.0
-
-        # Check purpose patterns (higher weight)
-        for pattern in config["purpose_patterns"]:
-            if pattern in purpose_lower:
-                match_score += 1.0
-
-        # Check keywords (lower weight)
-        for keyword in config["keywords"]:
-            if keyword in purpose_lower:
-                match_score += 0.5
-
-        if match_score > 0:
-            # Calculate confidence (0.70-0.95 range)
-            confidence = min(0.95, 0.70 + (match_score * 0.10))
-            matches.append({
-                "work_type": work_type,
-                "confidence": round(confidence, 2),
-                "match_score": match_score
-            })
-
-    return sorted(matches, key=lambda x: x["confidence"], reverse=True)
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 def find_brief_skill(work_type: str, skills_dir: Path) -> str:
@@ -102,6 +38,70 @@ def find_brief_skill(work_type: str, skills_dir: Path) -> str:
 
     # Fallback to generic brief
     return "generic-brief"
+
+
+def _extract_work_type_from_skill(brief_skill: str) -> str:
+    """Extract work type from brief skill name.
+
+    Args:
+        brief_skill: Brief skill name (e.g., "bug-brief")
+
+    Returns:
+        Work type (e.g., "bug")
+    """
+    return brief_skill.replace("-brief", "")
+
+
+def _create_routing_decision(
+    triad_name: str,
+    entry_agent: str,
+    brief_skill: str,
+    confidence: float,
+    purpose: str,
+    reasoning: str,
+    priority: int
+) -> Dict[str, Any]:
+    """Create a routing decision entry.
+
+    Args:
+        triad_name: Name of the triad
+        entry_agent: First agent in the triad
+        brief_skill: Brief skill to use
+        confidence: Routing confidence score
+        purpose: Triad purpose description
+        reasoning: LLM reasoning for this routing
+        priority: Priority ranking
+
+    Returns:
+        Routing decision dictionary
+    """
+    return {
+        "description": purpose,
+        "keywords": [],  # No keywords in LLM-based routing
+        "target_triad": triad_name,
+        "entry_agent": entry_agent,
+        "brief_skill": brief_skill,
+        "priority": priority,
+        "confidence": confidence,
+        "examples": [],
+        "llm_reasoning": reasoning
+    }
+
+
+def _find_fallback_triad(triads: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
+    """Find first triad with agents for fallback routing.
+
+    Args:
+        triads: Dictionary of triad configurations
+
+    Returns:
+        Tuple of (fallback_triad_name, fallback_agent_name)
+    """
+    for triad_name, triad_config in triads.items():
+        agents = triad_config.get("agents", [])
+        if agents:
+            return triad_name, agents[0]
+    return None, None
 
 
 def generate_routing_table(
@@ -129,7 +129,7 @@ def generate_routing_table(
     # Initialize routing decisions
     routing_decisions = {}
 
-    # Analyze each triad
+    # Analyze each triad using LLM routing
     for triad_name, triad_config in triads.items():
         purpose = triad_config.get("purpose", "")
         agents = triad_config.get("agents", [])
@@ -138,37 +138,45 @@ def generate_routing_table(
             continue
 
         entry_agent = agents[0]
-        matches = match_work_type_to_triad(purpose)
 
-        # Assign to highest confidence work type
-        for match in matches:
-            work_type = match["work_type"]
-            confidence = match["confidence"]
+        # Use LLM to route triad purpose to brief skill
+        try:
+            routing_result = route_to_brief_skill(
+                user_input=purpose,
+                skills_dir=skills_dir,
+                timeout=5  # Longer timeout for routing table generation
+            )
+
+            brief_skill = routing_result["brief_skill"]
+            confidence = routing_result["confidence"]
+            reasoning = routing_result.get("reasoning", "")
+
+            # Extract work type from brief skill name
+            work_type = _extract_work_type_from_skill(brief_skill)
 
             # Only assign if higher confidence than existing
             if work_type not in routing_decisions or confidence > routing_decisions[work_type]["confidence"]:
-                brief_skill = find_brief_skill(work_type, skills_dir)
+                routing_decisions[work_type] = _create_routing_decision(
+                    triad_name=triad_name,
+                    entry_agent=entry_agent,
+                    brief_skill=brief_skill,
+                    confidence=confidence,
+                    purpose=purpose,
+                    reasoning=reasoning,
+                    priority=len(routing_decisions) + 1
+                )
+                logger.info(
+                    f"Mapped '{work_type}' to triad '{triad_name}' "
+                    f"(confidence: {confidence:.2f})"
+                )
 
-                routing_decisions[work_type] = {
-                    "description": WORK_TYPE_PATTERNS[work_type]["description"],
-                    "keywords": WORK_TYPE_PATTERNS[work_type]["keywords"],
-                    "target_triad": triad_name,
-                    "entry_agent": entry_agent,
-                    "brief_skill": brief_skill,
-                    "priority": WORK_TYPE_PATTERNS[work_type]["priority"],
-                    "confidence": confidence,
-                    "examples": []
-                }
+        except Exception as e:
+            # Log error and skip triad if LLM routing fails
+            logger.warning(f"LLM routing failed for triad '{triad_name}': {e}")
+            continue
 
     # Find first triad with agents for fallback
-    fallback_triad = None
-    fallback_agent = None
-    for triad_name, triad_config in triads.items():
-        agents = triad_config.get("agents", [])
-        if agents:
-            fallback_triad = triad_name
-            fallback_agent = agents[0]
-            break
+    fallback_triad, fallback_agent = _find_fallback_triad(triads)
 
     # Build complete routing table
     routing_table = {

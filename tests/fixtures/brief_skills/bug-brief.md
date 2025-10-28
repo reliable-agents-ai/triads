@@ -1,5 +1,6 @@
 ---
-skill_type: brief
+name: bug-brief
+category: brief
 domain: software-development
 work_type: bug
 description: Create bug fix brief
