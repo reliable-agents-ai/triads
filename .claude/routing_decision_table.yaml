@@ -1,0 +1,69 @@
+version: 1.0.0
+domain: unknown
+generated_at: '2025-10-28T18:42:04.059856+00:00'
+routing_decisions:
+  feature:
+    description: New features, enhancements, capabilities
+    keywords:
+    - feature
+    - add
+    - implement
+    - new
+    - enhancement
+    - capability
+    target_triad: idea-validation
+    entry_agent: research-analyst
+    brief_skill: feature-brief
+    priority: 2
+    confidence: 0.95
+    examples: []
+  refactor:
+    description: Code improvements, refactoring, tech debt
+    keywords:
+    - refactor
+    - improve
+    - clean
+    - optimize
+    - restructure
+    target_triad: garden-tending
+    entry_agent: cultivator
+    brief_skill: refactor-brief
+    priority: 3
+    confidence: 0.95
+    examples: []
+  release:
+    description: Releases, deployments, versioning
+    keywords:
+    - release
+    - deploy
+    - publish
+    - version
+    - launch
+    target_triad: deployment
+    entry_agent: gardener-bridge
+    brief_skill: generic-brief
+    priority: 4
+    confidence: 0.85
+    examples: []
+  documentation:
+    description: Documentation updates, guides, explanations
+    keywords:
+    - document
+    - docs
+    - readme
+    - guide
+    - explain
+    target_triad: deployment
+    entry_agent: gardener-bridge
+    brief_skill: generic-brief
+    priority: 5
+    confidence: 0.75
+    examples: []
+fallback:
+  target_triad: idea-validation
+  entry_agent: research-analyst
+  rationale: First triad in workflow can handle general requests
+ambiguity_resolution:
+  strategy: priority_score
+  confidence_threshold: 0.7
+  tiebreaker: ask_user

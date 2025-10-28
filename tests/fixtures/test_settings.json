@@ -1,0 +1,29 @@
+{
+  "triad_system": {
+    "workflow": {
+      "domain": "software-development"
+    },
+    "triads": {
+      "idea-validation": {
+        "purpose": "Research ideas, validate community need, prioritize features",
+        "agents": ["research-analyst", "community-researcher", "validation-synthesizer"]
+      },
+      "design": {
+        "purpose": "Create architecture, make decisions, write ADRs for new features",
+        "agents": ["validation-synthesizer", "solution-architect", "design-bridge"]
+      },
+      "implementation": {
+        "purpose": "Write code to implement approved features, create tests, ensure quality",
+        "agents": ["design-bridge", "senior-developer", "test-engineer"]
+      },
+      "garden-tending": {
+        "purpose": "Refactor code, reduce technical debt, improve code quality",
+        "agents": ["cultivator", "pruner", "gardener-bridge"]
+      },
+      "deployment": {
+        "purpose": "Create releases, update documentation, publish packages",
+        "agents": ["gardener-bridge", "release-manager", "documentation-updater"]
+      }
+    }
+  }
+}
