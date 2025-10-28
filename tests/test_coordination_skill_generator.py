@@ -366,6 +366,119 @@ class TestCoordinationSkillTemplate:
         assert "## Constitutional Compliance" in COORDINATION_SKILL_TEMPLATE
 
 
+class TestGenerateWithoutRoutingTable:
+    """Test generation without routing_decision_table.yaml (Phase 3)."""
+
+    @pytest.fixture
+    def test_brief_skills_dir(self, test_output_dir):
+        """Create test directory with brief skills having proper frontmatter."""
+        skills_dir = test_output_dir / "skills" / "software-development"
+        skills_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create bug-brief.md with frontmatter
+        bug_brief = """---
+name: bug-brief
+description: Transform bug report into BugBrief specification
+category: brief
+domain: software-development
+---
+
+# Bug Brief Skill
+Brief skill for bugs."""
+        (skills_dir / "bug-brief.md").write_text(bug_brief)
+
+        # Create feature-brief.md with frontmatter
+        feature_brief = """---
+name: feature-brief
+description: Transform feature idea into FeatureBrief
+category: brief
+domain: software-development
+---
+
+# Feature Brief Skill
+Brief skill for features."""
+        (skills_dir / "feature-brief.md").write_text(feature_brief)
+
+        return skills_dir.parent  # Return parent to match _discover_brief_skills expectations
+
+    def test_generate_without_routing_table(self, test_brief_skills_dir, test_output_dir):
+        """Test that coordination skills can be generated without YAML routing table."""
+        output_dir = test_output_dir / "coordination_skills"
+
+        # This should work WITHOUT a routing_decision_table.yaml file
+        # Expected new signature: generate_all_coordination_skills(skills_dir, output_dir)
+        from triads.coordination_skill_generator import generate_all_coordination_skills_from_discovery
+
+        generated_skills = generate_all_coordination_skills_from_discovery(
+            test_brief_skills_dir,
+            output_dir
+        )
+
+        # Should generate coordination skills for discovered brief skills
+        assert len(generated_skills) >= 2  # At least bug and feature
+        assert all(skill_path.exists() for skill_path in generated_skills)
+
+    def test_discovers_all_brief_skills(self, test_brief_skills_dir, test_output_dir):
+        """Test that filesystem discovery finds all brief skills."""
+        output_dir = test_output_dir / "coordination_skills"
+
+        from triads.coordination_skill_generator import generate_all_coordination_skills_from_discovery
+
+        generated_skills = generate_all_coordination_skills_from_discovery(
+            test_brief_skills_dir,
+            output_dir
+        )
+
+        skill_names = [skill_path.stem for skill_path in generated_skills]
+
+        # Should find bug-brief and feature-brief
+        assert "coordinate-bug" in skill_names
+        assert "coordinate-feature" in skill_names
+
+    def test_generates_coordinate_bug_skill(self, test_brief_skills_dir, test_output_dir):
+        """Test that coordinate-bug.md is generated (was missing before!)."""
+        output_dir = test_output_dir / "coordination_skills"
+
+        from triads.coordination_skill_generator import generate_all_coordination_skills_from_discovery
+
+        generated_skills = generate_all_coordination_skills_from_discovery(
+            test_brief_skills_dir,
+            output_dir
+        )
+
+        # Verify coordinate-bug.md exists
+        bug_skill = output_dir / "coordinate-bug.md"
+        assert bug_skill.exists()
+
+        content = bug_skill.read_text()
+        assert "bug-brief" in content
+        assert "coordinate-bug" in content
+
+    def test_generated_skills_have_correct_structure(self, test_brief_skills_dir, test_output_dir):
+        """Test that generated skills have correct 4-phase structure."""
+        output_dir = test_output_dir / "coordination_skills"
+
+        from triads.coordination_skill_generator import generate_all_coordination_skills_from_discovery
+
+        generated_skills = generate_all_coordination_skills_from_discovery(
+            test_brief_skills_dir,
+            output_dir
+        )
+
+        for skill_path in generated_skills:
+            content = skill_path.read_text()
+
+            # Check frontmatter
+            assert "name: coordinate-" in content
+            assert "category: coordination" in content
+
+            # Check phases
+            assert "Phase 1: CREATE BRIEF" in content
+            assert "Phase 2: ROUTE TO TRIAD" in content
+            assert "Phase 3: INVOKE TRIAD" in content
+            assert "Phase 4: MONITOR EXECUTION" in content
+
+
 class TestIntegration:
     """Integration tests for full workflow."""
 
