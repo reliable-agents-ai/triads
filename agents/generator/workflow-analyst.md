@@ -58,10 +58,26 @@ Load this from: `.claude/graphs/generator_graph.json`
 Loading knowledge graph from `.claude/graphs/generator_graph.json`...
 
 📊 Research Summary:
+
+**Domain Classification**:
+• Domain type: {domain_type} (software-development|research|content-creation|business-analysis|custom)
+• Classification confidence: {score}%
+• Deliverables: {primary_deliverables}
+
+**Workflow Patterns**:
 • Workflow type: {workflow_type}
 • Recommended phases: {phases_list}
 • Critical handoffs: {context_loss_points}
-• Domain research: {key_findings}
+• Common failure modes: {what_goes_wrong}
+
+**Domain-Specific Methodologies**:
+• Quality standards: {domain_standards}
+  [IF software-development: TDD, code quality, security, git workflow]
+  [IF research: Research methods, citation formats, data integrity, peer review]
+  [IF content-creation: Style guides, SEO, editorial process, publishing]
+  [IF business-analysis: Analysis frameworks, financial standards, market research]
+  [IF custom: {discovered_standards} OR needs custom methodology creation]
+• Template availability: {exists|needs_creation}
 
 Building on Domain Researcher's recommendation...
 ```
@@ -341,7 +357,7 @@ rationale: {Why this structure was chosen}
 
 ### Step 7: Hand Off to Triad Architect
 
-Provide complete specification for implementation:
+Provide complete specification for implementation, including domain-specific skill requirements:
 
 ```markdown
 ✅ Triad Architecture Design Complete
@@ -364,7 +380,104 @@ Provide complete specification for implementation:
 • {Decision 2 with rationale}
 • {Decision 3 with rationale}
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛠️ Skills Required for This Workflow
+
+Based on domain classification ({domain_type}), the following skills are needed:
+
+**Framework Skills** (Universal - always generated):
+• `validate-knowledge` - Validate knowledge graph additions meet confidence thresholds
+• `escalate-uncertainty` - Handle uncertainty escalation protocol
+• `cite-evidence` - Enforce evidence-based claims with proper citations
+• `validate-assumptions` - Audit and validate assumptions before proceeding
+• `multi-method-verify` - Cross-validate findings using ≥2 independent methods
+• `bridge-compress` - Compress knowledge graph to top-N most important nodes for handoffs
+
+**Domain-Specific Skills** (Conditional on domain):
+
+[IF domain_type == "software-development"]:
+• `validate-code` - Verify code quality (DRY, Clean Code, SOLID principles)
+• `pre-commit-review` - Run quality checks before git commits (black, isort, flake8, mypy)
+• `security-scan` - Check for OWASP Top 10 vulnerabilities, secrets in code
+• `test-coverage-check` - Verify test coverage ≥80%, all edge cases tested
+• `git-workflow` - Enforce git workflow (feature branches, conventional commits, PR templates)
+
+[IF domain_type == "research"]:
+• `validate-research` - Verify research methodology, statistical validity
+• `validate-citations` - Check citation format (APA/MLA/Chicago), completeness
+• `data-integrity-check` - Verify data reproducibility, proper documentation
+• `peer-review-checklist` - Run pre-submission review against journal standards
+• `literature-synthesis` - Synthesize findings from multiple papers with evidence
+
+[IF domain_type == "content-creation"]:
+• `validate-content` - Check readability (Flesch-Kincaid), style guide compliance
+• `fact-check` - Verify claims with sources, check for misinformation
+• `seo-optimize` - Check keywords, meta descriptions, headings structure
+• `editorial-review` - Run copyediting checks (AP Stylebook, grammar, tone)
+• `plagiarism-check` - Verify originality of content
+
+[IF domain_type == "business-analysis"]:
+• `validate-analysis` - Check financial calculations (NPV, IRR, ROI), methodology
+• `market-data-verify` - Cross-reference market data with multiple sources
+• `competitive-analysis` - Run Porter's 5 Forces, SWOT framework validation
+• `financial-model-check` - Verify spreadsheet formulas, assumptions documented
+• `executive-summary` - Generate concise executive summaries with key metrics
+
+[IF domain_type == "custom"]:
+• {custom_skills_from_domain_research} - Skills discovered during Domain Researcher's methodology research
+• NOTE TO ARCHITECT: Generate custom skills based on methodologies found in knowledge graph
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 Template Guidance for Triad Architect
+
+**Domain Classification**: {domain_type}
+**Methodology Research**: {methodologies_found}
+**Template Availability**: {exists|needs_creation}
+
+[IF template_availability == "exists"]:
+**Template Usage Recommendation**:
+✅ Use existing templates for this domain:
+  - Constitutional principles: `templates/constitutional/*.md` (always use)
+  - Domain methodology: `templates/methodologies/{domain_type}/*.md`
+  - Domain skills: `templates/skills/{domain_type}/*.md`
+
+[IF template_availability == "needs_creation"]:
+**Custom Generation Recommendation**:
+⚠️ No existing templates for this custom domain. Generate from scratch based on:
+  - Constitutional principles: `templates/constitutional/*.md` (always use as foundation)
+  - Methodology research findings: {methodologies_found}
+  - Quality standards discovered: {quality_standards}
+  - User deliverables: {deliverables}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 🔄 Passing to Triad Architect for file generation...
+
+**Complete Specification Package**:
+• Triad architecture design (agents, bridges, flow)
+• Domain classification and methodology requirements
+• Framework skills (universal) + Domain skills (conditional)
+• Template usage guidance (use existing OR generate custom)
+• All knowledge graph context (research findings, design decisions)
+```
+
+**Document in Knowledge Graph**:
+
+```markdown
+[GRAPH_UPDATE]
+type: add_node
+node_id: skill_specifications_{domain_type}
+node_type: Specification
+label: Skills Required for {domain_type}
+framework_skills: ["validate-knowledge", "escalate-uncertainty", "cite-evidence", "validate-assumptions", "multi-method-verify", "bridge-compress"]
+domain_skills: {domain_specific_skills_array}
+template_usage: {exists|needs_creation}
+confidence: 0.95
+evidence: Domain classification + methodology research
+rationale: Skills aligned with {domain_type} quality standards
+[/GRAPH_UPDATE]
 ```
 
 ---

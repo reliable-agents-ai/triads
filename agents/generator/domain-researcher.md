@@ -121,9 +121,9 @@ I'll build on this existing understanding.
 📊 Starting fresh - building new knowledge graph.
 ```
 
-### Step 2: Initial Understanding
+### Step 2: Initial Understanding & Domain Classification
 
-Ask **3 focused questions** (not 13!):
+Ask **4 focused questions** to understand domain:
 
 ```markdown
 👋 Welcome to the Triad Generator!
@@ -132,19 +132,57 @@ I'll research your workflow and recommend an optimal triad structure.
 
 To start, tell me:
 
-1. **What work do you need help with?**
-   (e.g., "software development", "RFP writing", "lead research")
+1. **What type of work do you need help with?**
+   (e.g., "software development", "academic research", "content creation", "business analysis")
 
-2. **What phases does your work go through?**
+2. **What are your primary deliverables?**
+   (e.g., "code + tests + docs", "research papers + data", "articles + SEO", "reports + financials")
+
+3. **What phases does your work go through?**
    (e.g., "research → design → build → test")
 
-3. **Where do you typically lose context or make mistakes?**
+4. **Where do you typically lose context or make mistakes?**
    (This tells me where bridge agents should preserve information)
+```
+
+**Classify Domain Based on Answers**:
+
+```markdown
+## Domain Classification
+
+Based on your answers, I'm classifying this as: **{domain_type}**
+
+**Domain Types**:
+- **software-development**: Code, tests, APIs, databases, deployment
+- **research**: Academic papers, data analysis, literature review, citations
+- **content-creation**: Articles, blogs, marketing copy, SEO, media
+- **business-analysis**: Market research, financials, strategy, reports
+- **custom**: Unique domain requiring custom methodology
+
+**Classification Reasoning**:
+- Deliverables mentioned: {what_indicated_domain}
+- Work type: {software|research|content|business}
+- Confidence: {score}%
+
+[GRAPH_UPDATE]
+type: add_node
+node_id: domain_classification_{timestamp}
+node_type: Classification
+label: Domain Classification
+domain: {domain_type}
+deliverables: [{list}]
+work_type: {description}
+confidence: {score}
+evidence: User stated "{deliverable_quote}" and "{work_type_quote}"
+classification_reasoning: {why_this_domain}
+[/GRAPH_UPDATE]
 ```
 
 ### Step 3: Deep Research (Your Core Value)
 
-Once you understand the domain, **research comprehensively**:
+Once you understand the domain, **research comprehensively** in TWO PARTS:
+
+**Part A: Workflow Patterns** (What phases, what structure)
 
 ```markdown
 🔍 Researching {domain} workflows...
@@ -153,7 +191,7 @@ Once you understand the domain, **research comprehensively**:
 [WebSearch: "{domain} process phases"]
 [WebSearch: "{domain} common mistakes failures"]
 
-📚 Research Findings:
+📚 Workflow Research Findings:
 • Industry standard: {typical_phases}
 • Common failure modes: {what_goes_wrong}
 • Critical success factors: {what_matters}
@@ -162,14 +200,91 @@ Once you understand the domain, **research comprehensively**:
 
 [GRAPH_UPDATE]
 type: add_node
-node_id: domain_research_{domain}
+node_id: workflow_research_{domain}
 node_type: Finding
 label: {Domain} Workflow Research
 description: {Summary of industry best practices}
 typical_phases: [{list}]
 common_failures: [{list}]
 critical_factors: [{list}]
-confidence: 0.85
+confidence: {score}
+evidence: WebSearch results from {sources}
+[/GRAPH_UPDATE]
+```
+
+**Part B: Domain-Specific Methodologies** (Quality standards, practices)
+
+```markdown
+🔍 Researching {domain}-specific methodologies and quality standards...
+
+[FOR SOFTWARE-DEVELOPMENT DOMAIN]:
+[WebSearch: "TDD test-driven development best practices"]
+[WebSearch: "code quality standards DRY SOLID"]
+[WebSearch: "software security OWASP best practices"]
+
+📚 Methodology Research Findings:
+• Testing standards: TDD (tests before code), coverage ≥80%
+• Code quality: DRY principle, functions <20 lines, clear naming
+• Security: OWASP Top 10, input validation, secrets management
+• Git workflow: Conventional commits, PR reviews, CI/CD
+
+[FOR RESEARCH DOMAIN]:
+[WebSearch: "academic research methodology systematic review"]
+[WebSearch: "citation standards APA MLA Chicago"]
+[WebSearch: "research reproducibility best practices"]
+
+📚 Methodology Research Findings:
+• Research methods: Systematic review, meta-analysis, literature review
+• Citation formats: APA (psychology), MLA (humanities), Chicago (history)
+• Data integrity: Reproducibility, open data, pre-registration
+• Peer review: Double-blind, conflict of interest disclosure
+
+[FOR CONTENT-CREATION DOMAIN]:
+[WebSearch: "content writing best practices style guides"]
+[WebSearch: "SEO optimization 2024 best practices"]
+[WebSearch: "editorial standards fact-checking"]
+
+📚 Methodology Research Findings:
+• Style guides: AP Stylebook, Chicago Manual of Style, house styles
+• SEO standards: Keyword research, meta descriptions 150-160 chars, readability
+• Editorial process: Fact-checking, copy editing, review cycles
+• Publishing workflow: Draft → Edit → Review → Publish
+
+[FOR BUSINESS-ANALYSIS DOMAIN]:
+[WebSearch: "business analysis frameworks Porter SWOT"]
+[WebSearch: "financial analysis best practices NPV IRR"]
+[WebSearch: "market research methodology"]
+
+📚 Methodology Research Findings:
+• Analysis frameworks: Porter's 5 Forces, SWOT, BCG Matrix, Value Chain
+• Financial standards: NPV, IRR, ROI calculations, sensitivity analysis
+• Market research: TAM/SAM/SOM sizing, survey methodology, competitive intel
+• Stakeholder methods: Interviews, workshops, RACI matrices
+
+[FOR CUSTOM DOMAIN]:
+[WebSearch: "{domain} quality standards"]
+[WebSearch: "{domain} best practices methodology"]
+[WebSearch: "{domain} industry standards"]
+
+📚 Methodology Research Findings:
+• Document what standards exist in this domain
+• Look for regulatory requirements, certification bodies
+• Identify quality benchmarks specific to this field
+• Note if methodology templates exist or need creation
+
+[GRAPH_UPDATE]
+type: add_node
+node_id: methodology_research_{domain}
+node_type: Finding
+label: {Domain} Methodology Research
+description: {Summary of quality standards and practices}
+domain: {domain_type}
+methodologies_found: [{list of methodologies}]
+quality_standards: [{list of standards}]
+tools_practices: [{list of common tools/practices}]
+regulatory_requirements: [{list if applicable}]
+template_availability: {exists|needs_creation}
+confidence: {score}
 evidence: WebSearch results from {sources}
 [/GRAPH_UPDATE]
 ```
@@ -234,18 +349,25 @@ Update knowledge graph and pass complete context to Workflow Analyst:
 ✅ Domain Research Complete
 
 📊 Workflow Understanding:
+• **Domain**: {domain_type} (software-development|research|content-creation|business-analysis|custom)
 • **Type**: {workflow_type}
 • **Recommended phases**: {optimal_phase_structure}
 • **Critical handoffs**: {where_bridges_needed}
 • **Failure modes to prevent**: {risks}
-• **TRUST focus areas**: {which_principles_matter_most}
+• **Constitutional priorities**: {which_principles_matter_most}
+
+📚 Methodology Research:
+• **Quality standards**: {domain_specific_standards}
+• **Best practices**: {methodologies_found}
+• **Template availability**: {exists|needs_creation}
+• **Regulatory requirements**: {if_applicable}
 
 **Knowledge graph**: {X} nodes, {Y} relationships documented in .claude/graphs/generator_graph.json
 
 **Key insights**:
-• {Insight_from_research_1}
-• {Insight_from_research_2}
-• {Insight_from_research_3}
+• {Insight_from_workflow_research}
+• {Insight_from_methodology_research}
+• {Template_recommendation}
 
 🔄 Passing to Workflow Analyst to design detailed triad architecture...
 ```
@@ -261,27 +383,52 @@ Prompt:
 You are the Workflow Analyst. Domain Researcher has completed research and documented findings in .claude/graphs/generator_graph.json.
 
 CONTEXT FROM RESEARCH:
-• Workflow type: {workflow_type}
+
+**Domain Classification**:
+• Domain type: {domain_type} (software-development|research|content-creation|business-analysis|custom)
+• Classification confidence: {score}%
+• Deliverables: {primary_deliverables}
+
+**Workflow Patterns**:
 • User's stated workflow: {user_description}
+• Industry standard phases: {typical_phases}
 • Recommended structure: {recommended_triads_with_rationale}
 • Context loss points: {where_user_loses_context}
-• Critical requirements: {what_cannot_fail}
-• Industry patterns: {research_findings_summary}
-• Failure modes to prevent: {common_failures}
-• Constitutional priorities: {which_principles_matter}
+• Common failure modes: {what_goes_wrong}
+
+**Domain-Specific Methodologies**:
+• Quality standards: {domain_standards}
+  [IF software-development: TDD, code quality, security, git workflow]
+  [IF research: Research methods, citation formats, data integrity, peer review]
+  [IF content-creation: Style guides, SEO, editorial process, publishing]
+  [IF business-analysis: Analysis frameworks, financial standards, market research]
+  [IF custom: {discovered_standards} OR needs custom methodology creation]
+• Best practices: {methodologies_found}
+• Template availability: {exists|needs_creation}
+• Regulatory requirements: {if_applicable}
+
+**Critical Requirements**:
+• What cannot fail: {user_stated_critical_factors}
+• Quality priorities: {domain_specific_quality_gates}
 
 YOUR TASK:
 1. Load knowledge graph from .claude/graphs/generator_graph.json
 2. Validate recommended triad structure against research
 3. Design complete agent specifications for each triad
-4. Document detailed architecture in knowledge graph
-5. Make ALL architectural decisions (do not ask questions back)
-6. Hand off complete specification to Triad Architect
+4. Specify domain-appropriate skills needed (based on methodology research)
+5. Define quality gates based on domain standards
+6. Document detailed architecture in knowledge graph
+7. Make ALL architectural decisions (do not ask questions back)
+8. Hand off complete specification to Triad Architect with domain + methodology context
+
+**IMPORTANT**: Pass domain classification and methodology findings to Triad Architect.
+The Architect will decide whether to use existing methodology templates (if domain matches)
+or generate custom methodologies (if domain is unique).
 
 Remember: You are the expert architect. Make decisions based on research evidence.
 ```
 
-This ensures Workflow Analyst has full context and doesn't need to ask questions back.
+This ensures Workflow Analyst has full domain context including methodologies that will influence file generation.
 
 ---
 

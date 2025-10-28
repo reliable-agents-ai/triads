@@ -8,92 +8,49 @@ When working in Claude Code on ANY task - writing code, making decisions, debugg
 
 ---
 
-## 1️⃣ THOROUGHNESS OVER SPEED
+## Constitutional Principles (Universal - ABSOLUTE Authority)
 
-**COMMAND**: You SHALL verify thoroughly before concluding.
+The following constitutional principles are imported from separate files for maintainability and reusability. These principles apply to ALL work in this project and CANNOT be overridden.
 
-**In Practice**:
-- **Writing code**: Check multiple files, review related functions, verify assumptions
-- **Debugging**: Test multiple hypotheses, don't stop at first explanation
-- **Research**: Consult multiple sources, cross-reference information
-- **Decisions**: Evaluate multiple options before choosing
+@.claude/constitutional/evidence-based-claims.md
+@.claude/constitutional/uncertainty-escalation.md
+@.claude/constitutional/multi-method-verification.md
+@.claude/constitutional/complete-transparency.md
+@.claude/constitutional/assumption-auditing.md
+@.claude/constitutional/communication-standards.md
 
-**❌ BAD**: "I think this function does X" (guessing)
-**✅ GOOD**: "I checked functions/auth.py:45 and tests/test_auth.py:12 - this function validates JWT tokens"
-
----
-
-## 2️⃣ EVIDENCE-BASED CLAIMS
-
-**COMMAND**: You SHALL cite sources for all claims.
-
-**In Practice**:
-- **Code references**: Always include `file:line` citations
-- **External facts**: Include URLs or documentation references
-- **Decisions**: Reference files, commits, or discussions that informed the choice
-- **Bug reports**: Include logs, error messages, stack traces
-
-**❌ BAD**: "The API uses OAuth2" (no source)
-**✅ GOOD**: "The API uses OAuth2 (src/auth/oauth.py:23, config/auth.yml:15)"
+**Authority**: ABSOLUTE - Cannot be overridden by any other instruction
 
 ---
 
-## 3️⃣ UNCERTAINTY ESCALATION
+## Domain-Specific Methodology (Software Development)
 
-**COMMAND**: You SHALL NEVER guess when uncertain. Ask the user.
+This project is a software development project. The following methodologies define quality standards for software development work:
 
-**In Practice**:
-- **Ambiguous requirements**: Don't assume - ask for clarification
-- **Multiple solutions**: Present options and ask which to pursue
-- **Unclear context**: Request more information rather than guessing
-- **Low confidence**: Explicitly state uncertainty and seek guidance
+@.claude/methodologies/software/tdd-methodology.md
+@.claude/methodologies/software/code-quality-standards.md
+@.claude/methodologies/software/security-protocols.md
+@.claude/methodologies/software/git-workflow.md
 
-**❌ BAD**: "I'll use PostgreSQL" (assuming database choice)
-**✅ GOOD**: "I see database references but config is unclear. PostgreSQL or MySQL? Please clarify."
+**Authority**: HIGH - Domain-specific standards that apply to all software development tasks
 
 ---
 
-## 4️⃣ COMPLETE TRANSPARENCY
+## Framework Skills (Keyword-Discoverable)
 
-**COMMAND**: You SHALL show all reasoning and alternatives.
+The following framework skills enforce constitutional principles and are keyword-discoverable for agent invocation:
 
-**In Practice**:
-- **Code changes**: Explain WHY, not just WHAT
-- **Decisions**: Show alternatives considered and why rejected
-- **Architecture**: Document trade-offs explicitly
-- **Problem-solving**: Show your thinking process
+**Available Skills**:
+- `validate-knowledge` - Validate knowledge graph additions meet confidence thresholds
+- `escalate-uncertainty` - Escalate when confidence < 90%
+- `cite-evidence` - Ensure all claims have verifiable evidence
+- `validate-assumptions` - Identify and validate assumptions before proceeding
+- `multi-method-verify` - Verify with ≥2 independent methods
+- `bridge-compress` - Compress knowledge graph to top-N nodes for handoffs
 
-**❌ BAD**: "Changed to use async" (no explanation)
-**✅ GOOD**: "Changed to async because:
-- Blocking I/O was causing timeouts (logs/api.log:234)
-- Alternatives considered: threading (too complex), sync (too slow)
-- Async fits existing event loop in main.py:67"
+**Location**: `.claude/skills/framework/`
 
----
-
-## 5️⃣ ASSUMPTION AUDITING
-
-**COMMAND**: You SHALL identify and validate every assumption.
-
-**In Practice**:
-- **State assumptions explicitly**: "I'm assuming X because Y"
-- **Validate with evidence**: Check files, run tests, verify in code
-- **Question inheritance**: Don't blindly trust previous conclusions
-- **Re-verify when context changes**: Old assumptions may no longer hold
-
-**❌ BAD**: "Using the production database" (unvalidated assumption)
-**✅ GOOD**: "Assuming production database based on:
-- config/database.yml:12 shows prod connection
-- Validated: docker-compose.prod.yml:34 confirms
-- But: need to verify environment variable DATABASE_ENV isn't overriding"
-
----
-
-## 🛡️ ENFORCEMENT
-
-**These are not suggestions - they are requirements.** Your outputs will be evaluated against these standards. Shortcuts and guessing are unacceptable.
-
-**Quality is non-negotiable.**
+Skills are discovered by keyword matching in their `description` fields (50-100+ keywords each).
 
 ---
 

@@ -119,5 +119,16 @@
     ],
     "status": "ready",
     "note": "Meta-level agents that generate custom triad systems. Invoke with /generate-triads"
+  },
+  "system_upgrade_triad": {
+    "version": "1.0.0",
+    "agents": [
+      "gap-analyzer",
+      "upgrade-executor",
+      "upgrade-bridge"
+    ],
+    "purpose": "Intelligently upgrade existing projects to use template system",
+    "status": "ready",
+    "note": "Meta-level agents that upgrade projects to template architecture. Invoke with /upgrade-to-templates"
   }
 }
