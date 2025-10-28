@@ -1457,6 +1457,186 @@ User: "login is broken"
 
 ---
 
+### Step 6.9: Analyze Entry Points
+
+**Insert After**: Step 6.8 (Generate Domain-Specific Brief Skills)
+**Insert Before**: Step 7 (Update CLAUDE.md with @imports)
+
+**Objective**: Generate routing decision table from workflow structure.
+
+**Purpose**:
+Analyze the workflow's triads and their purposes to determine which work types should route to which triads. This creates a domain-agnostic routing table that maps user intent to triad entry points.
+
+**Prerequisites**:
+- Settings file exists (`.claude/settings.json`)
+- Brief skills generated in Step 6.8
+- Skills directory exists (`.claude/skills/{domain}/`)
+
+**Command**:
+```bash
+python triads/entry_point_analyzer.py \
+  --settings .claude/settings.json \
+  --skills-dir .claude/skills/software-development \
+  --output .claude/routing_decision_table.yaml
+```
+
+**What This Does**:
+1. Reads `.claude/settings.json` to extract triad configurations
+2. Analyzes each triad's `purpose` field using keyword matching
+3. Maps work types (bug, feature, refactor, release, documentation) to triads
+4. Assigns confidence scores (0.70-0.95) based on keyword overlap
+5. Generates `.claude/routing_decision_table.yaml` with routing decisions
+
+**Validation Steps**:
+- [ ] Check `.claude/routing_decision_table.yaml` was created
+- [ ] File contains `routing_decisions` section with work types
+- [ ] Each work type has: target_triad, entry_agent, brief_skill, confidence
+- [ ] File contains `fallback` section
+- [ ] File contains `ambiguity_resolution` section
+- [ ] Confidence scores are between 0.70 and 0.95
+
+**Expected Output**: `.claude/routing_decision_table.yaml`
+
+**Example Output Structure**:
+```yaml
+version: 1.0.0
+domain: software-development
+generated_at: '2025-10-28T...'
+routing_decisions:
+  feature:
+    target_triad: idea-validation
+    entry_agent: research-analyst
+    brief_skill: feature-brief
+    priority: 2
+    confidence: 0.95
+  bug:
+    target_triad: implementation
+    entry_agent: senior-developer
+    brief_skill: bug-brief
+    priority: 1
+    confidence: 0.90
+  refactor:
+    target_triad: garden-tending
+    entry_agent: cultivator
+    brief_skill: refactor-brief
+    priority: 3
+    confidence: 0.85
+fallback:
+  target_triad: idea-validation
+  entry_agent: research-analyst
+ambiguity_resolution:
+  strategy: priority_score
+  confidence_threshold: 0.70
+```
+
+**Error Handling**:
+- If command fails: Check Python path and ensure triads/ directory is in PYTHONPATH
+- If no work types found: Verify triad purposes contain recognizable keywords
+- If brief skills missing: Step 6.8 should have generated them first
+
+---
+
+### Step 6.10: Generate Coordination Skills
+
+**Insert After**: Step 6.9 (Analyze Entry Points)
+**Insert Before**: Step 7 (Update CLAUDE.md with @imports)
+
+**Objective**: Create coordination skills for each brief skill.
+
+**Purpose**:
+Generate coordination skills that orchestrate the complete workflow from user request → brief creation → routing → triad execution. One coordination skill is created for each work type in the routing table.
+
+**Prerequisites**:
+- Routing decision table exists (`.claude/routing_decision_table.yaml`)
+- Brief skills exist in `.claude/skills/{domain}/`
+- Skills directory is writable
+
+**Command**:
+```bash
+python triads/coordination_skill_generator.py \
+  --routing-table .claude/routing_decision_table.yaml \
+  --output-dir .claude/skills/software-development
+```
+
+**What This Does**:
+1. Reads `.claude/routing_decision_table.yaml` to get work types and routing config
+2. For each work type, generates a coordination skill file
+3. Uses template with 4-phase workflow: CREATE BRIEF → ROUTE → INVOKE → MONITOR
+4. Includes error handling, examples, and constitutional compliance sections
+5. Writes skills to `.claude/skills/{domain}/coordinate-{work_type}.md`
+
+**Validation Steps**:
+- [ ] One coordination skill generated per work type in routing table
+- [ ] Skills placed in `.claude/skills/{domain}/` directory
+- [ ] Each skill has filename pattern: `coordinate-{work_type}.md`
+- [ ] Each skill has valid frontmatter with:
+  - `name: coordinate-{work_type}`
+  - `description:` with keywords
+  - `category: coordination`
+  - `domain: {domain}`
+  - `allowed_tools: ["Task", "Read", "Grep"]`
+- [ ] Each skill contains 4-phase workflow:
+  - Phase 1: CREATE BRIEF
+  - Phase 2: ROUTE TO TRIAD
+  - Phase 3: INVOKE TRIAD
+  - Phase 4: MONITOR EXECUTION
+- [ ] Each skill contains error handling sections
+- [ ] Each skill contains examples
+- [ ] Each skill contains constitutional compliance section
+
+**Expected Output**: Multiple coordination skill files
+
+**Example Filenames**:
+- `.claude/skills/software-development/coordinate-feature.md`
+- `.claude/skills/software-development/coordinate-bug.md`
+- `.claude/skills/software-development/coordinate-refactor.md`
+- `.claude/skills/software-development/coordinate-release.md`
+
+**Example Skill Structure** (coordinate-feature.md):
+```markdown
+---
+name: coordinate-feature
+description: Coordinate feature workflow - transforms user request into brief, routes to appropriate triad, monitors execution. Keywords - feature, add, implement, new, enhancement
+category: coordination
+domain: software-development
+allowed_tools: ["Task", "Read", "Grep"]
+---
+
+# Feature Coordination Skill
+
+**Purpose**: Orchestrate complete feature workflow from user request → brief → routing → triad execution.
+
+## Skill Procedure
+
+### Phase 1: CREATE BRIEF
+[Instructions for invoking feature-brief skill]
+
+### Phase 2: ROUTE TO TRIAD
+[Instructions for reading routing table]
+
+### Phase 3: INVOKE TRIAD
+[Instructions for invoking entry agent]
+
+### Phase 4: MONITOR EXECUTION
+[Instructions for tracking progress]
+
+## Error Handling
+[Phase-specific error handling]
+
+## Examples
+[Domain-specific examples]
+
+## Constitutional Compliance
+[Constitutional principles verification]
+```
+
+**Error Handling**:
+- If command fails: Check routing_decision_table.yaml exists and is valid YAML
+- If no skills generated: Verify routing table has routing_decisions section
+- If frontmatter invalid: Check template formatting in coordination_skill_generator.py
+
+---
+
 ### Step 7: Update CLAUDE.md with @imports
 
 **Phase**: Update CLAUDE.md (MOST CRITICAL)
