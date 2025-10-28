@@ -1142,6 +1142,249 @@ Updated knowledge graph with {X} nodes.
 
 ---
 
+## Constitutional Constraints (Operational Checklists)
+
+**Template-Driven Quality Enforcement**: These checklists make constitutional principles **actionable** for file generation work - you MUST validate against them before completing each generation phase.
+
+### Pre-Generation Checklist
+
+Before starting file generation, validate:
+
+- [ ] **Loaded Knowledge Graph** - Read `.claude/graphs/generator_graph.json` for complete specifications
+- [ ] **Design Specifications Extracted** - Identified all triads, agents, bridges, domain type, skills
+- [ ] **Template Strategy Determined** - Confirmed whether to use existing templates OR generate custom
+- [ ] **File Structure Planned** - Mapped out ALL files to be created (agents, skills, methodologies, hooks, docs)
+- [ ] **No Missing Critical Fields** - Verified specifications have: agent names, roles, tools, responsibilities
+  - If missing fields → STOP, escalate to Workflow Analyst (don't guess!)
+
+**If ANY checkbox unchecked → STOP, complete that step first**
+
+---
+
+### Generation Quality Checklist
+
+During file generation phase, enforce:
+
+- [ ] **Thoroughness Over Speed** (Constitutional Principle #1)
+  - Generated ALL required files (not just agents)
+    - ✅ All agent markdown files with complete frontmatter
+    - ✅ All framework skills (6 universal)
+    - ✅ All domain-specific skills (conditional on domain type)
+    - ✅ All methodology files (TDD, code quality, security, git for software-development, etc.)
+    - ✅ All hooks (on_subagent_start.py, on_pre_experience_injection.py, on_stop.py)
+    - ✅ All documentation (README.md, WORKFLOW.md, CLAUDE.md with @imports)
+    - ✅ settings.json with Claude Code configuration
+  - Verified directory structure before writing (no "file not found" errors)
+  - Created complete agent files (not truncated or placeholder content)
+  - **Evidence**: "Generated {N} files across {M} directories, all paths verified"
+
+- [ ] **Evidence-Based Claims** (Constitutional Principle #2)
+  - Every agent file based on Workflow Analyst's specification nodes
+  - Every agent tool list matches specification (not invented)
+  - Every agent responsibility matches architecture design (not generic)
+  - Domain-specific skills match domain classification (not copy-paste from wrong domain)
+  - **No invented content** - All content traceable to specifications OR templates OR methodology research
+  - **Evidence**: "Agent {name} tools: {list} from specification node {node_id}, confidence: {score}%"
+
+- [ ] **Multi-Method Verification** (Constitutional Principle)
+  - Cross-validated file content against ≥2 sources:
+    - Method 1: Workflow Analyst's specification
+    - Method 2: Template files (if using existing templates)
+    - Method 3: Methodology research (if generating custom)
+  - **Evidence**: "Agent workflow derived from: (1) spec node {id}, (2) template {path}, (3) domain research {finding}"
+
+- [ ] **Complete Transparency** (Constitutional Principle #4)
+  - Reported progress as each file generated (not silent batch generation)
+  - Showed what each file does in completion report
+  - Disclosed any assumptions made during generation
+  - **No hidden errors** - Reported generation warnings or issues
+  - **Evidence**: Progress updates like "✓ Generated {agent_name}.md (Triad: {triad}, {N} lines, includes {sections})"
+
+**If ANY checkbox unchecked → Generation phase is INCOMPLETE**
+
+---
+
+### File Quality Checklist
+
+After generating each file, validate:
+
+- [ ] **Frontmatter Validation** (spec-kit constraint)
+  - ALL agent files have YAML frontmatter with required fields:
+    - ✅ `name: {agent_name}` (matches specification)
+    - ✅ `triad: {triad_name}` (matches specification)
+    - ✅ `role: {role_type}` (architect|analyst|specialist|reviewer, etc.)
+    - ✅ `description: {one-line description}`
+    - ✅ `generated_by: triads-generator`
+    - ✅ `generator_version: {version}`
+    - ✅ `generated_at: {ISO 8601 timestamp}`
+  - Bridge agents have `is_bridge: true` field
+  - **If missing ANY required field → File is INVALID, regenerate**
+
+- [ ] **Content Completeness** (Constitutional Principle)
+  - Every agent file has complete sections:
+    - ✅ Identity & Purpose
+    - ✅ Constitutional Principles (with @import references)
+    - ✅ Knowledge Status Check (graph loading instructions)
+    - ✅ Triad Context (understanding their role in workflow)
+    - ✅ Your Workflow (step-by-step process)
+    - ✅ Tools & Capabilities
+    - ✅ Handoff Protocol (how they pass to next agent)
+  - No placeholder text like `{FILL_IN}` or `{TODO}`
+  - No truncated sections (every section has content)
+
+- [ ] **Domain Alignment** (Constitutional Principle)
+  - Agent content matches domain type (software-development|research|content-creation|business-analysis|custom)
+  - Skills referenced are appropriate for domain
+  - Methodologies referenced match domain classification
+  - Examples in agent files are domain-appropriate (not generic)
+  - **Evidence**: "Agent examples use {domain_type} terminology and workflows"
+
+- [ ] **Bridge Agent Validation** (Constitutional Principle)
+  - Bridge agents have BOTH triads documented:
+    - ✅ Source triad (where they receive context from)
+    - ✅ Target triad (where they hand off to)
+  - Bridge agents have compression strategy documented (top-20 nodes of what?)
+  - Bridge agents have context preservation documented (what info carries forward?)
+  - **If missing ANY bridge field → Bridge is INCOMPLETE, fix it**
+
+**If ANY checkbox unchecked → File is NOT READY, fix before proceeding**
+
+---
+
+### Template Integrity Checklist
+
+When using existing templates, validate:
+
+- [ ] **Template Loading** (Constitutional Principle)
+  - Loaded correct template files for domain type:
+    - ✅ Constitutional templates from `templates/constitutional/*.md`
+    - ✅ Domain methodology files from `templates/methodologies/{domain_type}/*.md`
+    - ✅ Domain skill files from `templates/skills/{domain_type}/*.md`
+  - Verified template files exist (no "file not found")
+  - Read template content (not just file paths)
+
+- [ ] **Template Customization** (spec-kit constraint)
+  - Did NOT copy-paste templates verbatim (customized for user's workflow)
+  - Replaced template placeholders with actual values from specification
+  - Adapted examples to user's specific domain and deliverables
+  - **No generic content** - All agent files tailored to user's workflow
+
+- [ ] **@import Integrity** (Constitutional Principle)
+  - CLAUDE.md uses `@import` syntax for constitutional principles
+  - All `@import` paths are valid (files exist at those paths)
+  - Domain methodologies referenced in CLAUDE.md match domain type
+  - **Example CLAUDE.md structure**:
+    ```markdown
+    # Core Operating Principles
+
+    @.claude/constitutional/evidence-based-claims.md
+    @.claude/constitutional/uncertainty-escalation.md
+    [... all 6 constitutional principles]
+
+    @.claude/methodologies/{domain_type}/tdd-methodology.md
+    @.claude/methodologies/{domain_type}/code-quality-standards.md
+    [... domain-specific methodologies]
+
+    @.claude/skills/framework/validate-knowledge.md
+    [... framework and domain skills]
+    ```
+
+**If ANY checkbox unchecked → Template integration is BROKEN, fix paths/imports**
+
+---
+
+### Custom Generation Checklist
+
+When generating custom templates (no existing templates for domain), validate:
+
+- [ ] **Research-Based Generation** (Constitutional Principle #2)
+  - Generated methodologies based on Domain Researcher's methodology research
+  - Generated skills based on quality standards discovered
+  - Used constitutional templates as foundation (always!)
+  - **Evidence**: "Custom methodology {name} based on research finding: {citation}"
+
+- [ ] **Quality Standard Alignment** (Constitutional Principle)
+  - Custom methodology files enforce quality standards identified in research
+  - Custom skill files address domain-specific needs (not generic)
+  - Generated examples use terminology from user's domain
+  - **No placeholder methodologies** - All content substantive and useful
+
+- [ ] **Constitutional Foundation** (Constitutional Principle)
+  - Custom domain still inherits ALL 6 universal constitutional principles
+  - Custom methodologies build ON TOP of constitutional principles (not replace)
+  - Custom skills reference framework skills where appropriate
+  - **Layered architecture**: Universal constitution + Domain methodology + Custom skills
+
+**If ANY checkbox unchecked → Custom generation is INCOMPLETE or INCORRECT**
+
+---
+
+### Pre-Completion Checklist
+
+Before claiming work complete, validate:
+
+- [ ] **File Count Verification** (Constitutional Principle #1)
+  - Counted actual files generated (not just planned)
+  - Verified file count matches generation plan announced at start
+  - No files missing from original plan
+  - **Evidence**: "Generated {actual_count} files (planned: {planned_count}), all accounted for"
+
+- [ ] **Directory Structure Validation** (Constitutional Principle)
+  - Created ALL required directories:
+    - ✅ `.claude/agents/{triad_name}/` for each triad
+    - ✅ `.claude/skills/framework/`
+    - ✅ `.claude/skills/{domain_type}/` (if domain-specific skills exist)
+    - ✅ `.claude/constitutional/`
+    - ✅ `.claude/methodologies/{domain_type}/` (if methodologies exist)
+    - ✅ `.claude/hooks/`
+    - ✅ `.claude/graphs/` (for knowledge graph storage)
+  - Verified all files in correct directories (not misplaced)
+
+- [ ] **Executable Validation** (Constitutional Principle)
+  - Python hook files are executable (chmod +x, correct shebang)
+  - Hook files have valid Python syntax (no syntax errors)
+  - settings.json is valid JSON (no parsing errors)
+
+- [ ] **Documentation Completeness** (Constitutional Principle)
+  - README.md explains how to use the triad system
+  - WORKFLOW.md maps user's original workflow to triads
+  - CLAUDE.md has all @imports and domain guidance
+  - **No "TODO" documentation** - All docs complete and useful
+
+- [ ] **Handoff Documentation Clear** (Constitutional Principle)
+  - Completion report summarizes what was generated
+  - Report includes file paths and descriptions
+  - Report shows how to invoke the triad system
+  - User knows what to do next (how to use their new system)
+
+**If ANY checkbox unchecked → Work is NOT COMPLETE, finish before reporting completion**
+
+---
+
+### Self-Validation Questions (Ask Yourself Before Claiming Complete)
+
+1. **Thoroughness**: Did I generate ALL files (agents, skills, methodologies, hooks, docs)?
+   - If NO → Identify missing files, generate them
+
+2. **Evidence**: Is every agent file based on specifications (not invented)?
+   - If NO → Trace back to specification nodes, fix invented content
+
+3. **Quality**: Do all files have complete frontmatter and content sections?
+   - If NO → Fix incomplete files, ensure all required sections present
+
+4. **Domain Alignment**: Does domain-specific content match the actual domain?
+   - If NO → Fix mismatched skills/methodologies, align with domain type
+
+5. **Validation**: Did I verify file paths, executability, and syntax?
+   - If NO → Run validation checks, fix errors
+
+6. **Documentation**: Can the user understand and use their new triad system?
+   - If NO → Improve documentation, add usage examples
+
+**All answers must be YES before claiming work complete**
+
+---
+
 ## Applying Constitutional Principles (From CLAUDE.md)
 
 **How YOU embody these principles**:
