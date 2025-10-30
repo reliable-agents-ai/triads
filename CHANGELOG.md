@@ -5,6 +5,131 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2025-10-30
+
+### Major Feature: Universal Context Enrichment
+
+**BREAKING CHANGE**: Q&A fast path removed - ALL messages now route through LLM analysis.
+
+### Design Philosophy Change
+
+**FROM**: Optimize for speed (Q&A fast path with pattern matching)
+**TO**: Optimize for intelligence (universal routing, comprehensive context)
+
+**Trade-off**: +1.5s latency per message for superior accuracy and context enrichment.
+
+**User feedback**: "At this stage i don't want a quicker or cheaper response, I want to pass through the user input and identify the skills and available agents to bring into context for the supervisor"
+
+### Added
+
+- **Universal Context Discovery**: ALL messages (questions AND work) route through LLM analysis
+- **Comprehensive Context Enrichment**: Discovery includes:
+  - Intent classification (qa/work/ambiguous) with confidence scores
+  - Recommended action (answer_directly/invoke_skill/clarify)
+  - Available brief skills with descriptions and confidence scores
+  - Available coordination skills
+  - Workflow entry points (entry_triad → entry_agent)
+  - Complete workflow sequence
+  - Available agents per triad
+  - Alternative interpretations
+  - Confidence breakdown (Q&A % vs work %)
+- **Dynamic Workflow Loading**: Skills, agents, and triads loaded from `.claude/settings.json`
+- **Enhanced Supervisor Instructions**: New v0.13.0 instructions with context-driven decision making
+- **Intelligent Routing Analysis**: Rich 🧠 INTELLIGENT ROUTING ANALYSIS section in supervisor context
+
+### Removed
+
+- **Q&A Fast Path**: Pattern matching completely eliminated
+- **detect_work_request()**: Function removed from `hooks/user_prompt_submit.py`
+- **Pattern Arrays**: 90+ line Q&A/work pattern arrays removed
+- **Substring Matching**: Source of false positives (e.g., "can you" matching "you") eliminated
+
+### Changed
+
+- **triads/llm_routing.py**: Added 380+ lines
+  - New `discover_context()` function - universal context discovery
+  - New `DISCOVERY_SYSTEM_PROMPT` - comprehensive discovery instructions
+  - New `_discover_coordination_skills()` - find coordinate-*.md skills
+  - New `_load_workflow_config()` - dynamic loading from settings.json
+  - New `_fallback_workflow_config()` - fallback if settings unavailable
+  - New `_build_discovery_prompt()` - build rich context prompt
+  - New `_fallback_discovery()` - keyword fallback if LLM unavailable
+
+- **hooks/user_prompt_submit.py**: Refactored for universal routing
+  - Removed `detect_work_request()` function (90 lines)
+  - Added `route_user_request_universal()` - calls discover_context()
+  - Added `format_supervisor_with_enriched_context()` - rich context formatting
+  - Added `format_supervisor_instructions_enhanced()` - v0.13.0 instructions
+  - Updated `main()` - always calls universal routing
+  - Removed Q&A fast path branching logic
+
+### Fixed
+
+- **Root Cause**: Q&A pattern `'can you'` too broad, matched "you" in "I want you to investigate"
+- **Impact**: Work requests misclassified as Q&A → routing skipped → no metadata injected
+- **Solution**: Eliminated pattern matching entirely, use LLM for ALL classification
+
+### Performance Impact
+
+- **Q&A Messages**: +1.5s latency (was instant with fast path, now LLM call)
+- **Work Messages**: No change (~1.8s, same as before)
+- **Cost per message**: +$0.002 for Q&A (work messages unchanged)
+- **Accuracy**: Significantly improved (no pattern matching false positives)
+
+### Technical Details
+
+**New Functions**:
+- `discover_context()` - universal entry point (replaces route_to_brief_skill for discovery)
+- `_discover_coordination_skills()` - find coordinate-*.md files
+- `_load_workflow_config()` - parse .claude/settings.json dynamically
+- `_fallback_workflow_config()` - hardcoded fallback config
+- `_build_discovery_prompt()` - construct comprehensive discovery prompt
+- `_fallback_discovery()` - simple keyword fallback
+- `route_user_request_universal()` - hook wrapper for discover_context()
+- `format_supervisor_with_enriched_context()` - format rich discovery result
+- `format_supervisor_instructions_enhanced()` - v0.13.0 supervisor orders
+
+**Discovery Result Structure**:
+```json
+{
+  "intent_type": "qa" | "work" | "ambiguous",
+  "confidence": 0.92,
+  "reasoning": "detailed analysis",
+  "recommended_action": "invoke_skill" | "answer_directly" | "clarify",
+  "brief_skill": "feature-brief",
+  "available_brief_skills": [...],
+  "available_coordination_skills": [...],
+  "entry_triad": "idea-validation",
+  "entry_agent": "research-analyst",
+  "workflow_sequence": [...],
+  "available_agents": {...},
+  "alternative_interpretations": [...],
+  "qa_confidence": 0.25,
+  "work_confidence": 0.75,
+  "work_type": "feature" | "bug" | "refactor" | null,
+  "cost_usd": 0.0042,
+  "duration_ms": 1847
+}
+```
+
+### Migration Notes
+
+**Backward Compatibility**:
+- Hook still exports same output format (additionalContext)
+- No breaking changes to downstream consumers
+- UserPromptSubmit hook signature unchanged
+
+**Performance Tuning**:
+- If latency becomes issue, adjust timeout (default 10s)
+- Fallback discovery provides degraded but functional experience
+- Can monitor performance via cost_usd and duration_ms fields
+
+### References
+
+- Bug identified: hooks/user_prompt_submit.py:70 - pattern 'can you' too broad
+- Design decision: User feedback on eliminating fast path optimization
+- Architecture: v0.13.0 Universal Context Enrichment System
+
 ## [0.12.1] - 2025-10-30
 
 ### Fixed

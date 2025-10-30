@@ -27,101 +27,13 @@ if str(repo_root / "hooks") not in sys.path:
 # Import common utilities
 from common import output_hook_result, get_project_dir  # noqa: E402
 
-# Import LLM routing
-from triads.llm_routing import route_to_brief_skill  # noqa: E402
+# Import LLM routing (v0.13.0 - Universal Context Discovery)
+from triads.llm_routing import discover_context  # noqa: E402
 
 
-def detect_work_request(user_message: str) -> dict:
-    """
-    Detect if user message is a work request and classify it.
-
-    Distinguishes between Q&A requests (informational) and work requests
-    (action required). Work requests trigger triad orchestration.
-
-    Args:
-        user_message: User's message to classify
-
-    Returns:
-        Dict with classification if work request:
-            {'type': str, 'triad': str, 'original_request': str}
-        Empty dict if Q&A or unclear
-
-    Examples:
-        >>> detect_work_request("Implement OAuth2")
-        {'type': 'feature', 'triad': 'idea-validation', 'original_request': 'Implement OAuth2'}
-
-        >>> detect_work_request("What is OAuth2?")
-        {}
-
-        >>> detect_work_request("Fix router crash")
-        {'type': 'bug', 'triad': 'idea-validation', 'original_request': 'Fix router crash'}
-    """
-    if not user_message or not isinstance(user_message, str):
-        return {}
-
-    message_lower = user_message.lower()
-
-    # Q&A indicators (NOT work requests)
-    qa_patterns = [
-        'what is', 'what are', 'what does',
-        'how does', 'how do', 'how to',
-        'explain', 'tell me about', 'tell me how',
-        'can you explain', 'could you explain',
-        'can you', 'could you', 'would you',
-        'describe', 'why is', 'why does',
-        'when should', 'where is', 'where does',
-        'who is', 'which is'
-    ]
-
-    # Check if Q&A (return empty dict - not a work request)
-    for pattern in qa_patterns:
-        if pattern in message_lower:
-            return {}
-
-    # Work indicators by type
-    work_patterns = {
-        'feature': [
-            'implement', 'add', 'create', 'build',
-            'let\'s implement', 'let\'s add', 'let\'s create', 'let\'s build',
-            'please implement', 'please add', 'please create',
-            'we need to implement', 'we need to add',
-            'develop', 'make'
-        ],
-        'bug': [
-            'fix', 'bug', 'error', 'broken', 'issue',
-            'crash', 'failing', 'not working',
-            'resolve', 'correct', 'repair'
-        ],
-        'refactor': [
-            'refactor', 'cleanup', 'clean up', 'improve',
-            'consolidate', 'reorganize', 'restructure',
-            'messy code', 'technical debt',
-            'simplify', 'optimize'
-        ],
-        'design': [
-            'design', 'architecture', 'how should we',
-            'what approach', 'which approach',
-            'architect', 'structure for'
-        ],
-        'release': [
-            'deploy', 'release', 'publish',
-            'ship', 'launch'
-        ]
-    }
-
-    # Check for work patterns
-    for work_type, patterns in work_patterns.items():
-        for pattern in patterns:
-            if pattern in message_lower:
-                # Per ADR-007: ALL work enters through idea-validation
-                return {
-                    'type': work_type,
-                    'triad': 'idea-validation',
-                    'original_request': user_message
-                }
-
-    # No clear classification - return empty dict
-    return {}
+# NOTE: detect_work_request() removed in v0.13.0
+# Q&A fast path eliminated - ALL messages now route through LLM discovery
+# Design philosophy: Trade performance for intelligence, maximize supervisor context
 
 
 def load_workflow_config():
@@ -369,29 +281,32 @@ def generate_orchestrator_instructions(
     return "\n".join(lines)
 
 
-def route_user_request(user_prompt: str) -> dict:
+def route_user_request_universal(user_prompt: str) -> dict:
     """
-    Route work request using LLM.
+    Universal context discovery for ALL messages (v0.13.0).
+
+    This function replaces Q&A fast path with comprehensive LLM analysis
+    for every user message, providing rich context to the supervisor.
 
     Args:
-        user_prompt: User's message
+        user_prompt: User's message (question or work request)
 
     Returns:
-        Routing decision dict with brief_skill, confidence, reasoning, etc.
-        Returns None if routing fails.
+        Discovery result dict with intent_type, confidence, recommended_action,
+        available skills, workflow entry points, and alternatives.
+        Returns None if discovery fails.
     """
     skills_dir = Path(".claude/skills/software-development")
 
     try:
-        routing_decision = route_to_brief_skill(
+        discovery_result = discover_context(
             user_input=user_prompt,
             skills_dir=skills_dir,
-            confidence_threshold=0.70,
             timeout=10
         )
-        return routing_decision
+        return discovery_result
     except Exception as e:
-        print(f"LLM routing failed: {e}", file=sys.stderr)
+        print(f"LLM context discovery failed: {e}", file=sys.stderr)
         return None
 
 
@@ -547,55 +462,237 @@ def format_supervisor_instructions() -> str:
     return "\n".join(lines)
 
 
-def format_supervisor_with_routing(work_request: dict, routing_decision: dict) -> str:
+def format_supervisor_with_enriched_context(user_prompt: str, discovery_result: dict) -> str:
     """
-    Generate supervisor instructions with LLM routing result.
+    Generate supervisor instructions with enriched context discovery (v0.13.0).
 
     Args:
-        work_request: Classification from detect_work_request()
-        routing_decision: Result from route_user_request()
+        user_prompt: Original user message
+        discovery_result: Result from route_user_request_universal()
 
     Returns:
-        Formatted context string with routing information
+        Formatted context string with comprehensive discovery information
     """
     lines = []
 
-    # Standard supervisor instructions
-    lines.append(format_supervisor_instructions())
+    # Enhanced supervisor instructions
+    lines.append(format_supervisor_instructions_enhanced())
 
-    # Add routing section if available
-    if routing_decision:
+    # Add discovery section if available
+    if discovery_result:
         lines.append("\n" + "=" * 80)
-        lines.append("# 🤖 LLM ROUTING RESULT")
+        lines.append("# 🧠 INTELLIGENT ROUTING ANALYSIS")
         lines.append("=" * 80)
         lines.append("")
-        lines.append(f"**User Request**: {work_request.get('original_request', 'N/A')}")
-        lines.append(f"**Work Type**: {work_request.get('type', 'unknown')}")
+        lines.append(f"**User Message**: {user_prompt}")
         lines.append("")
-        lines.append(f"**Routed To**: {routing_decision.get('brief_skill', 'unknown')}")
-        lines.append(f"**Confidence**: {routing_decision.get('confidence', 0) * 100:.0f}%")
-        lines.append(f"**Reasoning**: {routing_decision.get('reasoning', 'N/A')}")
-        lines.append(f"**Cost**: ${routing_decision.get('cost_usd', 0):.4f}")
-        lines.append(f"**Duration**: {routing_decision.get('duration_ms', 0)}ms")
+
+        # Intent classification
+        lines.append("## User Intent Classification")
+        intent_type = discovery_result.get('intent_type', 'unknown')
+        confidence = discovery_result.get('confidence', 0)
+        lines.append(f"**Intent Type**: {intent_type}")
+        lines.append(f"**Confidence**: {confidence * 100:.0f}%")
+        lines.append(f"**Reasoning**: {discovery_result.get('reasoning', 'N/A')}")
         lines.append("")
-        lines.append("**INSTRUCTION**: Invoke the routed brief skill to create structured brief.")
+
+        # Recommended action
+        recommended = discovery_result.get('recommended_action', 'unknown')
+        lines.append(f"**Recommended Action**: {recommended}")
+
+        if intent_type == "work":
+            brief_skill = discovery_result.get('brief_skill', 'unknown')
+            work_type = discovery_result.get('work_type', 'unknown')
+            lines.append(f"**Work Type**: {work_type}")
+            lines.append(f"**Brief Skill**: {brief_skill}")
+
         lines.append("")
+
+        # Available skills
+        lines.append("## Available Brief Skills")
+        brief_skills = discovery_result.get('available_brief_skills', [])
+        for skill in brief_skills[:3]:  # Show top 3
+            skill_name = skill.get('name', 'unknown')
+            skill_conf = skill.get('confidence', 0) * 100
+            skill_desc = skill.get('description', 'No description')
+            lines.append(f"- **{skill_name}** ({skill_conf:.0f}%): {skill_desc}")
+        lines.append("")
+
+        # Workflow entry points
+        lines.append("## Workflow Entry Points")
+        entry_triad = discovery_result.get('entry_triad', 'unknown')
+        entry_agent = discovery_result.get('entry_agent', 'unknown')
+        lines.append(f"**Entry Triad**: {entry_triad}")
+        lines.append(f"**Entry Agent**: {entry_agent}")
+        lines.append("")
+
+        # Workflow sequence
+        workflow_seq = discovery_result.get('workflow_sequence', [])
+        if workflow_seq:
+            lines.append(f"**Sequence**: {' → '.join(workflow_seq)}")
+            lines.append("")
+
+        # Alternative interpretations
+        alternatives = discovery_result.get('alternative_interpretations', [])
+        if alternatives:
+            lines.append("## Alternative Interpretations")
+            for alt in alternatives:
+                alt_type = alt.get('type', 'unknown')
+                alt_conf = alt.get('confidence', 0) * 100
+                alt_rationale = alt.get('rationale', 'No rationale')
+                lines.append(f"- **{alt_type}** ({alt_conf:.0f}%): {alt_rationale}")
+            lines.append("")
+
+        # Confidence breakdown
+        qa_conf = discovery_result.get('qa_confidence', 0) * 100
+        work_conf = discovery_result.get('work_confidence', 0) * 100
+        lines.append("## Confidence Breakdown")
+        lines.append(f"- Q&A: {qa_conf:.0f}%")
+        lines.append(f"- Work Request: {work_conf:.0f}%")
+        lines.append("")
+
+        # Performance metrics
+        cost = discovery_result.get('cost_usd', 0)
+        duration = discovery_result.get('duration_ms', 0)
+        lines.append(f"**Performance**: ${cost:.4f} | {duration}ms")
+        lines.append("")
+
+        # Supervisor decision points
+        lines.append("## Supervisor Decision Points")
+        if recommended == "answer_directly":
+            lines.append("✅ **RECOMMENDED**: Answer user's question directly")
+        elif recommended == "invoke_skill":
+            lines.append(f"✅ **RECOMMENDED**: Invoke `{discovery_result.get('brief_skill')}` skill")
+        elif recommended == "clarify":
+            lines.append("⚠️  **RECOMMENDED**: Ask user for clarification")
+        lines.append("")
+
         lines.append("=" * 80)
         lines.append("")
 
     return "\n".join(lines)
 
 
+def format_supervisor_instructions_enhanced() -> str:
+    """
+    Generate enhanced Supervisor instructions for v0.13.0.
+
+    Returns:
+        str: Formatted Supervisor instructions with universal routing context
+    """
+    # Load workflow configuration
+    triad_config = load_workflow_config()
+
+    lines = []
+
+    lines.append("=" * 80)
+    lines.append("# 🎯 SUPERVISOR STANDING ORDERS (v0.13.0)")
+    lines.append("=" * 80)
+    lines.append("")
+    lines.append("**DIRECTIVE**: You are operating in Supervisor mode with Universal Context Enrichment")
+    lines.append("")
+    lines.append("## WHAT'S NEW IN v0.13.0")
+    lines.append("")
+    lines.append("**Universal Routing**: ALL messages (Q&A AND work) now routed through LLM analysis")
+    lines.append("**Rich Context**: Comprehensive discovery of skills, agents, triads, workflows")
+    lines.append("**Intelligent Decisions**: Supervisor decides based on enriched context")
+    lines.append("**No Shortcuts**: Performance traded for intelligence and accuracy")
+    lines.append("")
+    lines.append("## MISSION")
+    lines.append("")
+    lines.append("You SHALL serve as the primary interface for ALL user interactions.")
+    lines.append("You SHALL make intelligent routing decisions based on enriched context provided.")
+    lines.append("")
+    lines.append("## RULES OF ENGAGEMENT")
+    lines.append("")
+    lines.append("**ROE 1: CONTEXT-DRIVEN DECISIONS**")
+    lines.append("- REVIEW the 🧠 INTELLIGENT ROUTING ANALYSIS section below")
+    lines.append("- CONSIDER intent classification, confidence scores, alternatives")
+    lines.append("- FOLLOW recommended action unless user explicitly requests otherwise")
+    lines.append("- IF ambiguous (<70% confidence): ASK user for clarification")
+    lines.append("")
+    lines.append("**ROE 2: Q&A HANDLING**")
+    lines.append("- IF intent_type='qa' AND recommended_action='answer_directly':")
+    lines.append("  → ANSWER the question directly without invoking workflows")
+    lines.append("- PROVIDE concise, accurate responses")
+    lines.append("- CITE sources when applicable")
+    lines.append("")
+    lines.append("**ROE 3: WORK REQUEST HANDLING**")
+    lines.append("- IF intent_type='work' AND recommended_action='invoke_skill':")
+    lines.append("  → INVOKE the recommended brief skill")
+    lines.append("  → PASS user's request to brief skill for structured specification")
+    lines.append("- FOLLOW workflow entry points (entry_triad → entry_agent)")
+    lines.append("")
+    lines.append("**ROE 4: AMBIGUITY HANDLING**")
+    lines.append("- IF intent_type='ambiguous' AND recommended_action='clarify':")
+    lines.append("  → PRESENT alternative interpretations to user")
+    lines.append("  → ASK user which interpretation is correct")
+    lines.append("  → PROCEED only after user clarifies intent")
+    lines.append("")
+    lines.append("**ROE 5: EMERGENCY BYPASS**")
+    lines.append("- IF user message starts with `/direct `: SKIP all routing")
+    lines.append("- Allow direct conversation without workflow invocation")
+    lines.append("- Use ONLY when explicitly requested by user")
+    lines.append("")
+
+    # Dynamic workflow section based on config
+    if triad_config and 'workflow' in triad_config:
+        workflow = triad_config['workflow']
+        workflow_name = workflow.get('name', 'Workflow')
+        entry_point = workflow.get('entry_point', 'unknown')
+        entry_agent = workflow.get('entry_agent', 'unknown')
+        sequence = workflow.get('sequence', [])
+
+        lines.append(f"## WORKFLOW EXECUTION ORDERS: {workflow_name}")
+        lines.append("")
+        lines.append("**STANDING ORDER 1: SINGLE ENTRY POINT (ABSOLUTE)**")
+        lines.append(f"- ALL work requests SHALL enter through {entry_point} triad")
+        lines.append(f"- YOU SHALL invoke {entry_agent} for EVERY work request")
+        lines.append(f"- NO EXCEPTIONS - routing analysis provides entry point automatically")
+        lines.append("")
+        lines.append("**STANDING ORDER 2: COMPLETE WORKFLOW SEQUENCE (MANDATORY)**")
+        lines.append("```")
+        lines.append(" → ".join(sequence))
+        lines.append("```")
+        lines.append(f"- Every request SHALL flow through ALL {len(sequence)} triads")
+        lines.append("- YOU SHALL NOT skip triads")
+        lines.append("- YOU SHALL NOT shortcut the workflow")
+        lines.append("- Triads adapt thoroughness internally - NOT by skipping")
+        lines.append("")
+    else:
+        # Fallback if config couldn't be loaded
+        lines.append("## ⚠️ WORKFLOW CONFIGURATION FAILURE")
+        lines.append("")
+        lines.append("**ERROR**: Could not load workflow configuration from .claude/settings.json")
+        lines.append("")
+        lines.append("**FALLBACK PROCEDURE**:")
+        lines.append("- HALT workflow routing until configuration is fixed")
+        lines.append("- NOTIFY user of configuration error")
+        lines.append("- ACCEPT only Q&A requests until resolved")
+        lines.append("")
+
+    lines.append("=" * 80)
+    lines.append("")
+
+    return "\n".join(lines)
+
+
 def main():
     """
-    Generate Supervisor instructions with LLM routing integration.
+    Generate Supervisor instructions with Universal Context Discovery (v0.13.0).
 
-    Entry point for UserPromptSubmit hook. Detects work requests vs Q&A,
-    routes work requests via LLM, and injects routing results into context.
+    Entry point for UserPromptSubmit hook. Routes ALL messages (Q&A AND work)
+    through LLM analysis to provide comprehensive context enrichment.
+
+    Design Change (v0.13.0):
+        - Removed Q&A fast path (pattern matching eliminated)
+        - Universal routing for ALL messages
+        - Rich context discovery (skills, agents, triads, workflows)
+        - Supervisor makes intelligent decisions based on enriched context
 
     Error Handling:
         - Catches all exceptions to prevent hook crashes
-        - Falls back to basic instructions if routing fails
+        - Falls back to enhanced instructions if discovery fails
         - Logs errors to stderr for debugging
     """
     try:
@@ -603,31 +700,24 @@ def main():
         input_data = json.load(sys.stdin)
         user_prompt = input_data.get('prompt', '')
 
-        # Quick classification
-        work_request = detect_work_request(user_prompt)
+        # Universal context discovery (ALL messages)
+        discovery_result = route_user_request_universal(user_prompt)
 
-        if not work_request:
-            # Q&A question - fast path (no LLM routing)
-            supervisor_context = format_supervisor_instructions()
-            output_hook_result("UserPromptSubmit", supervisor_context)
-            return
-
-        # Work request detected - route with LLM
-        routing_decision = route_user_request(user_prompt)
-
-        # Format context with routing result
-        supervisor_context = format_supervisor_with_routing(
-            work_request,
-            routing_decision
+        # Format context with discovery result
+        supervisor_context = format_supervisor_with_enriched_context(
+            user_prompt,
+            discovery_result
         )
         output_hook_result("UserPromptSubmit", supervisor_context)
 
     except Exception as e:
         # Critical error - hook should never crash
         print(f"ERROR in UserPromptSubmit hook: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
 
-        # Output minimal fallback instructions
-        fallback = format_supervisor_instructions()
+        # Output enhanced fallback instructions
+        fallback = format_supervisor_instructions_enhanced()
         output_hook_result("UserPromptSubmit", fallback)
 
 
