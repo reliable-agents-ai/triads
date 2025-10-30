@@ -27,6 +27,9 @@ if str(repo_root / "hooks") not in sys.path:
 # Import common utilities
 from common import output_hook_result, get_project_dir  # noqa: E402
 
+# Import LLM routing
+from triads.llm_routing import route_to_brief_skill  # noqa: E402
+
 
 def detect_work_request(user_message: str) -> dict:
     """
@@ -366,6 +369,32 @@ def generate_orchestrator_instructions(
     return "\n".join(lines)
 
 
+def route_user_request(user_prompt: str) -> dict:
+    """
+    Route work request using LLM.
+
+    Args:
+        user_prompt: User's message
+
+    Returns:
+        Routing decision dict with brief_skill, confidence, reasoning, etc.
+        Returns None if routing fails.
+    """
+    skills_dir = Path(".claude/skills/software-development")
+
+    try:
+        routing_decision = route_to_brief_skill(
+            user_input=user_prompt,
+            skills_dir=skills_dir,
+            confidence_threshold=0.70,
+            timeout=10
+        )
+        return routing_decision
+    except Exception as e:
+        print(f"LLM routing failed: {e}", file=sys.stderr)
+        return None
+
+
 def format_supervisor_instructions() -> str:
     """
     Generate Supervisor instructions for main Claude.
@@ -518,47 +547,87 @@ def format_supervisor_instructions() -> str:
     return "\n".join(lines)
 
 
+def format_supervisor_with_routing(work_request: dict, routing_decision: dict) -> str:
+    """
+    Generate supervisor instructions with LLM routing result.
+
+    Args:
+        work_request: Classification from detect_work_request()
+        routing_decision: Result from route_user_request()
+
+    Returns:
+        Formatted context string with routing information
+    """
+    lines = []
+
+    # Standard supervisor instructions
+    lines.append(format_supervisor_instructions())
+
+    # Add routing section if available
+    if routing_decision:
+        lines.append("\n" + "=" * 80)
+        lines.append("# 🤖 LLM ROUTING RESULT")
+        lines.append("=" * 80)
+        lines.append("")
+        lines.append(f"**User Request**: {work_request.get('original_request', 'N/A')}")
+        lines.append(f"**Work Type**: {work_request.get('type', 'unknown')}")
+        lines.append("")
+        lines.append(f"**Routed To**: {routing_decision.get('brief_skill', 'unknown')}")
+        lines.append(f"**Confidence**: {routing_decision.get('confidence', 0) * 100:.0f}%")
+        lines.append(f"**Reasoning**: {routing_decision.get('reasoning', 'N/A')}")
+        lines.append(f"**Cost**: ${routing_decision.get('cost_usd', 0):.4f}")
+        lines.append(f"**Duration**: {routing_decision.get('duration_ms', 0)}ms")
+        lines.append("")
+        lines.append("**INSTRUCTION**: Invoke the routed brief skill to create structured brief.")
+        lines.append("")
+        lines.append("=" * 80)
+        lines.append("")
+
+    return "\n".join(lines)
+
+
 def main():
     """
-    Generate Supervisor instructions for user prompt.
+    Generate Supervisor instructions with LLM routing integration.
 
-    Entry point for UserPromptSubmit hook. Generates and outputs
-    Supervisor standing orders including work request detection protocol.
+    Entry point for UserPromptSubmit hook. Detects work requests vs Q&A,
+    routes work requests via LLM, and injects routing results into context.
 
     Error Handling:
         - Catches all exceptions to prevent hook crashes
-        - Falls back to basic instructions if config fails
+        - Falls back to basic instructions if routing fails
         - Logs errors to stderr for debugging
     """
     try:
-        # Generate Supervisor instructions (with built-in fallback handling)
-        supervisor_context = format_supervisor_instructions()
+        # Read user input from stdin
+        input_data = json.load(sys.stdin)
+        user_prompt = input_data.get('prompt', '')
 
-        # Output in Claude Code hook format
+        # Quick classification
+        work_request = detect_work_request(user_prompt)
+
+        if not work_request:
+            # Q&A question - fast path (no LLM routing)
+            supervisor_context = format_supervisor_instructions()
+            output_hook_result("UserPromptSubmit", supervisor_context)
+            return
+
+        # Work request detected - route with LLM
+        routing_decision = route_user_request(user_prompt)
+
+        # Format context with routing result
+        supervisor_context = format_supervisor_with_routing(
+            work_request,
+            routing_decision
+        )
         output_hook_result("UserPromptSubmit", supervisor_context)
 
     except Exception as e:
         # Critical error - hook should never crash
-        # Log to stderr
-        import sys
         print(f"ERROR in UserPromptSubmit hook: {e}", file=sys.stderr)
 
         # Output minimal fallback instructions
-        fallback = """
-===============================================================================
-# SUPERVISOR MODE (FALLBACK)
-===============================================================================
-
-**ERROR**: Hook encountered error while loading configuration.
-
-**FALLBACK MODE**:
-- Provide Q&A responses for user questions
-- For work requests: Ask user to check .claude/settings.json configuration
-- Report this error to user for investigation
-
-**Error Details**: See stderr for technical details
-===============================================================================
-"""
+        fallback = format_supervisor_instructions()
         output_hook_result("UserPromptSubmit", fallback)
 
 

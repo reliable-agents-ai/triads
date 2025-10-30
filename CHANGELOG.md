@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.11.0] - 2025-10-28
+## [0.12.0] - 2025-10-28
+
+### Added
+- **Automatic LLM Routing via Hook**: UserPromptSubmit hook now automatically calls LLM routing for work requests
+- **Q&A Fast Path**: Questions bypass LLM routing for instant response
+- **Seamless Integration**: Routing results injected into supervisor context transparently
+- **Graceful Fallback**: Falls back to basic instructions if routing fails
+
+### Technical Details
+- Hook calls `route_to_brief_skill()` directly for work requests
+- Passes `.claude/skills/software-development` as skills directory
+- Timeout: 10 seconds (updated from 2s in v0.11.0)
+- Injects routing metadata: brief skill, confidence, reasoning, cost, duration
+- Conditional routing: Q&A questions use fast path, work requests use LLM routing
+
+### Changed
+- `hooks/user_prompt_submit.py`: Added LLM routing integration (~100 lines)
+- Main hook now distinguishes Q&A from work requests automatically
+
+### Breaking Changes
+- None (additive feature, backward compatible)
+
 
 ### Major Feature: LLM-Based Routing System
 
