@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2025-10-30
+
+### Fixed
+- **Removed Catch-22 Hook Blocking**: Eliminated "Version Bump File Checklist" reminder that was blocking version file edits
+- **Pattern 1 Removed**: Version file + checklist blocking pattern removed from `hooks/on_pre_experience_injection.py`
+- **Reason**: LLM routing (v0.11.0) and skills system now handle version bumps automatically, making the reminder obsolete
+- **Impact**: Hook will no longer block Edit/Write operations on version files (plugin.json, marketplace.json, pyproject.toml, etc.)
+
+### Changed
+- `hooks/on_pre_experience_injection.py`: Removed Pattern 1 blocking logic (lines 361-368)
+- Updated hook documentation to reflect removal of version file blocking
+- Pattern 2 (very high confidence >= 0.95 warnings) still active for general safety
+
+### Technical Details
+- The catch-22 occurred because hook blocked operations it was requesting (no state tracking)
+- User feedback: "I don't think we need the reminder any more" after experiencing blocking during v0.12.0 implementation
+- Temporary workaround (`TRIADS_NO_BLOCK=1`) no longer needed for version file updates
+
 ## [0.11.0] - 2025-10-28
 ## [0.12.0] - 2025-10-28
 

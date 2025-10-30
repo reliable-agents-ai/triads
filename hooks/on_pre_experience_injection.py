@@ -14,13 +14,16 @@ Block (exit 2) ONLY if ALL of:
 - CRITICAL priority knowledge exists
 - Confidence >= 0.85 (learned from strong evidence)
 - Risky operation detected:
-  * Write/Edit to version files with checklist knowledge
+  * Very high confidence (>= 0.95) warnings for any operation
   * Bash commands that are point-of-no-return (git commit, npm publish, rm)
-  * Very high confidence (>= 0.95) warnings
 - Never blocks safe operations:
   * Read-only tools (Read, Grep, Glob)
   * Safe Bash commands (ls, cat, git status, git diff, etc.)
   * Unknown Bash commands (safe default)
+
+Note: Version file blocking (Pattern 1) was removed in v0.12.1 because LLM routing
+and skills system now handle version bumps automatically. The reminder was causing
+catch-22 blocking situations.
 
 Otherwise: Inject (exit 0) via additionalContext JSON
 
@@ -58,20 +61,18 @@ Example Input (stdin):
     }
 
 Example Output (Blocking Mode - Exit 2, stderr):
-    ⚠️  Hold on - before you write that file, let me remind you about something important:
+    ⚠️  Hold on - before you run that command, let me remind you about something important:
 
-    **Version Bump File Checklist** - you need to:
-      🔴 REQUIRED Update plugin.json version field
-                  (.claude-plugin/plugin.json)
-      🔴 REQUIRED Update marketplace.json plugins[].version
-                  (.claude-plugin/marketplace.json)
+    **Critical Security Warning** - you need to:
+      🔴 REQUIRED Verify authentication before modifying user data
+      🔴 REQUIRED Log all administrative actions
 
     Can you make sure you cover all of these? This has caused issues before.
 
     (This reminder came from our experience-based learning system)
 
 Example Output (Inject Mode - Exit 0, stdout JSON):
-    {"additionalContext": "📚 **Relevant Experience**:\\n\\n• **Version Bump File Checklist** (CRITICAL)\\n  Complete checklist of ALL files...\\n"}
+    {"additionalContext": "📚 **Relevant Experience**:\\n\\n• **Security Best Practices** (CRITICAL)\\n  Always validate user permissions before operations...\\n"}
 """
 
 import json
@@ -278,7 +279,7 @@ def should_block_for_knowledge(
     - CRITICAL priority knowledge exists
     - Confidence >= 0.85 (learned from strong evidence)
     - Risky tool (Write, Edit, Bash - not Read-only)
-    - High-stakes context (version files + checklists OR confidence >= 0.95)
+    - Very high confidence (>= 0.95) warnings
 
     Args:
         knowledge_items: List of ProcessKnowledge objects from query
@@ -291,30 +292,30 @@ def should_block_for_knowledge(
         False if we should inject via additionalContext (exit 0)
 
     Examples:
-        >>> # BLOCK: CRITICAL checklist, high confidence, version file
+        >>> # BLOCK: CRITICAL warning, very high confidence (>= 0.95)
         >>> should_block_for_knowledge(
-        ...     [checklist_node],  # CRITICAL, confidence=0.95
-        ...     "Write",
-        ...     {"file_path": "plugin.json"},
-        ...     {"blocking_enabled": True, "block_threshold": 0.85}
+        ...     [warning_node],  # CRITICAL, confidence=0.97
+        ...     "Bash",
+        ...     {"command": "rm -rf temp/"},
+        ...     {"blocking_enabled": True, "block_threshold": 0.85, "very_high_threshold": 0.95}
         ... )
         True
 
         >>> # NO BLOCK: Read-only tool
         >>> should_block_for_knowledge(
-        ...     [checklist_node],  # CRITICAL, confidence=0.95
+        ...     [warning_node],  # CRITICAL, confidence=0.97
         ...     "Read",
-        ...     {"file_path": "plugin.json"},
-        ...     {"blocking_enabled": True, "block_threshold": 0.85}
+        ...     {"file_path": "data.json"},
+        ...     {"blocking_enabled": True, "block_threshold": 0.85, "very_high_threshold": 0.95}
         ... )
         False
 
         >>> # NO BLOCK: Configuration disabled
         >>> should_block_for_knowledge(
-        ...     [checklist_node],  # CRITICAL, confidence=0.95
-        ...     "Write",
-        ...     {"file_path": "plugin.json"},
-        ...     {"blocking_enabled": False, "block_threshold": 0.85}
+        ...     [warning_node],  # CRITICAL, confidence=0.97
+        ...     "Bash",
+        ...     {"command": "rm -rf temp/"},
+        ...     {"blocking_enabled": False, "block_threshold": 0.85, "very_high_threshold": 0.95}
         ... )
         False
     """
@@ -356,16 +357,9 @@ def should_block_for_knowledge(
         return False
 
     # High-stakes context detection
-    file_path = tool_input.get("file_path", "")
-
-    # Pattern 1: Version files with checklists
-    is_version_file = any(
-        pattern.lower() in file_path.lower() for pattern in VERSION_FILE_PATTERNS
-    )
-    is_checklist = any(k.process_type == "checklist" for k in high_confidence)
-
-    if is_version_file and is_checklist:
-        return True  # BLOCK: Proven risk pattern
+    # Pattern 1 (Version files + checklists) REMOVED in v0.12.1
+    # Reason: LLM routing and skills system now handle version bumps automatically
+    # The reminder was causing catch-22 blocking situations
 
     # Pattern 2: Very high confidence (>= 0.95) on any file
     very_high_threshold = config.get(
