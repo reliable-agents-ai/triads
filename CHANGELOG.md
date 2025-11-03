@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.1] - 2025-11-03
+
+### Bug Fixes
+
+- **Fixed Context Detection Hanging**: Removed invalid `--allowedTools ""` flag in subprocess call that caused indefinite hangs when detecting context switches
+- **Fixed Experience State Corruption**: Cleaned up corrupted experience-based learning state that was blocking version bump operations
+- **Improved Context Detection Reliability**: Simplified to single consolidated prompt (removed --append-system-prompt approach)
+- **Enhanced JSON Extraction**: Added robust regex-based JSON extraction for Claude subprocess responses
+
+### New Features
+
+- **Release Automation Skill**: Created comprehensive `create-release.md` skill for fully automated release workflows
+  - Automatic version determination from commit analysis
+  - Updates ALL required version files per established checklist
+  - Generates changelogs from commit messages
+  - Creates git commits, tags, and GitHub releases
+  
+- **Completed Workspace Architecture Phase 4**: Context detection now working with proper subprocess handling
+
+### Improvements
+
+- Made JSON structure mandatory in context detection prompts for reliability
+- Improved error handling and logging in context detection module
+- Verified all tests pass with fixed context detection
+
+### Technical Details
+
+**Context Detection Fix**: The `--allowedTools ""` flag is not valid in Claude Code subprocess calls. This has been removed, and the approach now uses a single consolidated prompt without system prompt manipulation.
+
+**Release Skill**: Fully automated release process that handles the complete Version Bump Checklist:
+- Updates `.claude-plugin/plugin.json`
+- Updates `.claude-plugin/marketplace.json`  
+- Updates `pyproject.toml`
+- Updates `CHANGELOG.md`
+- Commits with conventional message format
+- Creates annotated git tags
+- Publishes GitHub releases
+
+
 ## [0.14.0] - 2025-10-30
 
 ### Major Feature: Workspace Architecture
