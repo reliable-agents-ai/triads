@@ -1,0 +1,2 @@
+{"timestamp": "2025-10-30T14:00:00.000000Z", "subject": "agent", "predicate": "completed", "object": {"agent": "old-format"}}
+{"subject": "triad", "predicate": "started", "object_data": {"triad": "new-format"}, "id": "evt-003", "timestamp": "2025-10-30T14:05:00.000000+00:00", "workspace_id": "workspace-1"}

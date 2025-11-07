@@ -1,0 +1,3 @@
+{"timestamp": "2025-10-30T14:00:00.000000Z", "subject": "agent", "predicate": "completed", "object": {"agent": "solution-architect", "confidence": 0.95}}
+{"timestamp": "2025-10-30T14:05:00.000000Z", "subject": "triad", "predicate": "started", "object": {"triad": "implementation"}}
+{"timestamp": "2025-10-30T14:10:00.000000Z", "subject": "workspace", "predicate": "created", "object": {"workspace_name": "test-workspace"}}
