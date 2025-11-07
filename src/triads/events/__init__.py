@@ -8,24 +8,24 @@ Core Classes:
     - EventFilters: Query filters for retrieving events
     - AbstractEventRepository: Base class for event storage
     - InMemoryEventRepository: In-memory implementation for testing/development
+    - JSONLEventRepository: JSONL file-based implementation for production
+
+MCP Tools:
+    - capture_event(): Capture a new event to repository
+    - query_events(): Query events with filters
 
 Example Usage:
-    >>> from triads.events import Event, EventFilters, InMemoryEventRepository
-    >>> 
-    >>> # Create repository
-    >>> repo = InMemoryEventRepository()
-    >>> 
-    >>> # Create and save event
-    >>> event = Event(
+    >>> from triads.events import capture_event, query_events
+    >>>
+    >>> # Capture event
+    >>> result = capture_event(
     ...     subject="agent",
     ...     predicate="completed",
     ...     object_data={"agent": "solution-architect", "confidence": 0.95}
     ... )
-    >>> repo.save(event)
-    >>> 
+    >>>
     >>> # Query events
-    >>> filters = EventFilters(subject="agent", limit=10)
-    >>> events = repo.query(filters)
+    >>> result = query_events(subject="agent", limit=10)
 """
 
 from triads.events.exceptions import (
@@ -33,9 +33,11 @@ from triads.events.exceptions import (
     EventStorageError,
     InvalidEventError,
 )
+from triads.events.jsonl_repository import JSONLEventRepository
 from triads.events.memory_repository import InMemoryEventRepository
 from triads.events.models import Event, EventFilters
 from triads.events.repository import AbstractEventRepository
+from triads.events.tools import capture_event, query_events
 
 __all__ = [
     "Event",
@@ -45,4 +47,7 @@ __all__ = [
     "InvalidEventError",
     "AbstractEventRepository",
     "InMemoryEventRepository",
+    "JSONLEventRepository",
+    "capture_event",
+    "query_events",
 ]
