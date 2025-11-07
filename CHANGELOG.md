@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2025-11-07
+
+### Added
+
+**MCP Event Management System** - Complete event capture and query infrastructure for workspace observability and debugging.
+
+#### Phase 1: Core Repository Pattern
+- **Event Data Models** (`src/triads/events/models.py`)
+  - Event model with RDF triple format (subject, predicate, object_data)
+  - Extended metadata: id, workspace_id, hook_name, execution_time_ms, error tracking
+  - EventFilters model for comprehensive querying
+  - ISO 8601 timestamp support
+
+- **Repository Pattern** (`src/triads/events/repository.py`)
+  - AbstractEventRepository interface for pluggable storage backends
+  - InMemoryEventRepository for testing and development
+  - Type-safe with complete type hints
+  - 61 comprehensive unit tests
+
+#### Phase 2: JSONL Backend
+- **Persistent Storage** (`src/triads/events/jsonl_repository.py`)
+  - JSONLEventRepository for persistent disk storage
+  - Backward compatibility with existing sessions.jsonl files
+  - Auto-migration from old format ("object" → "object_data")
+  - Atomic file operations with error handling
+  - 45 comprehensive unit tests
+
+#### Phase 3: MCP Tool Layer
+- **Event Capture Tool** (`src/triads/events/mcp_tools.py`)
+  - `capture_event()` tool for logging events from hooks
+  - Automatic payload truncation for large events (>10KB)
+  - Workspace-aware event logging
+
+- **Event Query Tool** (`src/triads/events/mcp_tools.py`)
+  - `query_events()` tool with comprehensive filtering
+  - Filter by: workspace_id, subject, predicate, time range (start_time, end_time)
+  - Full-text search across all event fields
+  - Pagination support (limit/offset)
+  - Sorting by timestamp (asc/desc)
+  - 28 comprehensive unit tests
+
+### Changed
+- Event storage format now uses new Event model with extended metadata
+- Improved pyproject.toml configuration (fixed incorrect version strings in ruff/mypy config)
+
+### Technical Details
+- **Total Test Coverage**: 134/134 tests passing (100% pass rate)
+- **Architecture**: Repository pattern allows future backends (GCS, Firestore, SQL)
+- **Type Safety**: Full type hints with mypy validation
+- **Documentation**: Comprehensive docstrings with examples for all public APIs
+- **Error Handling**: Robust error handling with informative messages
+
+### Migration Notes
+- Existing sessions.jsonl files are automatically migrated on first read
+- No breaking changes to hook interfaces
+- New tools are backward compatible with existing workflows
+
 ## [0.14.1] - 2025-11-03
 
 ### Bug Fixes
