@@ -3,6 +3,8 @@
 Provides factory function to create KnowledgeService with production dependencies.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from triads.tools.knowledge.repository import FileSystemGraphRepository

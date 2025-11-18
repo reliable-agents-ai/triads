@@ -1,6 +1,6 @@
 {
   "name": "triads",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Triad workflow system for Claude Code - organize complex work into phases with specialized agents and automatic knowledge management",
   "author": {
     "name": "Reliable Agents AI",
@@ -14,6 +14,5 @@
     "productivity",
     "context-preservation"
   ],
-  "license": "MIT",
-  "hooks": "./hooks/hooks.json"
+  "license": "MIT"
 }
