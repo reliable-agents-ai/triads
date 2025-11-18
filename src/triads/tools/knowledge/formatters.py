@@ -3,6 +3,8 @@
 Provides functions to format service results as human-readable text.
 """
 
+from __future__ import annotations
+
 from triads.tools.knowledge.service import QueryResult, StatusResult
 from triads.tools.knowledge.domain import Node, KnowledgeGraph
 

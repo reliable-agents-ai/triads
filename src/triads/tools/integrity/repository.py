@@ -6,6 +6,8 @@ Provides AbstractBackupRepository interface and implementations:
 - FileSystemBackupRepository: Wraps BackupManager for production use
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List

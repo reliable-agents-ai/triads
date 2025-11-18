@@ -1,6 +1,6 @@
 [project]
 name = "triads"
-version = "0.15.1"
+version = "0.15.2"
 description = "Research-driven triad generator with intelligent knowledge management"
 readme = "README.md"
 requires-python = ">=3.10"

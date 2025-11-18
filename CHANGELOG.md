@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.2] - 2025-01-18
+
+### Fixed
+
+- **Complete type annotation compatibility fix** across all modules
+  - Added `from __future__ import annotations` to 4 additional files:
+    - `src/triads/tools/knowledge/formatters.py` (fixes PreToolUse hook error)
+    - `src/triads/tools/integrity/repository.py`
+    - `src/triads/tools/router/_notifications.py`
+    - `src/triads/tools/router/router.py`
+  - Ensures all `Type | None` syntax works correctly in Python 3.10+
+  - Completes the fix started in v0.15.1
+
 ## [0.15.1] - 2025-01-18
 
 ### Fixed

@@ -5,6 +5,8 @@ Integrates semantic routing, LLM disambiguation, grace period checks,
 and manual selection to provide seamless triad routing.
 """
 
+from __future__ import annotations
+
 import sys
 import time
 from pathlib import Path

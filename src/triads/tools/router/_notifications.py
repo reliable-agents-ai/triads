@@ -4,6 +4,8 @@ User-facing notifications for routing decisions.
 Formats routing results into clear, informative messages for users.
 """
 
+from __future__ import annotations
+
 from typing import Dict
 
 
