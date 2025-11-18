@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2025-01-18
+
+### Fixed
+
+- **Type annotation compatibility error** in `src/triads/tools/knowledge/bootstrap.py`
+  - Added `from __future__ import annotations` to support `Path | None` syntax in Python 3.10+
+  - Fixes `TypeError: unsupported operand type(s) for |: 'type' and 'NoneType'` on plugin load
+
+- **Duplicate hooks.json reference** in `.claude-plugin/plugin.json`
+  - Removed explicit hooks reference from plugin manifest
+  - Claude Code automatically loads `hooks/hooks.json`, explicit reference caused duplicate loading error
+
 ## [0.15.0] - 2025-11-07
 
 ### Added
