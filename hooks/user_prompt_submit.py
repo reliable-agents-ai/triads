@@ -1,20 +1,25 @@
 #!/usr/bin/env python3
 """
-UserPromptSubmit Hook: Inject Supervisor Instructions
+UserPromptSubmit Hook: Inject Supervisor Instructions + Workspace Context Detection
 
-This hook runs before each user message and injects Supervisor instructions.
+This hook runs before each user message and:
+1. Detects context switches (Phase 4 - Workspace Architecture)
+2. Manages workspace lifecycle (pause/resume/create)
+3. Injects Supervisor instructions with routing context
 
 Refactored to use Tool Abstraction Layer (Phase 7).
+Phase 4 (Workspace Architecture): Added context switch detection integration
 
 Hook Type: UserPromptSubmit
 Configured in: hooks/hooks.json (plugin)
 
 Previous implementation: 261 lines with workflow loading logic
-Current implementation: ~70 lines with cleaner structure
+Current implementation: ~800 lines with context detection + routing
 """
 
 import json
 import sys
+import time
 from pathlib import Path
 
 # Add src and hooks to path for imports
@@ -29,6 +34,12 @@ from common import output_hook_result, get_project_dir  # noqa: E402
 
 # Import LLM routing (v0.13.0 - Universal Context Discovery)
 from triads.llm_routing import discover_context  # noqa: E402
+
+# Import workspace context detection (Phase 4 - Workspace Architecture)
+from workspace_detector import detect_and_handle_context_switch, format_context_detection_summary  # noqa: E402
+
+# Import event capture
+from triads.events.tools import capture_event  # noqa: E402
 
 
 # NOTE: detect_work_request() removed in v0.13.0
@@ -679,10 +690,12 @@ def format_supervisor_instructions_enhanced() -> str:
 
 def main():
     """
-    Generate Supervisor instructions with Universal Context Discovery (v0.13.0).
+    Generate Supervisor instructions with Universal Context Discovery + Workspace Detection.
 
-    Entry point for UserPromptSubmit hook. Routes ALL messages (Q&A AND work)
-    through LLM analysis to provide comprehensive context enrichment.
+    Entry point for UserPromptSubmit hook. Processing order:
+    1. PRIORITY 0: Workspace context switch detection (Phase 4)
+    2. PRIORITY 1: Universal routing with LLM analysis (v0.13.0)
+    3. PRIORITY 2: Supervisor instructions with enriched context
 
     Design Change (v0.13.0):
         - Removed Q&A fast path (pattern matching eliminated)
@@ -690,31 +703,124 @@ def main():
         - Rich context discovery (skills, agents, triads, workflows)
         - Supervisor makes intelligent decisions based on enriched context
 
+    Design Change (Phase 4 - Workspace Architecture):
+        - Added workspace context switch detection
+        - Manages workspace lifecycle (pause/resume/create)
+        - Detects NEW_WORK, CONTINUATION, QA, REFERENCE patterns
+        - Auto-pauses workspaces on high-confidence context switches
+
     Error Handling:
         - Catches all exceptions to prevent hook crashes
-        - Falls back to enhanced instructions if discovery fails
+        - Falls back to enhanced instructions if detection/discovery fails
         - Logs errors to stderr for debugging
     """
+    start_time = time.time()
+
     try:
         # Read user input from stdin
         input_data = json.load(sys.stdin)
         user_prompt = input_data.get('prompt', '')
 
-        # Universal context discovery (ALL messages)
+        # PRIORITY 0: Workspace context switch detection (Phase 4)
+        context_switch_result = detect_and_handle_context_switch(user_prompt)
+
+        if context_switch_result and context_switch_result.get("should_block"):
+            # Context switch needs user confirmation - block supervisor routing
+            user_message = context_switch_result.get("user_message", "")
+            detection_summary = format_context_detection_summary(
+                context_switch_result.get("detection_result", {})
+            )
+
+            # Output user-facing message + detection summary
+            output_message = f"{user_message}\n\n{detection_summary}"
+            output_hook_result("UserPromptSubmit", output_message)
+
+            # Capture event for blocked context switch
+            from triads.workspace_manager import get_active_workspace
+            capture_event(
+                subject="user",
+                predicate="message_blocked",
+                object_data={
+                    "hook": "user_prompt_submit",
+                    "message_length": len(user_prompt),
+                    "context_switch_blocked": True,
+                    "classification": context_switch_result.get("detection_result", {}).get("classification"),
+                    "confidence": context_switch_result.get("detection_result", {}).get("confidence")
+                },
+                workspace_id=get_active_workspace(),
+                hook_name="user_prompt_submit",
+                execution_time_ms=(time.time() - start_time) * 1000,
+                metadata={"version": "0.15.0"}
+            )
+            return
+
+        # Log context switch detection (non-blocking)
+        context_switch_detected = False
+        workspace_action = "none"
+        classification = "unknown"
+        confidence = 0
+
+        if context_switch_result:
+            workspace_action = context_switch_result.get("workspace_action", "none")
+            if workspace_action != "none":
+                context_switch_detected = True
+                detection_result = context_switch_result.get("detection_result", {})
+                classification = detection_result.get("classification", "unknown")
+                confidence = detection_result.get("confidence", 0) * 100
+                print(
+                    f"🔄 Context switch: {classification} "
+                    f"({confidence:.0f}% confidence) → {workspace_action}",
+                    file=sys.stderr
+                )
+
+        # PRIORITY 1: Universal context discovery (ALL messages)
         discovery_result = route_user_request_universal(user_prompt)
 
-        # Format context with discovery result
+        # PRIORITY 2: Format context with discovery result
         supervisor_context = format_supervisor_with_enriched_context(
             user_prompt,
             discovery_result
         )
         output_hook_result("UserPromptSubmit", supervisor_context)
 
+        # Capture successful execution event
+        from triads.workspace_manager import get_active_workspace
+        capture_event(
+            subject="user",
+            predicate="message_submitted",
+            object_data={
+                "hook": "user_prompt_submit",
+                "message_length": len(user_prompt),
+                "context_switch_detected": context_switch_detected,
+                "workspace_action": workspace_action,
+                "classification": classification,
+                "routing_decision": discovery_result.get("recommended_action") if discovery_result else None
+            },
+            workspace_id=get_active_workspace(),
+            hook_name="user_prompt_submit",
+            execution_time_ms=(time.time() - start_time) * 1000,
+            metadata={"version": "0.15.0"}
+        )
+
     except Exception as e:
         # Critical error - hook should never crash
         print(f"ERROR in UserPromptSubmit hook: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc()
+
+        # Capture error event
+        capture_event(
+            subject="hook",
+            predicate="failed",
+            object_data={
+                "hook": "user_prompt_submit",
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            hook_name="user_prompt_submit",
+            execution_time_ms=(time.time() - start_time) * 1000,
+            metadata={"version": "0.15.0"}
+        )
 
         # Output enhanced fallback instructions
         fallback = format_supervisor_instructions_enhanced()

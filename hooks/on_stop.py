@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Stop Hook: Update Knowledge Graphs
+Stop Hook: Update Knowledge Graphs + Workspace Auto-Pause
 
 This hook runs after Claude finishes responding.
 It scans the response for [GRAPH_UPDATE] blocks and updates knowledge graphs.
+
+Phase 4 (Workspace Architecture): Added automatic workspace pause on session end.
 
 Hook Type: Stop
 Configured in: hooks/hooks.json (plugin)
@@ -21,6 +23,7 @@ Data Flow:
 6. Update each triad's graph
 7. Save graphs to disk
 8. Detect KM issues and update queue
+9. (Phase 4) Auto-pause active workspace if session ending
 """
 
 import glob
@@ -28,6 +31,7 @@ import json
 import os
 import re
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -51,6 +55,7 @@ from triads.km.confidence import (  # noqa: E402
 from triads.km.detection import detect_km_issues, update_km_queue  # noqa: E402
 from triads.km.formatting import format_km_notification, write_km_status_file  # noqa: E402
 from triads.hooks.safe_io import safe_load_json_file, safe_save_json_file  # noqa: E402
+from triads.events.tools import capture_event  # noqa: E402
 
 # ============================================================================
 # Graph Update Extraction
@@ -1163,6 +1168,7 @@ def extract_lessons_from_conversation(conversation_text, graph_updates):
 
 def main():
     """Main Stop hook execution."""
+    start_time = time.time()
 
     # Read input (may be JSON with transcript_path, or plain text)
     input_text = sys.stdin.read()
@@ -1569,6 +1575,100 @@ def main():
 
         print(f"{'='*80}\n", file=sys.stderr)
 
+    # ========================================================================
+    # Phase 6: Workspace Auto-Pause on Session End (Phase 4 - Workspace Architecture)
+    # ========================================================================
+    print(f"\n{'='*80}", file=sys.stderr)
+    print("💾 Workspace Auto-Pause Check (Phase 4)", file=sys.stderr)
+    print(f"{'='*80}", file=sys.stderr)
+
+    try:
+        # Check if there's an active workspace that should be paused
+        sys.path.insert(0, str(repo_root / "src"))
+        from triads.workspace_manager import get_active_workspace, mark_workspace_paused
+
+        active_workspace = get_active_workspace()
+
+        if active_workspace:
+            # Check workspace status to avoid pausing already-paused or completed workspaces
+            workspace_path = Path(".triads/workspaces") / active_workspace
+            state_file = workspace_path / "state.json"
+
+            if state_file.exists():
+                try:
+                    with open(state_file, "r") as f:
+                        state = json.load(f)
+
+                    current_status = state.get("status", "unknown")
+
+                    if current_status == "active":
+                        # Auto-pause active workspace on session end
+                        mark_workspace_paused(
+                            active_workspace,
+                            reason="Session ended (auto-pause)"
+                        )
+                        print(f"⏸️  Auto-paused workspace: {active_workspace}", file=sys.stderr)
+                        print(f"   Workspace will resume automatically on next session start", file=sys.stderr)
+                    else:
+                        print(f"ℹ️  Workspace {active_workspace} status: {current_status} (no pause needed)", file=sys.stderr)
+
+                except (json.JSONDecodeError, IOError) as e:
+                    print(f"⚠️  Could not read workspace state: {e}", file=sys.stderr)
+            else:
+                print(f"ℹ️  No state file for workspace {active_workspace}", file=sys.stderr)
+        else:
+            print("ℹ️  No active workspace (nothing to pause)", file=sys.stderr)
+
+    except Exception as e:
+        print(f"⚠️  Workspace auto-pause check failed: {e}", file=sys.stderr)
+        # Don't crash hook - this is a non-critical feature
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+
+    print(f"{'='*80}\n", file=sys.stderr)
+
+    # Capture successful execution event
+    try:
+        from triads.workspace_manager import get_active_workspace
+        active_workspace = get_active_workspace()
+
+        capture_event(
+            subject="hook",
+            predicate="executed",
+            object_data={
+                "hook": "on_stop",
+                "graph_updates_count": len(updates) if updates else 0,
+                "handoff_requests_count": len(handoff_requests) if handoff_requests else 0,
+                "workflow_completions_count": len(workflow_completions) if workflow_completions else 0,
+                "workspace_paused": active_workspace is not None
+            },
+            workspace_id=active_workspace,
+            hook_name="on_stop",
+            execution_time_ms=(time.time() - start_time) * 1000,
+            metadata={"version": "0.15.0"}
+        )
+    except Exception as e:
+        # Event capture failure should not crash the hook
+        print(f"⚠️  Event capture failed: {e}", file=sys.stderr)
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        # Capture error event if main() crashes
+        import time
+        start_time = time.time()
+        capture_event(
+            subject="hook",
+            predicate="failed",
+            object_data={
+                "hook": "on_stop",
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            hook_name="on_stop",
+            execution_time_ms=0,  # Can't measure time if we don't know when it started
+            metadata={"version": "0.15.0"}
+        )
+        raise  # Re-raise to preserve existing error handling

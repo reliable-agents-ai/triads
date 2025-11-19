@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2025-11-19
+
+### Added
+
+**Complete Event Logging System** - Comprehensive observability for all 10 Claude Code hook event types.
+
+#### Hook Event Logging (10/10 Coverage)
+
+**New Hooks Created (7):**
+- **PreToolUse** (`hooks/pre_tool_use.py`) - Tool pre-execution logging with sensitive data filtering
+- **PostToolUse** (`hooks/post_tool_use.py`) - Tool post-execution logging with response size tracking
+- **PermissionRequest** (`hooks/permission_request.py`) - Security audit trail for permission dialogs
+- **Notification** (`hooks/notification.py`) - System notification event logging
+- **SubagentStop** (`hooks/subagent_stop.py`) - Subagent completion event logging
+- **PreCompact** (`hooks/pre_compact.py`) - Compact operation event logging
+- **SessionEnd** (`hooks/session_end.py`) - Session termination event logging
+
+**Existing Hooks Updated (3):**
+- **SessionStart** (`hooks/session_start.py`) - Added event logging for session initialization, workspace resumption, and pending handoffs
+- **UserPromptSubmit** (`hooks/user_prompt_submit.py`) - Added event logging for user messages, context switches, and routing decisions
+- **Stop** (`hooks/on_stop.py`) - Added event logging for graph updates, handoffs, and workspace pausing
+
+#### Security Features
+
+- **Zero-Trust Model**: Input validation on all JSON data, safe error handling
+- **Sensitive Data Protection**: Automatic redaction of passwords, tokens, API keys in PreToolUse hook
+- **Security Audit Trail**: Permission requests logged with `subject="security"` flag for compliance
+- **Error Isolation**: Hooks never crash main execution; event capture failures handled gracefully
+
+#### Quality Standards
+
+- **SOLID Principles**: Single responsibility (event logging only), minimal dependencies
+- **Clean Code**: Consistent structure across all 10 hooks, descriptive naming, comprehensive docstrings
+- **Zero Bloat**: 77-110 lines per new hook, reusable `capture_event()` API (DRY)
+- **Boy Scout Rule**: Improved existing hooks while adding event logging
+
+#### Documentation
+
+- **Complete Implementation Guide** (`docs/EVENT_LOGGING_SYSTEM.md`)
+  - Event schema documentation
+  - Security compliance details (EDR, SAT, DSaT, CSA, SCA)
+  - Query examples and performance monitoring
+  - Maintenance guidelines
+
+#### Event Coverage
+
+All events logged to `.triads/events.jsonl` in JSONL format (JSON Lines):
+- Session lifecycle (start, end, resumption)
+- User interactions (message submission, context switches, routing)
+- Tool execution (pre/post, permissions, responses)
+- Agent execution (subagent completions)
+- System events (notifications, compaction, graph updates)
+- Error tracking (all hook failures captured)
+
+### Fixed
+
+- **BUG-001-EVENTS-INTEGRATION**: Resolved hooks not capturing events
+  - All hooks now call `capture_event()` with proper error handling
+  - Complete observability for debugging and monitoring
+
 ## [0.15.2] - 2025-01-18
 
 ### Fixed

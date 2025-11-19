@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 """
-SessionStart Hook: Inject Routing + Knowledge Graph Context + Pending Handoffs
+SessionStart Hook: Inject Routing + Knowledge Graph Context + Pending Handoffs + Workspace Resumption
 
 This hook runs at the start of each Claude Code session and injects:
-1. Pending triad handoff instructions (if any)
-2. Routing directives (from plugin ROUTING.md)
-3. Knowledge graph context from all triads
+1. Workspace resumption prompt (if paused workspace detected)
+2. Pending triad handoff instructions (if any)
+3. Routing directives (from plugin ROUTING.md)
+4. Knowledge graph context from all triads
 
 Refactored to use Tool Abstraction Layer (Phase 7).
+Phase 3 (Workspace Resumability): Added auto-resume detection
 
 Hook Type: SessionStart
 Configured in: hooks/hooks.json (plugin)
 
 Previous implementation: 625 lines with embedded graph loading logic
-Current implementation: ~80 lines using KnowledgeTools + handoff detection
+Current implementation: ~100 lines using KnowledgeTools + handoff + workspace resumption
 """
 
 import json
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -31,6 +34,40 @@ if str(repo_root / "hooks") not in sys.path:
 # Import tool layer and common utilities
 from triads.tools.knowledge import KnowledgeTools  # noqa: E402
 from common import get_project_dir, output_hook_result  # noqa: E402
+from triads.resumption_manager import should_auto_resume, generate_resumption_prompt  # noqa: E402
+from triads.events.tools import capture_event  # noqa: E402
+
+
+def check_workspace_resumption():
+    """
+    Check if there's a paused workspace that should auto-resume.
+
+    Returns:
+        tuple: (workspace_id, prompt) if resumable, (None, None) otherwise
+    """
+    try:
+        if not should_auto_resume():
+            return None, None
+
+        # Get active workspace from .active marker
+        from triads.workspace_manager import get_active_workspace
+        workspace_id = get_active_workspace()
+
+        if not workspace_id:
+            return None, None
+
+        # Generate resumption prompt
+        prompt = generate_resumption_prompt(workspace_id)
+
+        if prompt:
+            print(f"⏸️  Paused workspace detected: {workspace_id}", file=sys.stderr)
+            return workspace_id, prompt
+
+        return None, None
+
+    except Exception as e:
+        print(f"⚠️  Error checking workspace resumption: {e}", file=sys.stderr)
+        return None, None
 
 
 def check_pending_handoff():
@@ -151,33 +188,114 @@ def _format_age(timestamp_str):
 
 
 def main():
-    """Generate session context using KnowledgeTools + check pending handoffs."""
-    # Check for pending handoff first
-    pending_handoff = check_pending_handoff()
+    """Generate session context using KnowledgeTools + check pending handoffs + workspace resumption."""
+    start_time = time.time()
 
-    if pending_handoff:
-        # Priority: Show handoff instruction
-        handoff_context = format_handoff_instruction(pending_handoff)
-        print(f"🔗 Pending handoff detected: {pending_handoff['next_triad']}", file=sys.stderr)
-        output_hook_result("SessionStart", handoff_context)
-        return
+    try:
+        # Priority 1: Check for paused workspace resumption
+        workspace_id, resumption_prompt = check_workspace_resumption()
 
-    # No pending handoff - normal session start
-    # Get project directory from environment
-    project_dir = str(get_project_dir())
+        if workspace_id and resumption_prompt:
+            # Highest priority: Show workspace resumption prompt
+            output_hook_result("SessionStart", resumption_prompt)
 
-    # Use KnowledgeTools.get_session_context() instead of 600 lines of logic
-    result = KnowledgeTools.get_session_context(project_dir)
+            # Capture successful execution event
+            capture_event(
+                subject="hook",
+                predicate="executed",
+                object_data={
+                    "hook": "session_start",
+                    "source": "workspace_resumption",
+                    "workspace_resumed": workspace_id,
+                    "has_pending_handoff": False
+                },
+                workspace_id=workspace_id,
+                hook_name="session_start",
+                execution_time_ms=(time.time() - start_time) * 1000,
+                metadata={"version": "0.15.0"}
+            )
+            return
 
-    # Extract context from ToolResult
-    if result.success:
-        context = result.content[0]["text"]
-    else:
-        # Gracefully handle errors
-        context = f"Error loading session context: {result.error}"
+        # Priority 2: Check for pending handoff
+        pending_handoff = check_pending_handoff()
 
-    # Output in Claude Code hook format
-    output_hook_result("SessionStart", context)
+        if pending_handoff:
+            # Show handoff instruction
+            handoff_context = format_handoff_instruction(pending_handoff)
+            print(f"🔗 Pending handoff detected: {pending_handoff['next_triad']}", file=sys.stderr)
+            output_hook_result("SessionStart", handoff_context)
+
+            # Capture successful execution event
+            capture_event(
+                subject="hook",
+                predicate="executed",
+                object_data={
+                    "hook": "session_start",
+                    "source": "pending_handoff",
+                    "workspace_resumed": None,
+                    "has_pending_handoff": True,
+                    "next_triad": pending_handoff['next_triad'],
+                    "request_type": pending_handoff.get('request_type')
+                },
+                workspace_id=workspace_id if workspace_id else None,
+                hook_name="session_start",
+                execution_time_ms=(time.time() - start_time) * 1000,
+                metadata={"version": "0.15.0"}
+            )
+            return
+
+        # Priority 3: Normal session start (no workspace resumption, no handoff)
+        # Get project directory from environment
+        project_dir = str(get_project_dir())
+
+        # Use KnowledgeTools.get_session_context() instead of 600 lines of logic
+        result = KnowledgeTools.get_session_context(project_dir)
+
+        # Extract context from ToolResult
+        if result.success:
+            context = result.content[0]["text"]
+        else:
+            # Gracefully handle errors
+            context = f"Error loading session context: {result.error}"
+
+        # Output in Claude Code hook format
+        output_hook_result("SessionStart", context)
+
+        # Capture successful execution event
+        from triads.workspace_manager import get_active_workspace
+        active_workspace = get_active_workspace()
+
+        capture_event(
+            subject="hook",
+            predicate="executed",
+            object_data={
+                "hook": "session_start",
+                "source": "normal_session",
+                "workspace_resumed": None,
+                "has_pending_handoff": False,
+                "knowledge_context_loaded": result.success
+            },
+            workspace_id=active_workspace,
+            hook_name="session_start",
+            execution_time_ms=(time.time() - start_time) * 1000,
+            metadata={"version": "0.15.0"}
+        )
+
+    except Exception as e:
+        # Capture error event
+        capture_event(
+            subject="hook",
+            predicate="failed",
+            object_data={
+                "hook": "session_start",
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            hook_name="session_start",
+            execution_time_ms=(time.time() - start_time) * 1000,
+            metadata={"version": "0.15.0"}
+        )
+        raise  # Re-raise to preserve existing error handling
 
 
 if __name__ == "__main__":
