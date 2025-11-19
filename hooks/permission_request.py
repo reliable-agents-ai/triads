@@ -24,13 +24,13 @@ import sys
 import time
 from pathlib import Path
 
-# Add src to path for imports
-repo_root = Path(__file__).parent.parent
-if str(repo_root / "src") not in sys.path:
-    sys.path.insert(0, str(repo_root / "src"))
+# Use shared path setup utility (eliminates duplication)
+from setup_paths import setup_import_paths
+setup_import_paths()
 
-from triads.events.tools import capture_event  # noqa: E402
-from triads.workspace_manager import get_active_workspace  # noqa: E402
+# Use shared event capture (eliminates duplication, adds security)
+from event_capture_utils import capture_hook_execution, capture_hook_error  # noqa: E402
+from workspace_manager import get_active_workspace  # noqa: E402
 
 
 def main():
@@ -48,33 +48,25 @@ def main():
         workspace_id = get_active_workspace()
 
         # Capture permission request event (security audit trail)
-        capture_event(
-            subject="security",
-            predicate="permission_requested",
+        capture_hook_execution(
+            hook_name="permission_request",
+            start_time=start_time,
             object_data={
                 "tool_name": tool_name,
                 "tool_use_id": tool_use_id,
-                "has_workspace": workspace_id is not None
+                "has_workspace": workspace_id is not None,
+                "security_event": True
             },
             workspace_id=workspace_id,
-            hook_name="permission_request",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0", "security_event": True}
+            predicate="permission_requested"
         )
 
     except Exception as e:
         # Capture error event
-        capture_event(
-            subject="hook",
-            predicate="failed",
-            object_data={
-                "hook": "permission_request",
-                "error": str(e),
-                "error_type": type(e).__name__
-            },
+        capture_hook_error(
             hook_name="permission_request",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+            start_time=start_time,
+            error=e
         )
 
 

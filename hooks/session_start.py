@@ -24,18 +24,16 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-# Add src and hooks to path for imports
-repo_root = Path(__file__).parent.parent
-if str(repo_root / "src") not in sys.path:
-    sys.path.insert(0, str(repo_root / "src"))
-if str(repo_root / "hooks") not in sys.path:
-    sys.path.insert(0, str(repo_root / "hooks"))
+# Setup import paths using shared utility
+from setup_paths import setup_import_paths
+setup_import_paths()
 
 # Import tool layer and common utilities
 from triads.tools.knowledge import KnowledgeTools  # noqa: E402
 from common import get_project_dir, output_hook_result  # noqa: E402
-from triads.resumption_manager import should_auto_resume, generate_resumption_prompt  # noqa: E402
-from triads.events.tools import capture_event  # noqa: E402
+from resumption_manager import should_auto_resume, generate_resumption_prompt  # noqa: E402
+from event_capture_utils import capture_hook_execution, capture_hook_error  # noqa: E402
+from constants import PLUGIN_VERSION  # noqa: E402
 
 
 def check_workspace_resumption():
@@ -50,7 +48,7 @@ def check_workspace_resumption():
             return None, None
 
         # Get active workspace from .active marker
-        from triads.workspace_manager import get_active_workspace
+        from workspace_manager import get_active_workspace
         workspace_id = get_active_workspace()
 
         if not workspace_id:
@@ -200,19 +198,15 @@ def main():
             output_hook_result("SessionStart", resumption_prompt)
 
             # Capture successful execution event
-            capture_event(
-                subject="hook",
-                predicate="executed",
-                object_data={
-                    "hook": "session_start",
+            capture_hook_execution(
+                "session_start",
+                start_time,
+                {
                     "source": "workspace_resumption",
                     "workspace_resumed": workspace_id,
                     "has_pending_handoff": False
                 },
-                workspace_id=workspace_id,
-                hook_name="session_start",
-                execution_time_ms=(time.time() - start_time) * 1000,
-                metadata={"version": "0.15.0"}
+                workspace_id=workspace_id
             )
             return
 
@@ -226,21 +220,17 @@ def main():
             output_hook_result("SessionStart", handoff_context)
 
             # Capture successful execution event
-            capture_event(
-                subject="hook",
-                predicate="executed",
-                object_data={
-                    "hook": "session_start",
+            capture_hook_execution(
+                "session_start",
+                start_time,
+                {
                     "source": "pending_handoff",
                     "workspace_resumed": None,
                     "has_pending_handoff": True,
                     "next_triad": pending_handoff['next_triad'],
                     "request_type": pending_handoff.get('request_type')
                 },
-                workspace_id=workspace_id if workspace_id else None,
-                hook_name="session_start",
-                execution_time_ms=(time.time() - start_time) * 1000,
-                metadata={"version": "0.15.0"}
+                workspace_id=workspace_id if workspace_id else None
             )
             return
 
@@ -262,38 +252,27 @@ def main():
         output_hook_result("SessionStart", context)
 
         # Capture successful execution event
-        from triads.workspace_manager import get_active_workspace
+        from workspace_manager import get_active_workspace
         active_workspace = get_active_workspace()
 
-        capture_event(
-            subject="hook",
-            predicate="executed",
-            object_data={
-                "hook": "session_start",
+        capture_hook_execution(
+            "session_start",
+            start_time,
+            {
                 "source": "normal_session",
                 "workspace_resumed": None,
                 "has_pending_handoff": False,
                 "knowledge_context_loaded": result.success
             },
-            workspace_id=active_workspace,
-            hook_name="session_start",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+            workspace_id=active_workspace
         )
 
     except Exception as e:
         # Capture error event
-        capture_event(
-            subject="hook",
-            predicate="failed",
-            object_data={
-                "hook": "session_start",
-                "error": str(e),
-                "error_type": type(e).__name__
-            },
-            hook_name="session_start",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+        capture_hook_error(
+            "session_start",
+            start_time,
+            e
         )
         raise  # Re-raise to preserve existing error handling
 

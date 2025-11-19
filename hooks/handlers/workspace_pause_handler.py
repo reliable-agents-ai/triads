@@ -20,7 +20,7 @@ from typing import Dict, Optional
 from setup_paths import setup_import_paths
 setup_import_paths()
 
-from triads.workspace_manager import (  # noqa: E402
+from workspace_manager import (  # noqa: E402
     get_active_workspace,
     mark_workspace_paused
 )

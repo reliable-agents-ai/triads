@@ -24,13 +24,12 @@ import sys
 import time
 from pathlib import Path
 
-# Add src to path for imports
-repo_root = Path(__file__).parent.parent
-if str(repo_root / "src") not in sys.path:
-    sys.path.insert(0, str(repo_root / "src"))
+# Setup import paths using shared utility
+from setup_paths import setup_import_paths
+setup_import_paths()
 
-from triads.events.tools import capture_event  # noqa: E402
-from triads.workspace_manager import get_active_workspace  # noqa: E402
+from event_capture_utils import safe_capture_event, capture_hook_error  # noqa: E402
+from workspace_manager import get_active_workspace  # noqa: E402
 
 
 def main():
@@ -52,36 +51,28 @@ def main():
         # Get active workspace
         workspace_id = get_active_workspace()
 
-        # Capture post-tool-use event
-        capture_event(
-            subject="tool",
-            predicate="post_execution",
+        # Capture post-tool-use event (Note: This is a tool event, not a hook event)
+        # Using safe_capture_event directly since subject is "tool" not "hook"
+        safe_capture_event(
+            hook_name="post_tool_use",
+            predicate="tool_executed",
             object_data={
                 "tool_name": tool_name,
                 "tool_use_id": tool_use_id,
                 "response_size_bytes": response_size,
                 "success": True,
-                "has_workspace": workspace_id is not None
+                "has_workspace": workspace_id is not None,
+                "execution_time_ms": (time.time() - start_time) * 1000
             },
-            workspace_id=workspace_id,
-            hook_name="post_tool_use",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+            workspace_id=workspace_id
         )
 
     except Exception as e:
         # Capture error event
-        capture_event(
-            subject="hook",
-            predicate="failed",
-            object_data={
-                "hook": "post_tool_use",
-                "error": str(e),
-                "error_type": type(e).__name__
-            },
-            hook_name="post_tool_use",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+        capture_hook_error(
+            "post_tool_use",
+            start_time,
+            e
         )
 
 

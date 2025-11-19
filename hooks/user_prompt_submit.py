@@ -22,12 +22,9 @@ import sys
 import time
 from pathlib import Path
 
-# Add src and hooks to path for imports
-repo_root = Path(__file__).parent.parent
-if str(repo_root / "src") not in sys.path:
-    sys.path.insert(0, str(repo_root / "src"))
-if str(repo_root / "hooks") not in sys.path:
-    sys.path.insert(0, str(repo_root / "hooks"))
+# Setup import paths using shared utility
+from setup_paths import setup_import_paths
+setup_import_paths()
 
 # Import common utilities
 from common import output_hook_result, get_project_dir  # noqa: E402
@@ -39,7 +36,7 @@ from triads.llm_routing import discover_context  # noqa: E402
 from workspace_detector import detect_and_handle_context_switch, format_context_detection_summary  # noqa: E402
 
 # Import event capture
-from triads.events.tools import capture_event  # noqa: E402
+from event_capture_utils import capture_hook_execution, capture_hook_error  # noqa: E402
 
 
 # NOTE: detect_work_request() removed in v0.13.0
@@ -721,6 +718,42 @@ def main():
         input_data = json.load(sys.stdin)
         user_prompt = input_data.get('prompt', '')
 
+        # Security: Input size validation (prevent memory exhaustion)
+        from constants import MAX_USER_INPUT_SIZE_KB
+        from security_audit import log_input_validation_failure
+        prompt_size_kb = len(user_prompt.encode('utf-8')) / 1024
+
+        if prompt_size_kb > MAX_USER_INPUT_SIZE_KB:
+            print(
+                f"⚠️ WARNING: User input exceeds size limit "
+                f"({prompt_size_kb:.1f}KB > {MAX_USER_INPUT_SIZE_KB}KB). "
+                f"Truncating to prevent memory exhaustion.",
+                file=sys.stderr
+            )
+
+            # Log to security audit log
+            log_input_validation_failure({
+                "hook": "user_prompt_submit",
+                "original_size_kb": round(prompt_size_kb, 2),
+                "limit_kb": MAX_USER_INPUT_SIZE_KB,
+                "action": "truncated"
+            })
+
+            # Truncate to max size (safely on character boundaries)
+            max_bytes = MAX_USER_INPUT_SIZE_KB * 1024
+            user_prompt = user_prompt.encode('utf-8')[:max_bytes].decode('utf-8', errors='ignore')
+
+            # Log general event
+            safe_capture_event(
+                hook_name="user_prompt_submit",
+                predicate="input_truncated",
+                object_data={
+                    "original_size_kb": prompt_size_kb,
+                    "truncated_to_kb": MAX_USER_INPUT_SIZE_KB,
+                    "reason": "size_limit_exceeded"
+                }
+            )
+
         # PRIORITY 0: Workspace context switch detection (Phase 4)
         context_switch_result = detect_and_handle_context_switch(user_prompt)
 
@@ -736,21 +769,19 @@ def main():
             output_hook_result("UserPromptSubmit", output_message)
 
             # Capture event for blocked context switch
-            from triads.workspace_manager import get_active_workspace
-            capture_event(
-                subject="user",
+            from workspace_manager import get_active_workspace
+            from event_capture_utils import safe_capture_event
+            safe_capture_event(
+                hook_name="user_prompt_submit",
                 predicate="message_blocked",
                 object_data={
-                    "hook": "user_prompt_submit",
                     "message_length": len(user_prompt),
                     "context_switch_blocked": True,
                     "classification": context_switch_result.get("detection_result", {}).get("classification"),
-                    "confidence": context_switch_result.get("detection_result", {}).get("confidence")
+                    "confidence": context_switch_result.get("detection_result", {}).get("confidence"),
+                    "execution_time_ms": (time.time() - start_time) * 1000
                 },
-                workspace_id=get_active_workspace(),
-                hook_name="user_prompt_submit",
-                execution_time_ms=(time.time() - start_time) * 1000,
-                metadata={"version": "0.15.0"}
+                workspace_id=get_active_workspace()
             )
             return
 
@@ -784,22 +815,18 @@ def main():
         output_hook_result("UserPromptSubmit", supervisor_context)
 
         # Capture successful execution event
-        from triads.workspace_manager import get_active_workspace
-        capture_event(
-            subject="user",
-            predicate="message_submitted",
-            object_data={
-                "hook": "user_prompt_submit",
+        from workspace_manager import get_active_workspace
+        capture_hook_execution(
+            "user_prompt_submit",
+            start_time,
+            {
                 "message_length": len(user_prompt),
                 "context_switch_detected": context_switch_detected,
                 "workspace_action": workspace_action,
                 "classification": classification,
                 "routing_decision": discovery_result.get("recommended_action") if discovery_result else None
             },
-            workspace_id=get_active_workspace(),
-            hook_name="user_prompt_submit",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+            workspace_id=get_active_workspace()
         )
 
     except Exception as e:
@@ -809,17 +836,10 @@ def main():
         traceback.print_exc()
 
         # Capture error event
-        capture_event(
-            subject="hook",
-            predicate="failed",
-            object_data={
-                "hook": "user_prompt_submit",
-                "error": str(e),
-                "error_type": type(e).__name__
-            },
-            hook_name="user_prompt_submit",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+        capture_hook_error(
+            "user_prompt_submit",
+            start_time,
+            e
         )
 
         # Output enhanced fallback instructions

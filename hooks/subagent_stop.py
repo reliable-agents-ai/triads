@@ -23,13 +23,13 @@ import sys
 import time
 from pathlib import Path
 
-# Add src to path for imports
-repo_root = Path(__file__).parent.parent
-if str(repo_root / "src") not in sys.path:
-    sys.path.insert(0, str(repo_root / "src"))
+# Use shared path setup utility (eliminates duplication)
+from setup_paths import setup_import_paths
+setup_import_paths()
 
-from triads.events.tools import capture_event  # noqa: E402
-from triads.workspace_manager import get_active_workspace  # noqa: E402
+# Use shared event capture (eliminates duplication, adds security)
+from event_capture_utils import capture_hook_execution, capture_hook_error  # noqa: E402
+from workspace_manager import get_active_workspace  # noqa: E402
 
 
 def main():
@@ -46,32 +46,23 @@ def main():
         workspace_id = get_active_workspace()
 
         # Capture subagent stop event
-        capture_event(
-            subject="agent",
-            predicate="subagent_completed",
+        capture_hook_execution(
+            hook_name="subagent_stop",
+            start_time=start_time,
             object_data={
                 "stop_hook_active": stop_hook_active,
                 "has_workspace": workspace_id is not None
             },
             workspace_id=workspace_id,
-            hook_name="subagent_stop",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+            predicate="subagent_completed"
         )
 
     except Exception as e:
         # Capture error event
-        capture_event(
-            subject="hook",
-            predicate="failed",
-            object_data={
-                "hook": "subagent_stop",
-                "error": str(e),
-                "error_type": type(e).__name__
-            },
+        capture_hook_error(
             hook_name="subagent_stop",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+            start_time=start_time,
+            error=e
         )
 
 

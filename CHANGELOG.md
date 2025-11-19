@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.2] - 2025-11-19
+
+### Fixed
+
+**Plugin Import Error** - Critical fix for `ModuleNotFoundError` when enabling plugin in fresh environments.
+
+**Issue**: When the plugin was installed to a fresh environment, the `session_start.py` hook failed to load with:
+```
+ModuleNotFoundError: No module named 'triads.resumption_manager'
+```
+
+**Root Cause**: Hooks were importing from `src/triads/` package which wasn't accessible in plugin installation directories.
+
+**Solution**: Made plugin self-contained by:
+- Copied `src/triads/resumption_manager.py` → `hooks/resumption_manager.py`
+- Copied `src/triads/workspace_manager.py` → `hooks/workspace_manager.py`
+- Updated all 14 import statements across 12 hook files to import from hooks directory instead of triads package
+
+**Files Modified**:
+- `hooks/resumption_manager.py` (new)
+- `hooks/workspace_manager.py` (new)
+- `hooks/session_start.py` (3 imports updated)
+- `hooks/workspace_detector.py`
+- `hooks/handlers/workspace_pause_handler.py`
+- `hooks/on_stop.py`
+- `hooks/permission_request.py`
+- `hooks/notification.py`
+- `hooks/session_end.py`
+- `hooks/subagent_stop.py`
+- `hooks/pre_tool_use.py`
+- `hooks/post_tool_use.py`
+- `hooks/pre_compact.py`
+- `hooks/user_prompt_submit.py` (2 imports)
+
+**Impact**: Plugin now loads successfully in all environments without requiring Python package installation.
+
 ## [0.16.1] - 2025-11-19
 
 ### Added

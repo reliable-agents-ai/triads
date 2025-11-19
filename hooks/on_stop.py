@@ -44,7 +44,7 @@ from handlers.workspace_pause_handler import WorkspacePauseHandler  # noqa: E402
 from triads.km.detection import detect_km_issues, update_km_queue  # noqa: E402
 from triads.km.formatting import format_km_notification, write_km_status_file  # noqa: E402
 from triads.km.auto_invocation import process_and_queue_invocations  # noqa: E402
-from triads.workspace_manager import get_active_workspace  # noqa: E402
+from workspace_manager import get_active_workspace  # noqa: E402
 
 # Import safe I/O for graph operations
 from triads.hooks.safe_io import safe_load_json_file, safe_save_json_file  # noqa: E402

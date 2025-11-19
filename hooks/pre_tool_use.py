@@ -24,13 +24,12 @@ import sys
 import time
 from pathlib import Path
 
-# Add src to path for imports
-repo_root = Path(__file__).parent.parent
-if str(repo_root / "src") not in sys.path:
-    sys.path.insert(0, str(repo_root / "src"))
+# Setup import paths using shared utility
+from setup_paths import setup_import_paths
+setup_import_paths()
 
-from triads.events.tools import capture_event  # noqa: E402
-from triads.workspace_manager import get_active_workspace  # noqa: E402
+from event_capture_utils import safe_capture_event, capture_hook_error  # noqa: E402
+from workspace_manager import get_active_workspace  # noqa: E402
 
 
 def sanitize_tool_input(tool_input):
@@ -75,34 +74,25 @@ def main():
         workspace_id = get_active_workspace()
 
         # Capture pre-tool-use event
-        capture_event(
-            subject="tool",
-            predicate="pre_execution",
+        safe_capture_event(
+            hook_name="pre_tool_use",
+            predicate="tool_pre_execution",
             object_data={
                 "tool_name": tool_name,
                 "tool_input_keys": list(sanitized_input.keys()) if isinstance(sanitized_input, dict) else None,
                 "tool_use_id": tool_use_id,
-                "has_workspace": workspace_id is not None
+                "has_workspace": workspace_id is not None,
+                "execution_time_ms": (time.time() - start_time) * 1000
             },
-            workspace_id=workspace_id,
-            hook_name="pre_tool_use",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+            workspace_id=workspace_id
         )
 
     except Exception as e:
         # Capture error event
-        capture_event(
-            subject="hook",
-            predicate="failed",
-            object_data={
-                "hook": "pre_tool_use",
-                "error": str(e),
-                "error_type": type(e).__name__
-            },
-            hook_name="pre_tool_use",
-            execution_time_ms=(time.time() - start_time) * 1000,
-            metadata={"version": "0.15.0"}
+        capture_hook_error(
+            "pre_tool_use",
+            start_time,
+            e
         )
 
 

@@ -12,20 +12,20 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional
 
-# Add src to path for imports
-repo_root = Path(__file__).parent.parent
-if str(repo_root / "src") not in sys.path:
-    sys.path.insert(0, str(repo_root / "src"))
+# Setup import paths using shared utility
+from setup_paths import setup_import_paths
+setup_import_paths()
 
-from src.triads.context_detector import (  # noqa: E402
+from triads.context_detector import (  # noqa: E402
     ContextClassification,
     detect_context_switch,
 )
-from src.triads.workspace_manager import (  # noqa: E402
+from workspace_manager import (  # noqa: E402
     get_active_workspace,
     mark_workspace_paused,
 )
-from src.triads.event_logger import log_event  # noqa: E402
+from event_capture_utils import safe_capture_event  # noqa: E402
+from constants import CONFIDENCE_THRESHOLD_AUTO_PAUSE  # noqa: E402
 
 
 def get_workspace_context_summary(workspace_id: str) -> Optional[str]:
@@ -138,19 +138,19 @@ def handle_context_switch(
             workspace_path = Path(".triads/workspaces") / active_workspace
 
             # Log context switch event
-            log_event(
-                workspace_path=workspace_path,
-                subject="workspace",
+            safe_capture_event(
+                hook_name="workspace_detector",
                 predicate="context_switch_detected",
                 object_data={
-                    "user_message": user_message,
+                    "user_message": user_message[:100],  # Truncate for safety
                     "classification": classification.value,
                     "confidence": confidence,
                     "new_work_detected": True,
                 },
+                workspace_id=active_workspace
             )
 
-            if needs_manual or confidence < 0.85:
+            if needs_manual or confidence < CONFIDENCE_THRESHOLD_AUTO_PAUSE:
                 # Low confidence - ask user
                 current_context = get_workspace_context_summary(active_workspace)
                 return {
