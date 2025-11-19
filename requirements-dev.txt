@@ -1,0 +1,30 @@
+# Development dependencies
+
+# Code formatting
+black==24.10.0
+isort==5.13.2
+
+# Linting
+flake8==7.1.1
+pylint==3.3.1
+
+# Type checking
+mypy==1.11.2
+types-setuptools
+types-requests
+
+# Testing
+pytest==8.3.3
+pytest-cov==6.0.0
+pytest-mock==3.14.0
+
+# Security
+bandit==1.7.10
+safety==3.2.8
+
+# Pre-commit
+pre-commit==4.0.1
+
+# Code complexity
+radon==6.0.1
+mccabe==0.7.0
