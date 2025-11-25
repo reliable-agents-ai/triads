@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.3] - 2025-11-25
+
+### Fixed
+
+**Complete Hook Event Registration** - All 10 Claude Code hook events now properly registered and capturing events.
+
+**Issue**: Only 4 of 10 Claude Code hook event types were registered in `hooks.json`, meaning 6 hooks had implementation files but were never called by Claude Code.
+
+**Missing Hooks (Now Registered)**:
+- `SessionEnd` - Session termination events
+- `PostToolUse` - Tool completion events
+- `PermissionRequest` - Permission request events
+- `SubagentStop` - Subagent termination events
+- `PreCompact` - Context compaction events
+- `Notification` - System notification events
+
+**Additional Improvements**:
+- Added event capture to `on_pre_experience_injection.py` for observability
+- Added workspace ID tracking to PreToolUse experience injection hook
+- Removed stale `BUG_HOOKS_NOT_CAPTURING_EVENTS.md` document
+- Added comprehensive test suite for hook registration (`tests/hooks/test_hook_registration.py`)
+
+**Files Modified**:
+- `hooks/hooks.json` - Added 6 missing hook registrations
+- `hooks/on_pre_experience_injection.py` - Added event capture and workspace tracking
+- `hooks/constants.py` - Version bump to 0.16.3
+
+**Files Added**:
+- `tests/hooks/test_hook_registration.py` - 9 tests verifying hook registration
+
+**Files Removed**:
+- `BUG_HOOKS_NOT_CAPTURING_EVENTS.md` - Stale bug document
+
+**Impact**: Full observability across all Claude Code lifecycle events.
+
 ## [0.16.2] - 2025-11-19
 
 ### Fixed

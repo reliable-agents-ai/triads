@@ -79,12 +79,15 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
 
-# Add src to path for imports
-repo_root = Path(__file__).parent.parent
-sys.path.insert(0, str(repo_root / "src"))
+# Setup import paths using shared utility
+from setup_paths import setup_import_paths
+setup_import_paths()
 
+from event_capture_utils import safe_capture_event, capture_hook_error  # noqa: E402
+from workspace_manager import get_active_workspace  # noqa: E402
 from triads.hooks.safe_io import safe_load_json_stdin  # noqa: E402
 
 try:
@@ -267,6 +270,87 @@ def load_config() -> dict:
 # ============================================================================
 
 
+def _should_skip_blocking_for_config(config, knowledge_items, tool_name):
+    """Check if blocking should be skipped based on config and basic conditions.
+
+    Args:
+        config: Configuration dictionary
+        knowledge_items: List of ProcessKnowledge objects
+        tool_name: Name of tool being executed
+
+    Returns:
+        True if blocking should be skipped, False otherwise
+    """
+    # Check if blocking is enabled in config
+    if not config.get("blocking_enabled", True):
+        return True
+
+    if not knowledge_items:
+        return True
+
+    # Never block read-only tools
+    if tool_name in READONLY_TOOLS:
+        return True
+
+    return False
+
+
+def _is_bash_command_blockable(tool_input):
+    """Determine if a Bash command should be subject to blocking checks.
+
+    Args:
+        tool_input: Tool parameters dict containing 'command'
+
+    Returns:
+        True if command is risky and should be checked for blocking
+        False if command is safe or unknown (default to inject)
+    """
+    command = tool_input.get("command", "")
+
+    # Never block safe read-only commands
+    if is_safe_bash_command(command):
+        return False
+
+    # Only block if command is explicitly risky (point-of-no-return)
+    if not is_risky_bash_command(command):
+        # Unknown command - default to inject (don't block)
+        return False
+
+    # Risky command - should be subject to blocking checks
+    return True
+
+
+def _has_very_high_confidence_critical_knowledge(knowledge_items, config):
+    """Check if there is very high confidence CRITICAL knowledge.
+
+    Args:
+        knowledge_items: List of ProcessKnowledge objects
+        config: Configuration dictionary
+
+    Returns:
+        True if very high confidence (>= 0.95) CRITICAL knowledge exists
+        False otherwise
+    """
+    # Check for CRITICAL knowledge
+    critical = [k for k in knowledge_items if k.priority == "CRITICAL"]
+    if not critical:
+        return False
+
+    # High confidence threshold
+    block_threshold = config.get("block_threshold", BLOCK_CONFIDENCE_THRESHOLD)
+    high_confidence = [k for k in critical if k.confidence >= block_threshold]
+    if not high_confidence:
+        return False
+
+    # Very high confidence threshold (>= 0.95)
+    very_high_threshold = config.get(
+        "very_high_threshold", BLOCK_VERY_HIGH_CONFIDENCE_THRESHOLD
+    )
+    very_high_confidence = [k for k in critical if k.confidence >= very_high_threshold]
+
+    return len(very_high_confidence) > 0
+
+
 def should_block_for_knowledge(
     knowledge_items,
     tool_name: str,
@@ -319,62 +403,170 @@ def should_block_for_knowledge(
         ... )
         False
     """
-    # Check if blocking is enabled in config
-    if not config.get("blocking_enabled", True):
+    # Check basic skip conditions
+    if _should_skip_blocking_for_config(config, knowledge_items, tool_name):
         return False
 
-    if not knowledge_items:
-        return False
-
-    # Never block read-only tools
-    if tool_name in READONLY_TOOLS:
-        return False
-
-    # MAGICAL BLOCKING: Parse Bash commands for intent
+    # Special handling for Bash commands
     if tool_name == "Bash":
-        command = tool_input.get("command", "")
-
-        # Never block safe read-only commands
-        if is_safe_bash_command(command):
+        if not _is_bash_command_blockable(tool_input):
             return False
 
-        # Only block if command is explicitly risky (point-of-no-return)
-        if not is_risky_bash_command(command):
-            # Unknown command - default to inject (don't block)
-            return False
-
-        # If we get here, it's a risky command - continue with blocking checks
-
-    # Check for CRITICAL knowledge
-    critical = [k for k in knowledge_items if k.priority == "CRITICAL"]
-    if not critical:
-        return False
-
-    # High confidence threshold
-    block_threshold = config.get("block_threshold", BLOCK_CONFIDENCE_THRESHOLD)
-    high_confidence = [k for k in critical if k.confidence >= block_threshold]
-    if not high_confidence:
-        return False
-
-    # High-stakes context detection
-    # Pattern 1 (Version files + checklists) REMOVED in v0.12.1
-    # Reason: LLM routing and skills system now handle version bumps automatically
-    # The reminder was causing catch-22 blocking situations
-
-    # Pattern 2: Very high confidence (>= 0.95) on any file
-    very_high_threshold = config.get(
-        "very_high_threshold", BLOCK_VERY_HIGH_CONFIDENCE_THRESHOLD
-    )
-    very_high_confidence = [k for k in critical if k.confidence >= very_high_threshold]
-    if very_high_confidence:
-        return True  # BLOCK: Very strong evidence
-
-    return False  # Don't block otherwise
+    # Check for very high confidence CRITICAL knowledge
+    return _has_very_high_confidence_critical_knowledge(knowledge_items, config)
 
 
 # ============================================================================
 # User-Style Interjection Formatting (ADR-003)
 # ============================================================================
+
+
+def _format_checklist_item(knowledge):
+    """Format checklist knowledge item for interjection.
+
+    Args:
+        knowledge: ProcessKnowledge object with checklist type
+
+    Returns:
+        list: Lines of formatted text
+    """
+    lines = [f"**{knowledge.label}** - you need to:"]
+    items = knowledge.content.get("items", [])
+
+    for item in items[:5]:  # Limit to first 5
+        if isinstance(item, dict):
+            status = "🔴 REQUIRED" if item.get("required") else "• "
+            item_text = item.get("item", str(item))
+            file_ref = item.get("file", "")
+            lines.append(f"  {status} {item_text}")
+            if file_ref:
+                lines.append(f"           ({file_ref})")
+        else:
+            lines.append(f"  • {item}")
+
+    return lines
+
+
+def _format_warning_item(knowledge):
+    """Format warning knowledge item for interjection.
+
+    Args:
+        knowledge: ProcessKnowledge object with warning type
+
+    Returns:
+        list: Lines of formatted text
+    """
+    lines = [f"**{knowledge.label}**:"]
+    warning = knowledge.content
+
+    if isinstance(warning, dict):
+        if "condition" in warning:
+            lines.append(f"  Condition: {warning['condition']}")
+        if "risk" in warning:
+            lines.append(f"  Risk: {warning['risk']}")
+        if "consequence" in warning:
+            lines.append(f"  Risk: {warning['consequence']}")
+        if "prevention" in warning:
+            lines.append(f"  How to avoid: {warning['prevention']}")
+        if "mitigation" in warning:
+            lines.append(f"  How to avoid: {warning['mitigation']}")
+
+    return lines
+
+
+def _format_requirement_item(knowledge):
+    """Format requirement knowledge item for interjection.
+
+    Args:
+        knowledge: ProcessKnowledge object with requirement type
+
+    Returns:
+        list: Lines of formatted text
+    """
+    lines = [f"**{knowledge.label}**:"]
+    requirement = knowledge.content
+
+    if isinstance(requirement, dict):
+        if "must" in requirement:
+            lines.append(f"  Requirement: {requirement['must']}")
+        if "rationale" in requirement:
+            lines.append(f"  Why: {requirement['rationale']}")
+
+    return lines
+
+
+def _format_knowledge_item(knowledge):
+    """Format single knowledge item for interjection.
+
+    Uses strategy pattern to dispatch to appropriate formatter.
+
+    Args:
+        knowledge: ProcessKnowledge object
+
+    Returns:
+        list: Lines of formatted text
+    """
+    # Strategy dispatch based on process type
+    formatters = {
+        "checklist": _format_checklist_item,
+        "warning": _format_warning_item,
+        "requirement": _format_requirement_item,
+        "pattern": lambda k: [f"**{k.label}**: {k.description}"]
+    }
+
+    formatter = formatters.get(knowledge.process_type)
+    if formatter:
+        return formatter(knowledge)
+
+    # Default format for unknown types
+    return [f"**{knowledge.label}**: {knowledge.description}"]
+
+
+def _get_interjection_opening(knowledge_items, tool_name):
+    """Get opening line for interjection.
+
+    Args:
+        knowledge_items: List of ProcessKnowledge objects
+        tool_name: Name of tool about to be used
+
+    Returns:
+        str: Opening line
+    """
+    critical = [k for k in knowledge_items if k.priority == "CRITICAL"]
+
+    if critical:
+        return (
+            f"⚠️  Hold on - before you {tool_name.lower()} that file, "
+            f"let me remind you about something important:"
+        )
+    else:
+        return f"Quick heads up before you {tool_name.lower()}:"
+
+
+def _get_interjection_closing(knowledge_items):
+    """Get closing lines for interjection.
+
+    Args:
+        knowledge_items: List of ProcessKnowledge objects
+
+    Returns:
+        list: Closing lines
+    """
+    critical = [k for k in knowledge_items if k.priority == "CRITICAL"]
+
+    lines = [""]
+    if critical:
+        lines.append(
+            "Can you make sure you cover all of these? "
+            "This has caused issues before."
+        )
+    else:
+        lines.append("Just wanted to make sure you're aware of this.")
+
+    lines.append("")
+    lines.append("(This reminder came from our experience-based learning system)")
+
+    return lines
 
 
 def format_as_user_interjection(knowledge_items, tool_name: str) -> str:
@@ -402,79 +594,20 @@ def format_as_user_interjection(knowledge_items, tool_name: str) -> str:
     """
     lines = []
 
-    # Natural opening based on priority
-    critical = [k for k in knowledge_items if k.priority == "CRITICAL"]
-
-    if critical:
-        lines.append(
-            f"⚠️  Hold on - before you {tool_name.lower()} that file, "
-            f"let me remind you about something important:"
-        )
-    else:
-        lines.append(f"Quick heads up before you {tool_name.lower()}:")
-
+    # Add natural opening
+    lines.append(_get_interjection_opening(knowledge_items, tool_name))
     lines.append("")
 
-    # Format each knowledge item naturally
-    for i, knowledge in enumerate(
-        knowledge_items[:MAX_INTERJECTION_ITEMS], 1
-    ):
-        if knowledge.process_type == "checklist":
-            lines.append(f"**{knowledge.label}** - you need to:")
-            items = knowledge.content.get("items", [])
-            for item in items[:5]:  # Limit to first 5
-                if isinstance(item, dict):
-                    status = "🔴 REQUIRED" if item.get("required") else "• "
-                    item_text = item.get("item", str(item))
-                    file_ref = item.get("file", "")
-                    lines.append(f"  {status} {item_text}")
-                    if file_ref:
-                        lines.append(f"           ({file_ref})")
-                else:
-                    lines.append(f"  • {item}")
+    # Format each knowledge item
+    for i, knowledge in enumerate(knowledge_items[:MAX_INTERJECTION_ITEMS], 1):
+        lines.extend(_format_knowledge_item(knowledge))
 
-        elif knowledge.process_type == "warning":
-            lines.append(f"**{knowledge.label}**:")
-            warning = knowledge.content
-            if isinstance(warning, dict):
-                if "condition" in warning:
-                    lines.append(f"  Condition: {warning['condition']}")
-                if "risk" in warning:
-                    lines.append(f"  Risk: {warning['risk']}")
-                if "consequence" in warning:
-                    lines.append(f"  Risk: {warning['consequence']}")
-                if "prevention" in warning:
-                    lines.append(f"  How to avoid: {warning['prevention']}")
-                if "mitigation" in warning:
-                    lines.append(f"  How to avoid: {warning['mitigation']}")
-
-        elif knowledge.process_type == "pattern":
-            lines.append(f"**{knowledge.label}**: {knowledge.description}")
-
-        elif knowledge.process_type == "requirement":
-            lines.append(f"**{knowledge.label}**:")
-            requirement = knowledge.content
-            if isinstance(requirement, dict):
-                if "must" in requirement:
-                    lines.append(f"  Requirement: {requirement['must']}")
-                if "rationale" in requirement:
-                    lines.append(f"  Why: {requirement['rationale']}")
-
+        # Add spacing between items
         if i < len(knowledge_items[:MAX_INTERJECTION_ITEMS]):
             lines.append("")
 
-    # Natural closing
-    lines.append("")
-    if critical:
-        lines.append(
-            "Can you make sure you cover all of these? "
-            "This has caused issues before."
-        )
-    else:
-        lines.append("Just wanted to make sure you're aware of this.")
-
-    lines.append("")
-    lines.append("(This reminder came from our experience-based learning system)")
+    # Add natural closing
+    lines.extend(_get_interjection_closing(knowledge_items))
 
     return "\n".join(lines)
 
@@ -714,7 +847,12 @@ def main():
     CRITICAL: This function MUST handle all errors gracefully.
     On errors, always exit 0 (never block tools on hook failures).
     """
+    start_time = time.time()
+
     try:
+        # Get active workspace for event correlation
+        workspace_id = get_active_workspace()
+
         # Load configuration
         config = load_config()
 
@@ -820,6 +958,19 @@ def main():
             interjection = format_as_user_interjection(relevant_knowledge, tool_name)
             print(interjection, file=sys.stderr)
 
+            # Capture blocking event
+            safe_capture_event(
+                hook_name="pre_experience_injection",
+                predicate="experience_blocked",
+                object_data={
+                    "tool_name": tool_name,
+                    "knowledge_count": len(relevant_knowledge),
+                    "action": "blocked",
+                    "execution_time_ms": (time.time() - start_time) * 1000
+                },
+                workspace_id=workspace_id
+            )
+
             # Log that we blocked
             print(f"\n⚠️  BLOCKED {tool_name} with interjection", file=sys.stderr)
 
@@ -831,12 +982,27 @@ def main():
             output = {"additionalContext": context}
             print(json.dumps(output))
 
+            # Capture injection event
+            safe_capture_event(
+                hook_name="pre_experience_injection",
+                predicate="experience_injected",
+                object_data={
+                    "tool_name": tool_name,
+                    "knowledge_count": len(relevant_knowledge),
+                    "action": "injected",
+                    "execution_time_ms": (time.time() - start_time) * 1000
+                },
+                workspace_id=workspace_id
+            )
+
             # Log non-blocking injection
             print(f"✓ Added context for {tool_name} (non-blocking)", file=sys.stderr)
 
             sys.exit(0)  # EXIT CODE 0: Allow tool with added context
 
     except Exception as e:
+        # Capture error event
+        capture_hook_error("pre_experience_injection", start_time, e)
         # CRITICAL: Never block on errors
         print(f"Experience injection error: {e}", file=sys.stderr)
         sys.exit(0)

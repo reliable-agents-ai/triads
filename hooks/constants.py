@@ -14,7 +14,7 @@ Single source of truth for configuration values.
 # Plugin Metadata
 # ============================================================================
 
-PLUGIN_VERSION = "0.16.0"
+PLUGIN_VERSION = "0.16.3"
 """
 Current plugin version.
 
